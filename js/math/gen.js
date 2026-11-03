@@ -2,6 +2,7 @@
 // d : 0 = base, 1 = standard, 2 = avancé. answer = { kind:'num', fields:[{ value:F, label?, tol?, irreducible? }] } | { kind:'choice', choices, correct }.
 import { F, add, sub, mul, div, fmt, fmtFrac, fmtDec, toNumber, gcd, lcm } from './frac.js';
 import { makeRng, hashSeed } from './rng.js';
+import { GEN2 } from './gen2.js';
 
 const n = x => fmt(typeof x === 'number' ? F(x) : x);              // 3 · −2 · 2,5 · 1/3
 const p = x => { const v = typeof x === 'number' ? F(x) : x; return v.n < 0 ? `(${n(v)})` : n(v); };
@@ -288,7 +289,7 @@ function divisors(N) { const out = []; for (let i = 1; i <= N; i++) if (N % i ==
 // Fabrique un exercice reproductible
 const FRAC_IDS = new Set(['qc_s1_ari_03', 'qc_s1_ari_04', 'qc_s1_ari_05', 'qc_s1_prb_02', 'qc_s1_pro_02']);
 export function makeExercise(id, seed, d = 1) {
-  const g = GEN[id]; if (!g) throw new Error(`compétence inconnue ${id}`);
+  const g = GEN[id] || GEN2[id]; if (!g) throw new Error(`compétence inconnue ${id}`);
   const rng = makeRng(hashSeed(id, seed, d));
   const ex = { id, seed, d, ...g(rng, d) };
   if (ex.answer.kind === 'num' && (FRAC_IDS.has(id) || ex.data.mode === 'frac')) ex.answer.fields.forEach(f => { f.frac = true; });
@@ -297,5 +298,12 @@ export function makeExercise(id, seed, d = 1) {
 // Réponse canonique (pour l’affichage après réussite et pour les tests)
 export function canonical(answer) {
   if (answer.kind === 'choice') return answer.choices[answer.correct];
-  return answer.fields.map(f => fmt(f.value, { asFraction: !!f.frac && f.value.d !== 1 })).join(' ; ');
+  return answer.fields.map(f => (f.pi ? piText(f.value) : fmt(f.value, { asFraction: !!f.frac && f.value.d !== 1 }))).join(' ; ');
 }
+// 12π · π · 3π/4 · π/2
+export function piText(c) {
+  const sign = c.n < 0 ? '−' : '', a = Math.abs(c.n);
+  return `${sign}${a === 1 ? '' : a}π${c.d === 1 ? '' : `/${c.d}`}`;
+}
+
+export { GEN2 };

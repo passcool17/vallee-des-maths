@@ -26,7 +26,7 @@ ok('fmt', fmt(F(5, 2)) === '2,5' && fmt(F(1, 3)) === '1/3' && fmt(F(-7)) === 'âˆ
 ok('rng reproductible', makeRng(42).next() === makeRng(42).next() && makeRng('a').int(1, 6) === makeRng('a').int(1, 6));
 ok('add/mul', eq(add(F(1, 3), F(1, 4)), F(7, 12)) && eq(mul(F(2, 3), F(3, 4)), F(1, 2)));
 
-const extra = process.argv.includes('--core') ? [] : ['./test-gen.mjs', './test-logic.mjs'];
+const extra = process.argv.includes('--core') ? [] : ['./test-gen.mjs', './test-gen2.mjs', './test-logic.mjs'];
 for (const m of extra) { try { const r = await import(m); const o = await r.run(ok); console.log(o || ''); } catch (e) { if (e.code === 'ERR_MODULE_NOT_FOUND' && e.message.includes(m.slice(2))) console.log(`(${m} absent)`); else { ok(`charge ${m}`, false, e.stack); } } }
 console.log(`\n${pass} PASS, ${fail} FAIL`); for (const f of fails) console.log('FAIL', f);
 process.exit(fail ? 1 : 0);
