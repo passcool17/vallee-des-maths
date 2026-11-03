@@ -1,0 +1,14 @@
+# Publication GitLab Pages : jeu 100 % statique, aucun build. On copie les fichiers servis dans public/.
+stages: [deploy]
+
+pages:
+  stage: deploy
+  image: alpine:3.20
+  script:
+    - mkdir -p public
+    - cp -r index.html style.css favicon.svg .nojekyll js vendor public/
+  artifacts:
+    paths: [public]
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
