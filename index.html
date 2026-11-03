@@ -1,1 +1,35 @@
-<!doctype html><html lang="fr-CA"><head><meta charset="utf-8"><title>Vallée des Maths</title></head><body>En construction.</body></html>
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Vallée des Maths</title>
+<meta name="description" content="Une petite île douillette où les maths du secondaire 1 améliorent tes outils.">
+<meta name="theme-color" content="#f6c98f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="L’île de la Vallée des Maths"></canvas>
+<div id="hud">
+  <div class="chips"><span id="money" class="chip"></span><span id="clock" class="chip"></span><span id="bag" class="chip"></span></div>
+  <div class="btns"><button id="btn-carnet" class="round" title="Carnet (C)" aria-label="Ouvrir le carnet">📒</button><button id="btn-son" class="round" title="Son (M)" aria-label="Couper ou remettre le son">🔊</button></div>
+</div>
+<div id="prompt" class="hidden"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="touch"><div id="stick"><div id="knob"></div></div><button id="act" aria-label="Interagir">✋</button></div>
+<div id="panel" class="panel hidden" role="dialog" aria-modal="true"></div>
+<div id="title">
+  <div class="card">
+    <h1>Vallée des Maths</h1>
+    <p class="sub">Une petite île, trois voisins, pis des maths de secondaire 1 pour améliorer tes outils.</p>
+    <button id="play" class="btn primary big">Jouer</button>
+    <button id="new" class="btn small hidden">Nouvelle partie</button>
+    <p class="keys desk">ZQSD / WASD ou flèches pour marcher · clic pour aller quelque part · <kbd>E</kbd> pour interagir · <kbd>C</kbd> carnet · <kbd>M</kbd> son</p>
+    <p class="keys mob">Joystick pour marcher · touche l’écran pour aller quelque part · ✋ pour interagir</p>
+  </div>
+</div>
+<noscript>Ce jeu a besoin de JavaScript.</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
