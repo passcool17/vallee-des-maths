@@ -1,4 +1,4 @@
-# Vallée des Maths : le jeu (étapes 1 et 2)
+# Vallée des Maths : le jeu (étapes 1 et 2, île de Secondaire 2)
 
 ## Concept
 
@@ -11,6 +11,8 @@ Aucune pénalité, jamais. Une mauvaise réponse ne coûte ni argent ni progrès
 - **Gaston le castor** tient l’établi. Il améliore les outils.
 - **Ginette l’orignale** tient le Magasin général. Elle achète ce que tu as dans ton sac et vend du décor et des ponts.
 - **Flocon le harfang** propose les défis (1,00 $ par bonne réponse), tient le carnet et anime les réchauffements.
+- **Rosalie la loutre** (île 2) garde le phare, tient l’atelier du niveau 4 et propose les défis de Secondaire 2.
+- **Bernard le huard** (île 2) tient le kiosque de pêche et donne les appâts rares.
 
 ### Boucle de jeu
 
@@ -64,6 +66,48 @@ Chaque achat affiche un ticket avec le prix, un rabais du jour éventuel (10 à 
 
 Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, proportionnalité, algèbre, probabilités, statistique, géométrie). Pour chacune, il montre la référence PDA du MEQ, la maîtrise (●●●), les préalables et le cadenas. On y trouve aussi les étoiles des outils et le journal : poissons (dont les prises rares), sirop, papillons, trouvailles, fleurs et sous gagnés. La section **✨ Prises rares et sirop** compte chaque prise rare et chaque cruchon.
 
+## L’île de Secondaire 2
+
+### Le traversier
+
+Le quai du traversier est sur l’île 1. Il ouvre quand **les 5 outils sont au niveau 2 ou plus**. Tant qu’il est fermé, le capitaine explique pourquoi et montre où en est chaque outil (par exemple 🎣 2/2 ✓, ⛏️ 1/2). Une fois ouvert, il fait l’aller-retour quand on veut. La partie est la même sur les deux îles : sous, sac, carnet et outils suivent. L’île 2 n’est construite qu’au premier passage, pour ne rien ralentir avant. Elle a les mêmes 4 moments de la journée.
+
+### Le décor
+
+Un phare rouge et blanc au nord-est, des sapins et des épinettes, des rochers, une rivière qui descend par deux petites chutes jusqu’au lac, avec une passerelle, des érables rouges, le kiosque de Bernard et son quai.
+
+### Ce qu’on y fait
+
+| Action | Où | Ce que ça donne |
+| --- | --- | --- |
+| Pêcher | quai de Bernard | Les touches rares lancent une question de **Secondaire 2**. Bonne réponse : gros doré (basique, 9 $), saumon atlantique (standard, 14 $) ou bar rayé (avancé, 20 $) |
+| Secouer un érable rouge | érables rouges | Des sous, et environ une fois sur trois une question de Secondaire 2 pour remplir son seau de sirop |
+| Piger au kiosque | kiosque de Bernard | Une pige par jour : une question de tirages avec ou sans remise. Réussie : un **appât rare**, qui garantit une touche rare au quai de l’île 2. Ratée : la réponse est montrée, et on revient le lendemain |
+| Réparer le phare | phare de Rosalie | 3 étapes à partir d’un plan à l’échelle : hauteur réelle de la tour (échelle), aire de vitre de la lanterne (aire latérale d’un cylindre), aire de la lentille (aire du disque). 5,00 $ à la fin, et **le phare s’allume la nuit**, avec ses faisceaux qui tournent |
+| Améliorer au niveau 4 | atelier de Rosalie | Le niveau 4 de chaque outil n’existe que sur l’île 2. Il faut l’outil au niveau 3 et 3 bonnes réponses dans la compétence de Secondaire 2 de l’outil |
+
+### Le niveau 4 des outils
+
+| Outil | Compétence (Sec 2) | Effet au niveau 4 |
+| --- | --- | --- |
+| 🎣 Canne | Proportion directe et inverse | Touches encore plus rapides, 2,4 s pour ferrer, plus de prises rares |
+| 🚿 Arrosoir | Aire du disque et du secteur | 4 plates-bandes, 2,00 $ chacune |
+| 🦋 Filet | Tirages avec ou sans remise | Portée 4, réussite assurée |
+| ⛏️ Pelle | Équations (inconnue des deux côtés) | Chance 4/4 |
+| 🎒 Sac | Opérations sur les fractions | 30 places |
+
+### Les 12 compétences de Secondaire 2
+
+Opérations sur les fractions · Pourcentages et taxes · Proportion directe et inverse · Échelle et figures semblables · Distributivité · Mise en évidence simple · Équations (inconnue des deux côtés) · Table de valeurs et règle · Aire du disque et du secteur · Aire des solides · Angles et droites parallèles · Tirages avec ou sans remise.
+
+Chacune a un générateur seedé à 3 niveaux, des indices gradués et des réponses « presque » reconnues. Plusieurs exercices ont une figure (cercle, secteur, solide, droites parallèles) ou une table de valeurs. Chaque compétence a un préalable de Secondaire 1. S’il manque, Rosalie propose un **réchauffement de Secondaire 1** sur ce préalable.
+
+**Réponses avec π.** Quand la réponse peut contenir π, le pavé numérique remplace la touche C par une touche **π** (au clavier : P). On accepte la réponse exacte (par exemple `625π`, `3π/4` ou `pi`) ou une valeur décimale arrondie comme demandé, avec π ≈ 3,14 ou avec la valeur de la calculatrice (pour 625π : `1962,5` ou `1963,5`). Une valeur presque bonne reçoit un « Presque! Arrondis… ».
+
+### Le carnet
+
+Il a deux onglets, **Sec 1** et **Sec 2**. Sur l’île 2, il s’ouvre sur Sec 2. L’onglet Sec 2 montre les 12 compétences, leurs préalables de Secondaire 1 marqués « (sec. 1) », ainsi que l’état du traversier, du phare et des appâts rares.
+
 ## Contrôles
 
 | | Clavier / souris | Mobile |
@@ -72,7 +116,7 @@ Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, pro
 | Courir | Maj | Pousser le joystick au bout |
 | Aller quelque part | Clic sur le sol ou sur un objet | Toucher |
 | Interagir | E, Espace ou Entrée | Bouton ✋ |
-| Répondre | Chiffres, `,` `.` `/` `-`, Retour arrière, Entrée, Tab pour changer de champ | Pavé numérique à l’écran |
+| Répondre | Chiffres, `,` `.` `/` `-`, Retour arrière, Entrée, Tab pour changer de champ, P pour π quand la réponse en a | Pavé numérique à l’écran (touche π au besoin) |
 | Carnet | C | 📒 |
 | Son | M | 🔊 |
 | Pause | P (P, Échap, Entrée ou Espace pour reprendre) | ⏸ dans une question, puis « Reprendre » |
@@ -80,7 +124,7 @@ Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, pro
 
 ## État et sauvegarde
 
-L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 2` depuis l’étape 2) toutes les 5 s et après chaque réponse. Il contient :
+L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 3` depuis l’île de Secondaire 2) toutes les 5 s et après chaque réponse. Il contient :
 
 - `money` en cents, `clock` (0–1), `seed`, `bag[]`
 - `tools{outil: niveau}` et `upg{outil: progrès}`
@@ -89,13 +133,14 @@ L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1
 - `journal{fish, bugs, finds, flowers, coins, rare, sirop}`
 - `rares{objet: nb}` (prises rares et sirop), `quotes{article: {day, n}}` (devis mémorisés), `day` (jour du jeu)
 - `met{villageois: nb}` et `exCount`
+- Secondaire 2 : `island` (1 ou 2), `ferry`, `phare{step, done, redo}`, `appats`, `kiosk{day}`
 
-Une sauvegarde de l’étape 1 (v1) se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v2 sous la même clé. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
+Une sauvegarde de l’étape 1 (v1) ou de l’étape 2 (v2) se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v3 sous la même clé. Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
 
 ## Prochaines idées
 
 - Plus de questions en action : répartir l’eau en fractions à l’arrosoir, prévoir une probabilité avant le coup de filet à papillons.
-- **Île de Secondaire 2**, accessible par bateau une fois le carnet de Secondaire 1 bien rempli, avec ses compétences propres et de nouveaux villageois.
+- Une île de Secondaire 3, plus loin que le phare.
 - Révision espacée : Flocon ramène les notions maîtrisées il y a longtemps.
 - Une vue enseignant ou parent, qui exporte le carnet.
 - Saisons : hiver avec pêche blanche, puis printemps et cabane à sucre.
