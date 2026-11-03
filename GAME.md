@@ -122,6 +122,10 @@ Il a deux onglets, **Sec 1** et **Sec 2**. Sur l’île 2, il s’ouvre sur Sec 
 | Pause | P (P, Échap, Entrée ou Espace pour reprendre) | ⏸ dans une question, puis « Reprendre » |
 | Laisser filer | Bouton « Laisser filer » ou Échap | Bouton « Laisser filer » ou ✕ |
 
+## Musique
+
+Chaque île a sa musique, en boucle : « Une petite île 1 » sur l’île de Secondaire 1 et « Une petite île 2 » sur l’île de Secondaire 2 (pistes de passcool17, `music/ile1.mp3` et `music/ile2.mp3`). Elle démarre quand on touche « Jouer ». Au traversier, une piste se fond dans l’autre. La musique baisse un peu pendant une question ou un dialogue, pour qu’on entende bien les effets, et elle s’arrête pendant la pause. M ou 🔊 coupe tout le son, et ce choix est sauvegardé. La piste 2 ne se télécharge que lorsque le traversier s’ouvre. Si une piste ne se charge pas, le jeu continue sans musique.
+
 ## État et sauvegarde
 
 L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 3` depuis l’île de Secondaire 2) toutes les 5 s et après chaque réponse. Il contient :

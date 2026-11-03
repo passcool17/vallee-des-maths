@@ -32,6 +32,7 @@ node tools/test-math.mjs        # 139 743 vérifications : générateurs Sec 1 e
 node tools/serve.js 8653 &
 node tools/test.cjs 8653        # parcours Playwright de l’île 1, bureau 1280×800 puis mobile 390×844 (ONLY=desktop|mobile pour un seul)
 node tools/test-s2.cjs          # parcours de l’île de Secondaire 2 (traversier, phare, kiosque, niveau 4, carnet, FPS)
+node tools/test-music.cjs 8653  # musique : piste 1 sur l’île 1, piste 2 sur l’île 2, retour, pause, muet, piste introuvable
 ```
 
 `tools/test.cjs` joue une vraie partie avec de vraies entrées : clavier, clic pour marcher, joystick, bouton ✋ et pavé numérique. Il améliore la canne et l’arrosoir, déclenche un réchauffement, achète un nichoir en calculant le total avec rabais, TPS et TVQ, puis pêche. Pour l’étape 2, il force des touches rares (bonne réponse, mauvaise réponse, « Laisser filer », temps écoulé), vérifie que le chrono s’arrête en pause (P, ⏸, onglet caché), répond à une question de fractions à l’érable, contrôle le carnet et recharge une vieille sauvegarde v1. Il vérifie aussi qu’il n’y a aucune erreur JS et que l’interface ne se chevauche pas. Les captures vont dans `../shots/`.
@@ -51,7 +52,8 @@ js/flows.js        dialogues, établi, exercices + indices, réchauffements, que
 js/actionq.js      étape 2 : chance de touche rare, choix de la question et du niveau, butin, chrono (pur, testé)
 js/ui.js           HUD, panneaux, pavé numérique
 js/input.js        clavier (event.code), clic/tap pour marcher, joystick tactile
-js/audio.js        musique et effets synthétisés (WebAudio), sourdine
+js/audio.js        musique de fond par île (fondu au traversier, baisse pendant les questions), effets synthétisés (WebAudio), sourdine
+music/             ile1.mp3 et ile2.mp3 (« Une petite île 1 » et « 2 », de passcool17), 128 kb/s
 js/progression.js  outils × niveaux, maîtrise, préalables
 js/shop.js         catalogue, devis mémorisé jusqu’à l’achat ou au lendemain (rabais + TPS 5 % + TVQ 9,975 %), vérification du total
 js/save.js         sauvegarde localStorage (clé vdm.save.v1, format v: 3, normalisation des vieilles parties v1 et v2)

@@ -1,11 +1,10 @@
-// Musique douce et effets sonores synthétisés (WebAudio). Rien n’est chargé : tout est généré.
+// Musique de fond : une piste par île (music/ile1.mp3, music/ile2.mp3), en boucle, fondu enchaîné au traversier.
+// Effets sonores synthétisés (WebAudio). La piste 2 n’est téléchargée qu’au besoin; une piste introuvable = silence, sans erreur.
+const VOL = 0.32, DUCK = 0.55, FADE = 1.2; // musique sous les effets; un peu plus bas pendant une question
 export function makeAudio() {
-  let ctx = null, master, music, sfxBus, muted = false, phase = 'matin', timer = null, step = 0, nextT = 0;
+  let ctx = null, master, music, sfxBus, muted = false, paused = false, ducked = false, cur = 0;
   const NOTE = n => 440 * 2 ** ((n - 69) / 12);
-  // Fa majeur : I – vi – IV – V, arpèges pentatoniques
-  const CHORDS = [[53, 57, 60, 65, 69], [50, 53, 57, 62, 65], [46, 50, 53, 58, 62], [48, 52, 55, 60, 64]];
-  const PATTERN = [0, 2, 4, 3, 1, 3, 2, 4];
-  const PH = { matin: { up: 12, cut: 2600, vol: 1 }, midi: { up: 12, cut: 3200, vol: 1 }, doree: { up: 12, cut: 1900, vol: 0.9 }, nuit: { up: 0, cut: 1200, vol: 0.75 } };
+  const tracks = {}; // n → { el, g }
   function tone(t, f, dur, { type = 'triangle', vol = 0.2, bus = sfxBus, attack = 0.01, glide = 0 } = {}) {
     const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (glide) o.frequency.exponentialRampToValueAtTime(glide, t + dur);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
@@ -17,31 +16,39 @@ export function makeAudio() {
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = buf; f.type = 'lowpass'; f.frequency.value = cut; f.Q.value = q; g.gain.value = vol;
     s.connect(f); f.connect(g); g.connect(sfxBus); s.start(t);
   }
-  function schedule() {
-    const spb = 60 / 84 / 2; // croches
-    while (nextT < ctx.currentTime + 0.4) {
-      const ch = CHORDS[Math.floor(step / 16) % 4], p = PH[phase];
-      const n = ch[PATTERN[step % 8]] + p.up;
-      if (step % 8 !== 7 || step % 32 === 7) tone(nextT, NOTE(n), spb * 2.2, { vol: 0.07 * p.vol, bus: music, attack: 0.02 });
-      if (step % 8 === 0) tone(nextT, NOTE(ch[0] - 12), spb * 7, { type: 'sine', vol: 0.09 * p.vol, bus: music, attack: 0.08 });
-      if (step % 16 === 0) for (const k of [1, 2, 3]) tone(nextT, NOTE(ch[k]), spb * 15, { type: 'sine', vol: 0.025 * p.vol, bus: music, attack: 0.6 });
-      music.filter.frequency.setTargetAtTime(p.cut, nextT, 0.5);
-      nextT += spb; step++;
+  function track(n, preload = 'auto') { // créée au premier besoin seulement (chargement paresseux)
+    if (tracks[n] || !ctx) return tracks[n];
+    const el = new Audio(); el.loop = true; el.preload = preload; el.src = `music/ile${n}.mp3`; el.addEventListener('error', () => {}); el.addEventListener('canplay', () => +n === cur && !muted && !paused && el.paused && play(el));
+    const g = ctx.createGain(); g.gain.value = 0;
+    try { ctx.createMediaElementSource(el).connect(g); g.connect(music); } catch { /* lecteur sans WebAudio sur <audio> : on reste muet */ }
+    return (tracks[n] = { el, g });
+  }
+  const play = el => { const p = el.play(); p && p.catch(() => {}); };
+  function sync() { // applique île courante + muet + pause à toutes les pistes, avec fondu
+    if (!ctx) return; const t = ctx.currentTime, on = !muted && !paused;
+    music.gain.setTargetAtTime(ducked ? VOL * DUCK : VOL, t, 0.3);
+    for (const [n, k] of Object.entries(tracks)) {
+      const live = +n === cur && on;
+      k.g.gain.cancelScheduledValues(t); k.g.gain.setValueAtTime(k.g.gain.value, t); k.g.gain.linearRampToValueAtTime(live ? 1 : 0, t + (on ? FADE : 0.05));
+      if (live) play(k.el); else if (!on) k.el.pause(); else { clearTimeout(k.stop); k.stop = setTimeout(() => +n !== cur && k.el.pause(), FADE * 1000 + 100); }
     }
   }
   const A = {
     get started() { return !!ctx; }, get muted() { return muted; },
-    start() {
+    start(island = 1) { // à appeler dans le geste « Jouer » (iOS / blocage de lecture automatique)
       if (ctx) { ctx.resume(); return; }
       const AC = globalThis.AudioContext || globalThis.webkitAudioContext; if (!AC) return;
       ctx = new AC(); master = ctx.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(ctx.destination);
-      const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 2400; filter.connect(master);
-      music = ctx.createGain(); music.gain.value = 0.9; music.connect(filter); music.filter = filter;
+      music = ctx.createGain(); music.gain.value = VOL; music.connect(master);
       sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
-      nextT = ctx.currentTime + 0.1; timer = setInterval(schedule, 120);
+      A.island(island);
     },
-    setMuted(m) { muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : 0.7, ctx.currentTime, 0.05); },
-    setPhase(p) { phase = p; },
+    island(n) { cur = n; track(n); sync(); },   // fondu enchaîné vers la piste de l’île n
+    preload(n) { track(n); },                    // ex. dès que le traversier s’ouvre
+    setMuted(m) { muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : 0.7, ctx.currentTime, 0.05); sync(); },
+    setPaused(p) { if (p !== paused) { paused = p; sync(); } },
+    duck(d) { if (d !== ducked) { ducked = d; sync(); } },
+    get playing() { return Object.fromEntries(Object.entries(tracks).map(([n, k]) => [n, !k.el.paused && k.g.gain.value > 0.01])); }, // pour les tests
     sfx(name) {
       if (!ctx || muted) return; const t = ctx.currentTime + 0.01;
       switch (name) {

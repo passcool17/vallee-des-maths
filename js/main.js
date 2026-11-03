@@ -206,7 +206,7 @@ const pauseEl = document.getElementById('pause');
 G.pause = on => {
   if (!started || G.paused === on) return;
   G.paused = on; pauseEl.classList.toggle('hidden', !on); document.body.classList.toggle('paused', on);
-  if (on) { player.cancelWalk(); G.save(); } else last = performance.now();
+  audio.setPaused(on); if (on) { player.cancelWalk(); G.save(); } else last = performance.now();
 };
 document.getElementById('resume').addEventListener('click', e => { e.currentTarget.blur(); audio.sfx('click'); G.pause(false); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') G.pause(true); });
@@ -217,7 +217,7 @@ const hasSave = !params.has('fresh') && Object.keys(state.mastery).length + stat
 if (hasSave) { document.getElementById('play').textContent = 'Continuer'; document.getElementById('new').classList.remove('hidden'); }
 document.getElementById('new').addEventListener('click', () => { if (confirm('Effacer ta partie et recommencer?')) { reset(); location.search = '?fresh=1'; } });
 document.getElementById('play').addEventListener('click', () => {
-  if (started) return; started = true; document.getElementById('title').remove(); audio.start(); audio.setMuted(state.muted);
+  if (started) return; started = true; document.getElementById('title').remove(); audio.start(state.island); audio.setMuted(state.muted);
   if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île! Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }
 });
 
@@ -236,13 +236,13 @@ function frame(now) {
   G.time += dt;
   frames++; fpsT += dt; if (fpsT >= 1) { fps = frames / fpsT; frames = 0; fpsT = 0; }
   if (fixedTime == null) { const prev = state.clock; state.clock = (state.clock + dt / DAY) % 1; if (state.clock < prev) state.day++; }
-  const t = world.setTime(state.clock); G.night = t.night; if (t.phase !== G.phase) { G.phase = t.phase; audio.setPhase(t.phase); }
+  const t = world.setTime(state.clock); G.night = t.night; if (t.phase !== G.phase) G.phase = t.phase;
   const mv = ui.isOpen || !started ? { x: 0, z: 0, run: false } : input.move();
   if ((mv.x || mv.z) && fishing.state) stopFishing();
   player.update(dt, mv, walkableFn);
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
-  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); } } updateFx(dt); flows.tick(dt);
+  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels();
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
@@ -263,7 +263,7 @@ document.body.appendChild(fondu);
 G.travel = async (to, { instant = false } = {}) => {
   if (to !== 1 && to !== 2) return false;
   if (to === 2 && !canFerry(state)) return false;
-  stopFishing(); player.cancelWalk();
+  stopFishing(); player.cancelWalk(); audio.island(to); // tout de suite, encore dans le geste du joueur
   if (!instant) { fondu.textContent = to === 2 ? '⛴️ Cap sur l’île de secondaire 2…' : '⛴️ Retour vers la Vallée des Maths…'; fondu.style.pointerEvents = 'auto'; fondu.style.opacity = '1'; audio.sfx('splash'); await new Promise(r => setTimeout(r, 650)); }
   if (to === 2) ensureIsle2();
   state.island = to; if (to === 2) state.ferry = true; showIsland();
