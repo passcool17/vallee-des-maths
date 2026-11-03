@@ -15,7 +15,10 @@ export function curved(material) {
       wp = modelMatrix * wp;
       vec2 dd = wp.xz - uCenter; wp.y -= dot(dd, dd) * uCurve;
       vec4 mvPosition = viewMatrix * wp;
-      gl_Position = projectionMatrix * mvPosition;`);
+      gl_Position = projectionMatrix * mvPosition;`).replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+      #if defined( USE_SHADOWMAP ) || defined( USE_ENVMAP ) || defined( DISTANCE ) || defined( USE_TRANSMISSION ) || NUM_SPOT_LIGHT_COORDS > 0
+        { vec2 de = worldPosition.xz - uCenter; worldPosition.y -= dot(de, de) * uCurve; } // ombres : même courbure que l’image
+      #endif`);
   };
   material.customProgramCacheKey = () => 'curved';
   return material;

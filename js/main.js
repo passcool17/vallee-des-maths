@@ -2,6 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { buildWorld, curve, curveDrop, phaseOf, TIME_NOMS, PLACES, DOCK, FERRY, updateLabels, mesh, at } from './world.js';
 import { buildIsland2 } from './island2.js';
+import * as J from './joli.js';
 import { makePlayer } from './player.js';
 import { makeVillagers } from './villagers.js';
 import { makeInput } from './input.js';
@@ -27,27 +28,28 @@ const canvas = document.getElementById('c');
 const touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 document.body.classList.toggle('touch', touch);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !touch, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, touch ? 1.75 : 2));
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 900);
+renderer.setPixelRatio(Math.min(devicePixelRatio, touch ? 1.75 : 2)); J.setupRenderer(renderer);
+const scene = new THREE.Scene(); J.setScene(scene);
+const camera = new THREE.PerspectiveCamera(J.CAM.fov, 1, 0.5, 900);
 const rng = makeRng(state.seed ^ 0xbeef);
 
 const ui = makeUI(), audio = makeAudio(); audio.setMuted(!!state.muted);
 const G = { state, time: 0, paused: false, night: 0, phase: 'matin', ui, audio, save: () => { state.pos = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2) }; save(state); } };
 const world = buildWorld(scene, G); G.world = world;
+J.addGrass(world.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6cb946', count: 2600, ok: (x, z) => world.walkable(x, z, { bridges: {} }) && !Object.values(PLACES).some(([px, pz]) => Math.hypot(px - x, pz - z) < 3.2) && Math.abs(x - (6 * ((z + 10) / 36) ** 2 - 0.5)) > 1.6 });
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
 const allVillagers = makeVillagers(world.root); G.allVillagers = allVillagers;
 let isle2 = null;
-function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); return isle2; }
+function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); J.addGrass(isle2.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6fae58', count: 2400, ok: (x, z) => isle2.walkable(x, z, state) }); J.dress(isle2.root); return isle2; }
 if (state.island === 2) ensureIsle2();
 const W = () => state.island === 2 && isle2 ? isle2 : world; G.W = W;
 let villagers = [];
 function showIsland() { world.root.visible = state.island !== 2; if (isle2) isle2.root.visible = state.island === 2; villagers = allVillagers.filter(v => v.isle === (state.island === 2 ? 2 : 1)); G.villagers = villagers; }
 showIsland();
 const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.island === 2 ? { x: FERRY.arrive[0], z: FERRY.arrive[1] } : { x: 2, z: 6 };
-const player = makePlayer(scene, start); G.player = player;
+const player = makePlayer(scene, start); G.player = player; J.dress(scene);
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
 
@@ -225,7 +227,7 @@ document.getElementById('play').addEventListener('click', () => {
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 const camPos = new THREE.Vector3(), look = new THREE.Vector3();
-function camOffset() { const portrait = camera.aspect < 0.8; return portrait ? [0, 22, 22] : [0, 15.5, 18.5]; }
+function camOffset() { const portrait = camera.aspect < 0.8; return (portrait ? [0, 22, 22] : [0, 15.5, 18.5]).map(v => v * J.CAM.k); }
 { const o = camOffset(); camPos.set(player.pos.x + o[0], o[1], player.pos.z + o[2]); }
 let last = performance.now(), saveT = 0, frames = 0, fpsT = 0, fps = 60;
 const waiters = [];
@@ -243,7 +245,7 @@ function frame(now) {
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
-  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels();
+  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi);
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
   if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? (fishing.rare ? 'Ça mord fort! Ferre!' : 'Ça mord! Ferre!') : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
