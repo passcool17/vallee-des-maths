@@ -189,8 +189,9 @@ async function run(kind) {
   const left0 = await ev(() => __mv.flows.cur.timer.left);
   if (mobile) await press('#panel .pausebtn'); else await p.keyboard.press('KeyP');
   ok(`${px} pause affichée`, await ev(() => __mv.G.paused && !document.getElementById('pause').classList.contains('hidden')));
+  const lp = await ev(() => __mv.flows.cur.timer.left);
   await p.waitForTimeout(1500);
-  ok(`${px} chrono figé en pause`, (await ev(() => __mv.flows.cur.timer.left)) === left0);
+  ok(`${px} chrono figé en pause`, (await ev(() => __mv.flows.cur.timer.left)) === lp && lp <= left0, `${left0} → ${lp}`);
   await press('#resume'); await waitT(1);
   const left1 = await ev(() => __mv.flows.cur.timer.left); ok(`${px} chrono repart après « Reprendre »`, left1 < left0 - 0.5, `${left0.toFixed(2)} → ${left1.toFixed(2)}`);
   await ev(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
