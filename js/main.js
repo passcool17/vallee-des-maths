@@ -4,6 +4,7 @@ import { buildWorld, curve, curveDrop, phaseOf, TIME_NOMS, PLACES, DOCK, FERRY, 
 import { buildIsland2 } from './island2.js';
 import * as J from './joli.js';
 import { makePlayer } from './player.js';
+import { makePets, heart } from './pets.js';
 import { makeVillagers } from './villagers.js';
 import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
@@ -49,7 +50,8 @@ let villagers = [];
 function showIsland() { world.root.visible = state.island !== 2; if (isle2) isle2.root.visible = state.island === 2; villagers = allVillagers.filter(v => v.isle === (state.island === 2 ? 2 : 1)); G.villagers = villagers; }
 showIsland();
 const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.island === 2 ? { x: FERRY.arrive[0], z: FERRY.arrive[1] } : { x: 2, z: 6 };
-const player = makePlayer(scene, start); G.player = player; J.dress(scene);
+const player = makePlayer(scene, start); G.player = player;
+const pets = makePets(scene, world, G); G.pets = pets; pets.regroup(player); J.dress(scene);
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
 
@@ -69,7 +71,9 @@ function burst(x, z, n = 5, color = '#f2c230', y0 = 2.2) {
   for (let i = 0; i < n; i++) { const m = mesh(coinGeo, color, { emissive: 0x553300 }); m.rotation.x = Math.PI / 2; m.position.set(x, y0, z); scene.add(m);
     fx.push({ m, vx: (Math.random() - 0.5) * 3, vy: 3 + Math.random() * 2, vz: (Math.random() - 0.5) * 3, t: 0.9 }); }
 }
-function updateFx(dt) { for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t -= dt; f.vy -= 12 * dt; f.m.position.x += f.vx * dt; f.m.position.y += f.vy * dt; f.m.position.z += f.vz * dt; f.m.rotation.z += dt * 10; if (f.t <= 0 || f.m.position.y < -0.2) { scene.remove(f.m); fx.splice(i, 1); } } }
+const hearts = [];
+function updateFx(dt) {
+  for (let i = hearts.length - 1; i >= 0; i--) { const h = hearts[i]; h.t -= dt; h.m.position.y += dt * 0.7; h.m.quaternion.copy(camera.quaternion); h.m.scale.setScalar(Math.min(1, (1.3 - h.t) * 6) * Math.min(1, h.t * 3) + 0.001); if (h.t <= 0) { scene.remove(h.m); hearts.splice(i, 1); } } for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t -= dt; f.vy -= 12 * dt; f.m.position.x += f.vx * dt; f.m.position.y += f.vy * dt; f.m.position.z += f.vz * dt; f.m.rotation.z += dt * 10; if (f.t <= 0 || f.m.position.y < -0.2) { scene.remove(f.m); fx.splice(i, 1); } } }
 
 const bagCap = () => stats('sac', state.tools.sac).cap;
 const bagAdd = key => { if (state.bag.length >= bagCap()) { ui.toast('🎒 Ton sac est plein! Va vendre chez Ginette (magasin général).'); return false; } state.bag.push(key); return true; };
@@ -122,6 +126,8 @@ function nearest() {
   for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
   for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
+  // les animaux passent en dernier : Charlie est toujours tout près, il ne doit pas voler la place d’un villageois ou d’une action
+  if (!best) for (const a of pets.visible(state.island)) { const dx = a.pos.x - p.x, dz = a.pos.z - p.z, d = Math.hypot(dx, dz) || 1; if ((Math.sin(player.facing) * dx + Math.cos(player.facing) * dz) / d > 0.35) consider({ kind: 'pet', p: a, label: `Flatter ${a.nom}`, pos: a.pos }, d, 1.9); } // seulement s’il est devant Camille (sinon « Flatter Charlie » serait affiché tout le temps)
   return best;
 }
 function interact(target = nearest()) {
@@ -131,6 +137,7 @@ function interact(target = nearest()) {
   const it = target; player.face(it.pos.x, it.pos.z); player.cancelWalk();
   switch (it.kind) {
     case 'npc': flows.talk(it.v); break;
+    case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
     case 'etabli': flows.workbench(); break;
     case 'magasin': flows.shop(); break;
     case 'ferry': flows.ferry(); break;
@@ -182,6 +189,7 @@ function onTap(cx, cy) {
   const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position }))];
   let best = null, bd = 46;
   for (const c of cands) { tmp.set(c.pos.x, (c.kind === 'npc' ? 1.2 : 0.6) - curveDrop(c.pos.x, c.pos.z), c.pos.z).project(camera); const sx = (tmp.x + 1) / 2 * r.width + r.left, sy = (1 - tmp.y) / 2 * r.height + r.top; const d = Math.hypot(sx - cx, sy - cy); if (tmp.z < 1 && d < bd) { bd = d; best = c; } }
+  if (!best) { let pd = 30; for (const a of pets.visible(state.island)) { tmp.set(a.pos.x, 0.4 - curveDrop(a.pos.x, a.pos.z), a.pos.z).project(camera); const d = Math.hypot((tmp.x + 1) / 2 * r.width + r.left - cx, (1 - tmp.y) / 2 * r.height + r.top - cy); if (tmp.z < 1 && d < pd) { pd = d; best = { kind: 'pet', p: a, pos: a.pos, r: 1.6 }; } } }
   if (best) { const tgt = best; const rr = tgt.kind === 'bug' ? stats('filet', state.tools.filet).reach * 0.8 : tgt.kind === 'npc' ? 1.8 : (tgt.r || 2) * 0.8; player.walkTo(tgt.pos.x, tgt.pos.z, () => interact(tgt), rr); return; }
   // 2) Sinon, marcher vers le sol touché (on corrige la courbure en 3 itérations)
   ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); raycaster.setFromCamera(ndc, camera);
@@ -220,7 +228,7 @@ if (hasSave) { document.getElementById('play').textContent = 'Continuer'; docume
 document.getElementById('new').addEventListener('click', () => { if (confirm('Effacer ta partie et recommencer?')) { reset(); location.search = '?fresh=1'; } });
 document.getElementById('play').addEventListener('click', () => {
   if (started) return; started = true; document.getElementById('title').remove(); audio.start(state.island); audio.setMuted(state.muted);
-  if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île! Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }
+  if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île, Camille! Charlie te suit partout. Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }
 });
 
 // ---------- Caméra et boucle
@@ -241,7 +249,7 @@ function frame(now) {
   const t = world.setTime(state.clock); G.night = t.night; if (t.phase !== G.phase) G.phase = t.phase;
   const mv = ui.isOpen || !started ? { x: 0, z: 0, run: false } : input.move();
   if ((mv.x || mv.z) && fishing.state) stopFishing();
-  player.update(dt, mv, walkableFn);
+  player.update(dt, mv, walkableFn); pets.update(dt, player, (x, z) => W().walkable(x, z, state), state.island);
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
@@ -269,7 +277,7 @@ G.travel = async (to, { instant = false } = {}) => {
   if (!instant) { fondu.textContent = to === 2 ? '⛴️ Cap sur l’île de secondaire 2…' : '⛴️ Retour vers la Vallée des Maths…'; fondu.style.pointerEvents = 'auto'; fondu.style.opacity = '1'; audio.sfx('splash'); await new Promise(r => setTimeout(r, 650)); }
   if (to === 2) ensureIsle2();
   state.island = to; if (to === 2) state.ferry = true; showIsland();
-  player.teleport(FERRY.arrive[0], FERRY.arrive[1]); player.face(FERRY.arrive[0] + 5, FERRY.arrive[1]);
+  player.teleport(FERRY.arrive[0], FERRY.arrive[1]); player.face(FERRY.arrive[0] + 5, FERRY.arrive[1]); pets.regroup(player);
   { const o = camOffset(); camPos.set(player.pos.x + o[0], o[1], player.pos.z + o[2]); }
   G.save();
   if (!instant) { await new Promise(r => setTimeout(r, 250)); fondu.style.opacity = '0'; fondu.style.pointerEvents = 'none'; }
@@ -285,6 +293,8 @@ window.__mv = {
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
   fps: () => fps, quality: J.quality,
+  camK: k => { J.CAM.k = k; }, // test : rapprocher la caméra pour les captures
+  pets: () => pets.visible(state.island).map(a => ({ id: a.id, x: +a.pos.x.toFixed(2), z: +a.pos.z.toFixed(2) })), pet: id => { const a = pets.pets.find(q => q.id === id); return a && pets.pat(a); },
   unlockFerry: () => { state.ferry = true; return true; },
   travel: (n, instant = true) => G.travel(n, { instant }),
   island: () => state.island, isle2: () => isle2, W, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },

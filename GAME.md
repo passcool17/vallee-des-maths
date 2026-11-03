@@ -6,6 +6,16 @@ Une île québécoise low-poly, chaleureuse, à l’automne. Le monde est légè
 
 Aucune pénalité, jamais. Une mauvaise réponse ne coûte ni argent ni progrès.
 
+### Camille et ses animaux
+
+On joue **Camille** : longs cheveux blonds, petites lunettes rondes or rose, grand coton ouaté brun, jeans évasés bleu pâle, espadrilles noir et blanc et sac à dos rose. Trois animaux l’accompagnent (versions stylisées low-poly, en code) :
+
+- **Charlie**, petit shih tzu blanc aux oreilles et taches brun-gris, collier bleu et médaille. Il trotte derrière Camille à distance raisonnable en remuant la queue, et la suit partout, même sur le traversier vers l’île 2.
+- **Gisèle**, chatte rousse à poils longs, yeux mi-clos. Elle fait la sieste sur son coussin au soleil, devant le Magasin général (île 1).
+- **Olga**, chatte smoking (dos et tête noirs, museau, poitrail et liste blancs, nez rose, yeux verts). Elle flâne près du magasin et suit parfois Camille un petit bout avant de rentrer (île 1).
+
+Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronron ou un petit « ouaf », et une phrase (« Gisèle ronronne. », « Olga te fixe de ses yeux verts. », « Charlie remue la queue! »). Les animaux passent après les villageois et les actions : ils ne prennent jamais la place d’une autre action, et l’invite « Flatter » n’apparaît que si l’animal est devant Camille. Ils ne bloquent pas le chemin.
+
 ### Villageois (personnages fictifs)
 
 - **Gaston le castor** tient l’établi. Il améliore les outils.

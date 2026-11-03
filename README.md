@@ -52,6 +52,9 @@ js/world.js        île low-poly, monde courbé (shader), 4 moments de la journ�
 js/joli.js         passe visuelle : tonemapping ACES, palette, ombres douces ajustées à la vue, matériaux lisses à reflets du ciel + liseré, herbe au vent, couronnes et personnages plus ronds, qualité adaptative
 js/island2.js      île de Secondaire 2 (construite au premier passage) : phare, sapins, rochers, rivière et chutes, érables rouges, kiosque
 js/phare.js        réparation du phare en 3 étapes (plan à l’échelle en SVG)
+js/player.js       Camille (modèle low-poly fusionné par couleur), déplacement, animation
+js/pets.js         Charlie le shih tzu (suit Camille, prend le traversier), Gisèle et Olga les chattes (île 1), flatter : cœur, ronron, phrase
+js/bake.js         fusionne les pièces d’un modèle par couleur (moins d’appels de dessin)
 js/villagers.js    Gaston le castor, Ginette l’orignale, Flocon le harfang, Rosalie la loutre, Bernard le huard
 js/flows.js        dialogues, établi, exercices + indices, réchauffements, questions en action, magasin, carnet
 js/actionq.js      étape 2 : chance de touche rare, choix de la question et du niveau, butin, chrono (pur, testé)

@@ -56,6 +56,8 @@ export function makeAudio() {
         case 'ok': [72, 76, 79, 84].forEach((n, i) => tone(t + i * 0.08, NOTE(n), 0.35, { vol: 0.14 })); break;
         case 'miss': tone(t, NOTE(64), 0.25, { type: 'sine', vol: 0.12 }); tone(t + 0.15, NOTE(60), 0.4, { type: 'sine', vol: 0.12 }); break;
         case 'near': tone(t, NOTE(67), 0.2, { type: 'sine', vol: 0.12 }); tone(t + 0.12, NOTE(69), 0.3, { type: 'sine', vol: 0.12 }); break;
+        case 'purr': for (let i = 0; i < 7; i++) noise(t + i * 0.14, 0.12, { vol: 0.35, cut: 140, q: 1 }); break;
+        case 'woof': tone(t, 520, 0.11, { type: 'sawtooth', vol: 0.05, glide: 300 }); tone(t + 0.16, 560, 0.11, { type: 'sawtooth', vol: 0.05, glide: 320 }); break;
         case 'click': tone(t, 1800, 0.04, { type: 'sine', vol: 0.05 }); break;
         case 'up': [65, 69, 72, 77, 81, 84].forEach((n, i) => tone(t + i * 0.09, NOTE(n), 0.6, { vol: 0.12 })); tone(t + 0.55, NOTE(89), 1.2, { type: 'sine', vol: 0.06 }); break;
         case 'splash': noise(t, 0.5, { vol: 0.35, cut: 1200 }); break;
