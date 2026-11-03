@@ -4,12 +4,14 @@ import { makeExercise, canonical } from './math/gen.js';
 import { checkAnswer } from './math/check.js';
 import { SKILLS, DOMAINES, skillById, shortId, prereqsOf } from './math/skills.js';
 import { MASTERY, TOOLS, toolById, nextUpgrade, difficultyFor, recordAnswer, isMastered, isUnlocked, defiChoices, masteryCount, stats } from './progression.js';
-import { CATALOG, SELL, quote, checkTotal } from './shop.js';
-import { makeRng, hashSeed } from './math/rng.js';
+import { CATALOG, SELL, quoteFor, forgetQuote, checkTotal } from './shop.js';
 import { NOMS, EMOJI } from './villagers.js';
+import { NIVEAUX, loot, timeFor, makeTimer } from './actionq.js';
 
 export const ITEMS = {
-  perchaude: ['🐟', 'Perchaude'], achigan: ['🐟', 'Achigan'], dore: ['🐠', 'Doré jaune'], truite: ['🐠', 'Truite arc-en-ciel'], esturgeon: ['🐋', 'Esturgeon jaune'],
+  perchaude: ['🐟', 'Perchaude'], achigan: ['🐟', 'Achigan'], dore: ['🐠', 'Doré jaune'], truite: ['🐠', 'Truite arc-en-ciel'],
+  omble: ['🐠', 'Omble de fontaine'], maskinonge: ['🐟', 'Maskinongé'], esturgeon: ['🐋', 'Esturgeon jaune'],
+  tire: ['🍭', 'Tire d’érable'], sirop: ['🍯', 'Cruchon de sirop ambré'], coulee: ['🍁', 'Sirop de première coulée'],
   monarque: ['🦋', 'Monarque'], amiral: ['🦋', 'Amiral'], lune: ['🦋', 'Papillon lune'],
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
 };
@@ -163,7 +165,7 @@ export function makeFlows(G) {
   };
   // Une fonction par outil : seules les stats de l’outil demandé sont lues.
   const DESCRIBE = {
-    canne: x => `touche en ${x.wait[0]}–${x.wait[1]} s, ${x.window.toFixed(1).replace('.', ',')} s pour ferrer${x.rare ? `, ${Math.round(x.rare * 100)} % de rares` : ''}`,
+    canne: x => `touche en ${x.wait[0]}–${x.wait[1]} s, ${x.window.toFixed(1).replace('.', ',')} s pour ferrer, ${Math.round((0.25 + x.rare * 0.7) * 100)} % de touches rares`,
     arrosoir: x => `${x.beds} plate(s)-bande(s), ${fmtMoney(x.coins)} chacune`,
     filet: x => `portée ${String(x.reach).replace('.', ',')} m, ${Math.round(x.chance * 100)} % de réussite`,
     pelle: x => `chance ${x.luck}/3`,
@@ -189,7 +191,7 @@ export function makeFlows(G) {
       h('button', { class: 'btn', onclick: () => { click(); F.sell(); } }, `💰 Vendre le sac (${st.bag.length})`)), { cls: 'shop' });
   };
   F.checkout = (it) => {
-    const st = S(); st.exCount = (st.exCount || 0) + 1; const q = quote(it, makeRng(hashSeed('magasin', st.seed, st.exCount)));
+    const st = S(); const q = quoteFor(st, it); G.save();
     let misses = 0, hintN = 0, locked = false;
     const fb = h('div', { class: 'feedback', role: 'status' }), hintsEl = h('div', { class: 'hints' });
     const hintBtn = h('button', { class: 'btn hint', onclick: () => { click(); if (hintN < 3) { hintsEl.append(h('p', { class: 'hintline' }, h('b', {}, `Indice ${hintN + 1} : `), q.hints[hintN])); hintN++; } hintBtn.disabled = hintN >= 3; } }, '💡 Indice');
@@ -203,7 +205,7 @@ export function makeFlows(G) {
       if (r.ok) {
         locked = true; audio.sfx('ok'); ticket.lastChild.lastChild.textContent = fmtMoney(q.totalCents);
         if (st.money < q.totalCents) { fb.className = 'feedback info'; fb.textContent = `Bon calcul! Mais il te manque ${fmtMoney(q.totalCents - st.money)}. Reviens quand tu auras assez d’argent.`; }
-        else { st.money -= q.totalCents; if (it.kind === 'bridge') { st.bridges[it.zone] = true; G.world.openBridge(it.zone); } else { st.decor.push(it.id); G.world.placeDecor(it.id); } G.save(); audio.sfx('coin');
+        else { st.money -= q.totalCents; forgetQuote(st, it); if (it.kind === 'bridge') { st.bridges[it.zone] = true; G.world.openBridge(it.zone); } else { st.decor.push(it.id); G.world.placeDecor(it.id); } G.save(); audio.sfx('coin');
           fb.className = 'feedback ok'; fb.replaceChildren(h('b', {}, 'Exact! '), `${fmtMoney(q.totalCents)}. Merci beaucoup! `, it.kind === 'bridge' ? 'Le pont est installé!' : 'Je l’ai installé sur l’île.'); ui.toast(`🛍️ ${it.nom} acheté!`, 'gold'); }
         box.el.classList.add('hidden'); keyHandler = e => { if (e.code === 'Enter') { F.shop(); return true; } return false; };
         fb.after(h('button', { class: 'btn primary', onclick: () => { click(); F.shop(); } }, 'Retour au magasin')); return;
@@ -226,16 +228,83 @@ export function makeFlows(G) {
       h('button', { class: 'btn primary', onclick: () => { st.money += total; st.journal.coins += total; st.bag = []; G.save(); audio.sfx('coin'); ui.toast(`💰 +${fmtMoney(total)}`, 'gold'); ui.close(); } }, `Vendre pour ${fmtMoney(total)}`)), { cls: 'shop' });
   };
 
+  // ---------- Question pendant une action (étape 2) : touche rare, coup de sirop
+  // q = { kind:'fish'|'maple', skill, d, stretch, onEnd?(result) } ; result = 'win'|'miss'|'timeout'|'skip'
+  const ACTION = {
+    fish: { icon: '🎣', titre: 'Ça mord fort!', line: 'Un poisson rare tire sur ta ligne! Réponds avant qu’il se fatigue… ou laisse-le filer, pas de souci.',
+      win: k => `Tu as sorti un ${ITEMS[k][1].toLowerCase()}! Il est noté dans ton carnet.`, lose: { miss: 'Il a donné un bon coup de queue pis il est reparti. Ce sera pour la prochaine!', timeout: 'Il s’est faufilé entre les quenouilles. Pas grave, le lac en est plein!', skip: 'Tu l’as laissé filer. Il te fait un clin d’œil en partant.' } },
+    maple: { icon: '🍁', titre: 'Coup de sirop!', line: 'L’érable coule! Une petite question de fractions pour remplir ton seau. Tu peux aussi laisser filer.',
+      win: k => `${ITEMS[k][1]} pour toi! C’est noté dans ton carnet.`, lose: { miss: 'La sève s’est arrêtée de couler. L’érable va se reprendre, promis!', timeout: 'Le seau a débordé dans la neige. Les écureuils sont ben contents!', skip: 'Tu laisses l’érable tranquille pour l’instant.' } },
+  };
+  F.actionQ = (q) => {
+    const st = S(), cfg = ACTION[q.kind]; st.exCount = (st.exCount || 0) + 1;
+    const ex = makeExercise(q.skill, `${st.seed}:${st.exCount}:${q.kind}`, q.d);
+    const sk = skillById(q.skill), timer = makeTimer(timeFor(ex, q));
+    let settled = false, hintN = 0;
+    const hintsEl = h('div', { class: 'hints' }), fb = h('div', { class: 'feedback', role: 'status' });
+    const hintBtn = h('button', { class: 'btn hint', onclick: () => { click(); if (hintN >= ex.hints.length) return; hintsEl.append(h('p', { class: 'hintline' }, h('b', {}, `Indice ${hintN + 1} : `), ex.hints[hintN])); hintN++; hintBtn.disabled = hintN >= ex.hints.length; } }, '💡 Indice');
+    const skipBtn = h('button', { class: 'btn skip', onclick: () => { click(); end('skip'); } }, 'Laisser filer');
+    const pauseBtn = h('button', { class: 'btn small pausebtn', 'aria-label': 'Pause', title: 'Pause (P)', onclick: () => { click(); G.pause(true); } }, '⏸');
+    const bar = h('i'), secs = h('span', { class: 'secs' });
+    const paint = () => { bar.style.width = `${(timer.left / timer.total) * 100}%`; bar.classList.toggle('low', timer.left < 6); secs.textContent = `${Math.ceil(timer.left)} s`; };
+    function end(result, closed = false) {
+      if (settled) return; settled = true; timer.stop(); keyHandler = null;
+      if (closed) { audio.sfx('click'); ui.toast(`${q.kind === 'fish' ? '💨' : '🍂'} ${cfg.lose.skip}`); F.cur = null; q.onEnd && q.onEnd('skip'); return; }
+      let body;
+      if (result === 'win') {
+        const key = loot(q.kind, q.d), got = G.grant(key);
+        st.rares[key] = (st.rares[key] || 0) + 1; st.journal[q.kind === 'fish' ? 'rare' : 'sirop']++; if (q.kind === 'fish') st.journal.fish++;
+        audio.sfx('up');
+        body = h('div', { class: 'celebrate actionwin' }, h('div', { class: 'big' }, ITEMS[key][0]), h('h3', {}, cfg.win(key)),
+          h('p', { class: 'benefit' }, got.coins ? `Ton sac est plein : Ginette te l’achète tout de suite, ${fmtMoney(got.coins)}.` : `Dans ton sac · vaut ${fmtMoney(SELL[key])} chez Ginette`),
+          h('p', { class: 'lvl' }, `Niveau ${NIVEAUX[q.d]}${q.stretch ? ' · ⭐ défi surprise réussi!' : ''}`));
+      } else {
+        audio.sfx(result === 'skip' ? 'click' : 'near');
+        body = h('div', { class: 'celebrate actionlose' }, h('div', { class: 'big' }, q.kind === 'fish' ? '💨' : '🍂'), h('h3', {}, cfg.lose[result]),
+          result !== 'skip' ? h('p', { class: 'feedback info' }, 'La réponse était : ', h('b', {}, canonical(ex.answer)), '.') : null);
+      }
+      G.save();
+      const ok = h('button', { class: 'btn primary', onclick: () => { click(); ui.close(); } }, 'Continuer');
+      body.append(h('div', { class: 'row' }, ok));
+      swap(h('div', { class: 'action' }, body));
+      F.cur = { kind: 'actionEnd', result };
+      q.onEnd && q.onEnd(result);
+    }
+    function submit(v) {
+      if (settled) return;
+      const r = checkAnswer(v, ex.answer);
+      if (r.empty || (ex.answer.kind === 'choice' && v < 0)) { fb.className = 'feedback info'; fb.textContent = ex.answer.kind === 'choice' ? 'Choisis une réponse.' : r.msg || 'Écris une réponse.'; return; }
+      if (r.near) { audio.sfx('near'); fb.className = 'feedback near'; fb.textContent = r.msg; return; } // presque : un indice, pas d’échec
+      if (!q.stretch) { const out = recordAnswer(st, q.skill, !!r.ok, {}); if (out.mastered) ui.toast(`📒 Compétence maîtrisée : ${sk.nom}!`, 'gold'); }
+      end(r.ok ? 'win' : 'miss');
+    }
+    const content = h('div', { class: `exercise action ${q.kind}` },
+      h('div', { class: 'who' }, h('div', { class: 'face' }, cfg.icon), h('div', {}, h('b', {}, cfg.titre), h('p', { class: 'line' }, cfg.line))),
+      h('div', { class: 'timer' }, h('div', { class: 'tbar', role: 'progressbar', 'aria-label': 'Temps restant' }, bar), secs, pauseBtn),
+      h('div', { class: 'exhead' }, h('span', { class: `ref lvl d${q.d}` }, `Niveau ${NIVEAUX[q.d]}`), q.stretch ? h('span', { class: 'ref stretch' }, '⭐ Défi surprise') : null, h('span', { class: 'ref' }, sk.nom)),
+      h('p', { class: 'q' }, ex.prompt), fb, hintsEl);
+    open(content, { cls: 'ex', close: () => end('skip', true) });
+    const box = answerBox(ex, submit); content.append(box.el, h('div', { class: 'row tools' }, hintBtn, skipBtn));
+    paint();
+    F.cur = { kind: 'action', q, ex, timer, answer: () => canonical(ex.answer), tick(dt) { if (!settled && timer.tick(dt)) end('timeout'); paint(); } };
+  };
+  // Appelé par la boucle de jeu seulement quand le jeu n’est pas en pause
+  F.tick = dt => { if (F.cur?.kind === 'action') F.cur.tick(dt); };
+
   // ---------- Carnet
   F.carnet = () => {
     const st = S(); const j = st.journal;
     const tools = h('div', { class: 'ctools' }, TOOLS.map(t => h('span', { class: 'chip' }, `${t.icone} ${stars(st.tools[t.id] || 0)}`)));
-    const journal = h('p', { class: 'journal' }, `🐟 ${j.fish} · 🦋 ${j.bugs} · ⛏️ ${j.finds} · 🌸 ${j.flowers} · 🪙 ${fmtMoney(j.coins)} gagnés`);
+    const journal = h('p', { class: 'journal' }, `🐟 ${j.fish} (✨ ${j.rare || 0} rares) · 🍯 ${j.sirop || 0} · 🦋 ${j.bugs} · ⛏️ ${j.finds} · 🌸 ${j.flowers} · 🪙 ${fmtMoney(j.coins)} gagnés`);
+    const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee'];
+    const rares = h('section', { class: 'rares' }, h('h4', {}, '✨ Prises rares et sirop'), RARE_KEYS.some(k => st.rares[k])
+      ? h('div', { class: 'ctools' }, RARE_KEYS.filter(k => st.rares[k]).map(k => h('span', { class: 'chip rare', 'data-k': k }, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${st.rares[k]}`)))
+      : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort ou qu’un érable coule, une petite question peut te rapporter une prise rare!'));
     const doms = DOMAINES.map(dname => h('section', {}, h('h4', {}, dname), SKILLS.filter(s => s.domaine === dname).map(sk => {
       const ok = st.mastery[sk.id]?.ok || 0, m = isMastered(st, sk.id), u = isUnlocked(st, sk.id);
       return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}` }, h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', prereqsOf(sk.id, 'hard').map(p => skillById(p).nom).join(', ')) : null), dots(ok));
     })));
-    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face('flocon'), h('div', {}, h('b', {}, 'Mon carnet'), h('p', { class: 'line' }, `${masteryCount(st)} / ${SKILLS.length} compétences maîtrisées — Secondaire 1 (PDA du MEQ)`))), tools, journal, doms), { cls: 'carnet' });
+    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face('flocon'), h('div', {}, h('b', {}, 'Mon carnet'), h('p', { class: 'line' }, `${masteryCount(st)} / ${SKILLS.length} compétences maîtrisées — Secondaire 1 (PDA du MEQ)`))), tools, journal, rares, doms), { cls: 'carnet' });
   };
   return F;
 }

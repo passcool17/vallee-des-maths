@@ -1,3 +1,6 @@
+/* Police Nunito (variable, sous-ensemble latin), licence OFL : vendor/fonts/OFL-Nunito.txt */
+@font-face { font-family: "Nunito"; font-style: normal; font-display: swap; font-weight: 200 1000; src: url(vendor/fonts/nunito-latin-wght-normal.woff2) format("woff2-variations"), url(vendor/fonts/nunito-latin-wght-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 :root { --cream: #fff8eb; --ink: #3b2a1a; --soft: #7a6450; --red: #d9442b; --green: #4f9a5a; --gold: #f2b84b; --blue: #4d8fcc; --line: #ead9bd; --r: 18px;
   --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px); }
 * { box-sizing: border-box; }
@@ -19,6 +22,17 @@ kbd { display: inline-block; min-width: 1.6em; padding: 0 .35em; border-radius: 
 .toast { background: var(--cream); padding: 8px 14px; border-radius: 14px; font-weight: 700; box-shadow: 0 3px 10px rgba(0,0,0,.15); transition: opacity .4s, transform .4s; text-align: center; }
 .toast.gold { background: #fff1c9; border: 2px solid var(--gold); }
 .toast.out { opacity: 0; transform: translateY(-8px); }
+
+/* Gain d’argent : pastille sous la puce 🪙 */
+.gainpill { position: absolute; left: 4px; top: 38px; background: #fff1c9; border: 2px solid var(--gold); color: #8a5a00; border-radius: 999px; padding: 2px 10px; font-weight: 900; font-size: 14px; animation: gainup 1.4s ease-out forwards; pointer-events: none; }
+@keyframes gainup { 0% { opacity: 0; transform: translateY(-10px); } 15% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(6px); } }
+
+/* Pause */
+#pause { position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; background: rgba(40, 25, 10, .45); padding: 16px; }
+#pause .card { background: var(--cream); border-radius: 24px; padding: 22px 26px; text-align: center; max-width: 360px; box-shadow: 0 10px 40px rgba(60,30,10,.3); }
+#pause .big { font-size: 44px; } #pause h2 { margin: 4px 0; color: var(--red); } #pause p { color: var(--soft); margin: 6px 0 14px; }
+#pause .keys { font-size: 13px; margin: 12px 0 0; }
+body.paused #touch, body.paused #prompt { display: none; }
 
 /* Tactile */
 #touch { display: none; }
@@ -113,6 +127,21 @@ body.modal #touch, body.modal #prompt { display: none; }
 .celebrate .big { font-size: 64px; animation: pop .6s; }
 .celebrate .row { justify-content: center; }
 @keyframes pop { 0% { transform: scale(.3); } 70% { transform: scale(1.15); } }
+
+/* Question pendant une action */
+.timer { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.tbar { flex: 1; height: 14px; border-radius: 999px; background: #efe2cb; overflow: hidden; }
+.tbar i { display: block; height: 100%; width: 100%; border-radius: 999px; background: linear-gradient(90deg, #6cbf74, #4f9a5a); transition: width .2s linear; }
+.tbar i.low { background: linear-gradient(90deg, #f2b84b, #e08a2b); }
+.timer .secs { font-weight: 900; min-width: 42px; text-align: right; color: var(--soft); font-variant-numeric: tabular-nums; }
+.btn.pausebtn { padding: 5px 10px; }
+.action .exhead { display: flex; flex-wrap: wrap; }
+.ref.lvl.d0 { background: #e3f4e1; color: #2f6b36; } .ref.lvl.d1 { background: #fff1c9; color: #8a5a00; } .ref.lvl.d2 { background: #fde2f0; color: #9a2a6a; }
+.ref.stretch { background: #efe6ff; color: #5a3a9a; }
+.action .row.tools { justify-content: space-between; }
+.btn.skip { background: #fff; border: 2px solid var(--line); box-shadow: none; }
+.action .lvl { color: var(--soft); font-weight: 700; }
+.chip.rare { border-color: var(--gold) !important; background: #fff8e1 !important; }
 
 /* Magasin */
 .items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }

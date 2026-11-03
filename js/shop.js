@@ -1,6 +1,7 @@
 // Magasin général de Ginette : catalogue, devis avec rabais et taxes, vérification du total.
 import { parseAnswer } from './math/check.js';
 import { toNumber, fmtDec } from './math/frac.js';
+import { makeRng, hashSeed } from './math/rng.js';
 
 export const TPS = 0.05, TVQ = 0.09975;
 export const RABAIS = [10, 15, 20, 25, 30, 50];
@@ -16,7 +17,8 @@ export const CATALOG = [
 ];
 // Ce que Ginette rachète (en cents)
 export const SELL = {
-  perchaude: 150, achigan: 250, dore: 400, truite: 500, esturgeon: 1500,
+  perchaude: 150, achigan: 250, dore: 400, truite: 500, omble: 700, maskinonge: 1000, esturgeon: 1500,
+  tire: 300, sirop: 600, coulee: 1200,
   monarque: 200, amiral: 250, lune: 600,
   capsule: 50, bouton: 100, cle: 300, pepite: 800, trilobite: 1500,
 };
@@ -37,6 +39,16 @@ export function quote(item, rng) {
   ];
   return { item, prixCents, rabais, baseCents, tpsCents, tvqCents, totalCents, altTotalCents, hints };
 }
+// Devis mémorisé : le même rabais reste affiché jusqu’à l’achat ou jusqu’au jour suivant.
+export function quoteFor(state, item) {
+  const memo = state.quotes[item.id];
+  let n;
+  if (memo && memo.day === state.day) n = memo.n;
+  else { state.exCount = (state.exCount || 0) + 1; n = state.exCount; state.quotes[item.id] = { day: state.day, n }; }
+  return quote(item, makeRng(hashSeed('magasin', state.seed, n)));
+}
+export const forgetQuote = (state, item) => { delete state.quotes[item.id]; };
+
 // Accepte l’arrondi taxe par taxe ou l’arrondi global ; le « $ » et la virgule sont tolérés.
 export function checkTotal(input, q) {
   const v = parseAnswer(input); if (!v) return { ok: false, msg: 'Écris un montant, par exemple 14,37.' };

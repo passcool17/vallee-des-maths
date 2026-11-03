@@ -32,6 +32,11 @@ export function makeUI() {
       while (toasts.children.length > 3) toasts.firstChild.remove();
       setTimeout(() => t.classList.add('out'), 2600); setTimeout(() => t.remove(), 3100);
     },
+    // Petite pastille « +x,xx $ » qui sort de la puce d’argent (au lieu d’une notification sur la scène)
+    gain(cents) {
+      const g = h('div', { class: 'gainpill' }, `+${fmtMoney(cents)}`); $('hud').append(g);
+      setTimeout(() => g.remove(), 1400);
+    },
     open(content, { cls = '', close } = {}) {
       panel.className = `panel ${cls}`; panel.replaceChildren(h('div', { class: 'sheet' }, h('button', { class: 'x', 'aria-label': 'Fermer', onclick: () => UI.close() }, '✕'), content));
       onClose = close || null; document.body.classList.add('modal'); UI.prompt(null);

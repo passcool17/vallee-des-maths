@@ -8,6 +8,8 @@ import { makeUI, fmtMoney } from './ui.js';
 import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
 import { stats } from './progression.js';
+import { rareBiteChance, pickQuestion, MAPLE_CHANCE } from './actionq.js';
+import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
 
@@ -29,7 +31,7 @@ const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 900);
 const rng = makeRng(state.seed ^ 0xbeef);
 
 const ui = makeUI(), audio = makeAudio(); audio.setMuted(!!state.muted);
-const G = { state, time: 0, night: 0, phase: 'matin', ui, audio, save: () => { state.pos = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2) }; save(state); } };
+const G = { state, time: 0, paused: false, night: 0, phase: 'matin', ui, audio, save: () => { state.pos = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2) }; save(state); } };
 const world = buildWorld(scene, G); G.world = world;
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
@@ -60,31 +62,42 @@ function updateFx(dt) { for (let i = fx.length - 1; i >= 0; i--) { const f = fx[
 const bagCap = () => stats('sac', state.tools.sac).cap;
 const bagAdd = key => { if (state.bag.length >= bagCap()) { ui.toast('🎒 Ton sac est plein! Va vendre chez Ginette (magasin général).'); return false; } state.bag.push(key); return true; };
 const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cents; burst(x, z, Math.min(8, 2 + Math.round(cents / 50))); audio.sfx('coin'); };
+// Butin d’une question en action : dans le sac, ou payé tout de suite si le sac est plein
+G.grant = key => { if (state.bag.length < bagCap()) { state.bag.push(key); return { bag: true }; } const c = SELL[key] || 0; earn(c, player.pos.x, player.pos.z); return { coins: c }; };
+// Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, q: { skill, d, stretch } }
+const force = {};
+const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng);
 
 // ---------- Pêche
-const fishing = { state: null, t: 0 };
+const fishing = { state: null, t: 0, rare: false };
 function weighted(table) { const tot = table.reduce((a, [, w]) => a + w, 0); let r = rng.next() * tot; for (const [k, w] of table) { if ((r -= w) < 0) return k; } return table[0][0]; }
 function startFishing() {
   const s = stats('canne', state.tools.canne); fishing.state = 'wait'; fishing.t = s.wait[0] + rng.next() * (s.wait[1] - s.wait[0]);
   player.teleport(6, DOCK.z1 - 0.8); player.face(6, DOCK.z1 + 3); hold('canne', 0); world.bobber.visible = true; audio.sfx('splash');
   ui.toast('🎣 Attends que ça morde… pis appuie au bon moment!');
 }
-function stopFishing() { fishing.state = null; world.bobber.visible = false; player.tool.clear(); }
+function stopFishing() { fishing.state = null; fishing.rare = false; world.bobber.visible = false; player.tool.clear(); }
 function fishTick(dt) {
   if (!fishing.state) return;
   if (Math.hypot(player.pos.x - 6, player.pos.z - (DOCK.z1 - 0.8)) > 1.2) { stopFishing(); return; }
   fishing.t -= dt; const b = world.bobber;
   b.position.y = -0.45 + Math.sin(G.time * 3) * 0.04 - (fishing.state === 'bite' ? 0.18 + Math.sin(G.time * 30) * 0.05 : 0);
-  if (fishing.state === 'wait' && fishing.t <= 0) { fishing.state = 'bite'; fishing.t = stats('canne', state.tools.canne).window; audio.sfx('bite'); }
+  if (fishing.rare && fishing.state === 'bite') b.position.y -= 0.12 + Math.sin(G.time * 18) * 0.06; // ça cale fort
+  if (fishing.state === 'wait' && fishing.t <= 0) {
+    fishing.rare = 'rare' in force ? force.rare : rng.chance(rareBiteChance(state.tools.canne)); delete force.rare;
+    fishing.state = 'bite'; fishing.t = stats('canne', state.tools.canne).window + (fishing.rare ? 0.5 : 0); audio.sfx('bite');
+    if (fishing.rare) setTimeout(() => audio.sfx('bite'), 160);
+  }
   else if (fishing.state === 'bite' && fishing.t <= 0) { ui.toast('💨 Il s’est sauvé… Réessaie!'); stopFishing(); }
 }
 function reel() {
   const s = stats('canne', state.tools.canne);
   if (fishing.state === 'wait') { ui.toast('Trop tôt! Attends que le bouchon cale.'); stopFishing(); return; }
   const lvl = state.tools.canne;
-  const kind = rng.chance(s.rare) ? 'esturgeon' : weighted([['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]);
+  if (fishing.rare) { stopFishing(); audio.sfx('catch'); flows.actionQ({ kind: 'fish', ...question('fish') }); return; }
+  const kind = weighted([['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]);
   stopFishing(); if (!bagAdd(kind)) return;
-  state.journal.fish++; audio.sfx('catch'); ui.toast(`${ITEMS[kind][0]} Une belle prise : ${ITEMS[kind][1]}!`, kind === 'esturgeon' ? 'gold' : ''); G.save();
+  state.journal.fish++; audio.sfx('catch'); ui.toast(`${ITEMS[kind][0]} Une belle prise : ${ITEMS[kind][1]}!`); G.save();
 }
 
 // ---------- Interactions
@@ -98,7 +111,7 @@ function nearest() {
   return best;
 }
 function interact(target = nearest()) {
-  if (ui.isOpen) return;
+  if (ui.isOpen || G.paused) return;
   if (fishing.state) { reel(); return; }
   if (!target) return;
   const it = target; player.face(it.pos.x, it.pos.z); player.cancelWalk();
@@ -110,7 +123,11 @@ function interact(target = nearest()) {
     case 'tree': {
       if (G.time < it.ready) { it.shake = 0.3; ui.toast('🍁 Cet érable se repose. Reviens tantôt!'); break; }
       it.shake = 1; it.ready = G.time + 45; audio.sfx('shake'); player.busyFor(0.5);
-      const c = (it.big ? 150 : 50) + Math.floor(rng.next() * 5) * 25; setTimeout(() => { earn(c, it.pos.x, it.pos.z); ui.toast(`🍁 +${fmtMoney(c)}`); }, 350); break;
+      const c = (it.big ? 150 : 50) + Math.floor(rng.next() * 5) * 25; setTimeout(() => { earn(c, it.pos.x, it.pos.z); ui.gain(c); }, 350);
+      // Coup de sirop : parfois, une question de fractions (facultative) en bonus
+      const sirop = 'maple' in force ? force.maple : rng.chance(MAPLE_CHANCE); delete force.maple;
+      if (sirop) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'maple', ...question('maple') }); });
+      break;
     }
     case 'bed': {
       const s = stats('arrosoir', state.tools.arrosoir); const ready = world.beds.filter(b => G.time >= b.ready).sort((a, b) => a.pos.distanceTo(player.pos) - b.pos.distanceTo(player.pos)).slice(0, s.beds);
@@ -140,7 +157,7 @@ G.onUpgrade = (tool) => { const p = player.pos; burst(p.x, p.z, 10, '#ffd36a', 2
 // ---------- Entrées
 const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3(), tmp = new THREE.Vector3();
 function onTap(cx, cy) {
-  if (ui.isOpen || !started) return;
+  if (ui.isOpen || !started || G.paused) return;
   if (fishing.state) { reel(); return; }
   const r = canvas.getBoundingClientRect();
   // 1) Un objet interactif près du doigt (en coordonnées écran, pour tenir compte de la courbure)
@@ -156,6 +173,8 @@ function onTap(cx, cy) {
 const input = makeInput({ canvas, onInteract: () => interact(), onTap,
   onKey(e) {
     if (!started) { if (e.code === 'Enter' || e.code === 'Space') { document.getElementById('play').click(); return true; } return false; }
+    if (G.paused) { if (['KeyP', 'Escape', 'Enter', 'Space'].includes(e.code)) G.pause(false); return true; }
+    if (e.code === 'KeyP') { G.pause(true); return true; }
     if (flows.handleKey(e)) return true;
     if (ui.isOpen) return false;
     if (e.code === 'KeyC') { flows.carnet(); return true; }
@@ -165,6 +184,16 @@ const input = makeInput({ canvas, onInteract: () => interact(), onTap,
 function toggleMute() { state.muted = !state.muted; audio.setMuted(state.muted); save(state); ui.toast(state.muted ? '🔇 Son coupé' : '🔊 Son activé'); }
 document.getElementById('btn-son').addEventListener('click', e => { e.currentTarget.blur(); toggleMute(); });
 document.getElementById('btn-carnet').addEventListener('click', e => { e.currentTarget.blur(); if (!ui.isOpen && started) flows.carnet(); });
+
+// ---------- Pause : touche P, bouton ⏸ dans les questions, onglet caché. Le temps de jeu (et donc les chronos) s’arrête.
+const pauseEl = document.getElementById('pause');
+G.pause = on => {
+  if (!started || G.paused === on) return;
+  G.paused = on; pauseEl.classList.toggle('hidden', !on); document.body.classList.toggle('paused', on);
+  if (on) { player.cancelWalk(); G.save(); } else last = performance.now();
+};
+document.getElementById('resume').addEventListener('click', e => { e.currentTarget.blur(); audio.sfx('click'); G.pause(false); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') G.pause(true); });
 
 // ---------- Écran titre
 let started = false;
@@ -184,20 +213,23 @@ function camOffset() { const portrait = camera.aspect < 0.8; return portrait ? [
 { const o = camOffset(); camPos.set(player.pos.x + o[0], o[1], player.pos.z + o[2]); }
 let last = performance.now(), saveT = 0, frames = 0, fpsT = 0, fps = 60;
 const waiters = [];
+const waitT = s => new Promise(res => waiters.push({ t: G.time + s, res }));
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; G.time += dt;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (G.paused) { renderer.render(scene, camera); requestAnimationFrame(frame); return; }
+  G.time += dt;
   frames++; fpsT += dt; if (fpsT >= 1) { fps = frames / fpsT; frames = 0; fpsT = 0; }
-  if (fixedTime == null) state.clock = (state.clock + dt / DAY) % 1;
+  if (fixedTime == null) { const prev = state.clock; state.clock = (state.clock + dt / DAY) % 1; if (state.clock < prev) state.day++; }
   const t = world.setTime(state.clock); G.night = t.night; if (t.phase !== G.phase) { G.phase = t.phase; audio.setPhase(t.phase); }
   const mv = ui.isOpen || !started ? { x: 0, z: 0, run: false } : input.move();
   if ((mv.x || mv.z) && fishing.state) stopFishing();
   player.update(dt, mv, walkableFn);
   for (const v of villagers) v.update(dt, player);
-  world.update(dt, G); fishTick(dt); updateFx(dt);
+  world.update(dt, G); fishTick(dt); updateFx(dt); flows.tick(dt);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels();
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
-  if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? 'Ça mord! Ferre!' : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
+  if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? (fishing.rare ? 'Ça mord fort! Ferre!' : 'Ça mord! Ferre!') : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
   ui.hud(state, { phase: G.phase, phaseNom: TIME_NOMS[G.phase], bagCap: bagCap() });
   saveT += dt; if (saveT > 5) { saveT = 0; G.save(); }
   for (let i = waiters.length - 1; i >= 0; i--) if (G.time >= waiters[i].t) { waiters[i].res(); waiters.splice(i, 1); }
@@ -210,7 +242,7 @@ addEventListener('pagehide', () => G.save());
 // Crochet de test (lecture seule pour l’essentiel)
 window.__mv = {
   G, state, world, player, flows,
-  waitT: s => new Promise(res => waiters.push({ t: G.time + s, res })),
+  waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
   fps: () => fps, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },

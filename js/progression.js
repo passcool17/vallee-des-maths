@@ -23,7 +23,7 @@ const STATS = {
 };
 export const stats = (toolId, level) => STATS[toolId][Math.max(0, Math.min(3, level))];
 export const BENEFITS = {
-  canne: ['Les poissons mordent plus vite', 'Plus de temps pour ferrer', 'Poissons rares, comme l’esturgeon jaune'],
+  canne: ['Les poissons mordent plus vite', 'Plus de temps pour ferrer', 'Plus de touches rares (esturgeon jaune!)'],
   arrosoir: ['Arrose 2 plates-bandes d’un coup', 'Arrose 3 plates-bandes, fleurs plus payantes', '4 plates-bandes, fleurs encore plus payantes'],
   filet: ['Attrape de plus loin', 'Attrape plus souvent', 'Presque à tout coup'],
   pelle: ['Trouvailles meilleures', 'Trouvailles encore meilleures', 'Les meilleures trouvailles (fossiles !)'],
