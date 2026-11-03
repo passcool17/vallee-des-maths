@@ -1,5 +1,9 @@
 // Tests de la progression, du magasin et de la sauvegarde.
-import { TOOLS, nextUpgrade, recordAnswer, isUnlocked, warmupFor, stats, defiChoices, DEFI_SKILLS, MASTERY } from '../js/progression.js';
+import { TOOLS, nextUpgrade, recordAnswer, isUnlocked, warmupFor, stats, defiChoices, DEFI_SKILLS, MASTERY, canFerry, ferryProgress, MAX_LEVEL } from '../js/progression.js';
+import { SKILLS2, EDGES2, isS2 } from '../js/math/skills.js';
+import { phareSteps, phareCheck } from '../js/phare.js';
+import { checkField } from '../js/math/check.js';
+import { RARE_FISH2, canKiosk, kioskExercise, kioskDone, useBait } from '../js/actionq.js';
 import { CATALOG, quote, checkTotal } from '../js/shop.js';
 import { newState, load, save, reset, KEY } from '../js/save.js';
 import { SKILLS, EDGES } from '../js/math/skills.js';
@@ -57,9 +61,16 @@ export function run(ok) {
     pos: { x: 3, z: 7 }, clock: 0.4, exCount: 12, muted: true, met: { intro: 1, gaston: 2 }, journal: { fish: 5, bugs: 1, finds: 2, coins: 900, flowers: 3 } };
   mem[KEY] = JSON.stringify(v1); const l3 = load();
   ok('sauvegarde v1 chargée sans perte', l3.money === 4321 && l3.tools.canne === 2 && l3.bag.length === 2 && l3.decor[0] === 'nichoir' && l3.bridges.erables && l3.mastery.qc_s1_ari_01.ok === 3 && l3.journal.fish === 5 && l3.exCount === 12 && l3.muted);
-  ok('sauvegarde v1 normalisée', l3.v === 2 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
+  ok('sauvegarde v1 normalisée', l3.v === 3 && l3.island === 1 && l3.ferry === false && l3.phare.step === 0 && l3.appats === 0 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
   mem[KEY] = JSON.stringify({ ...v1, rares: null, quotes: [], bag: 'x' }); const l4 = load(); ok('champs abîmés réparés', JSON.stringify(l4.rares) === '{}' && JSON.stringify(l4.quotes) === '{}' && Array.isArray(l4.bag));
-  save(l3); ok('v2 relue', load().v === 2 && load().money === 4321);
+  save(l3); ok('v3 relue', load().v === 3 && load().money === 4321);
+  { const v2 = { ...v1, v: 2, rares: { omble: 2 }, quotes: { nichoir: { rabais: 10 } }, day: 4, journal: { ...v1.journal, rare: 2, sirop: 1 } };
+    mem[KEY] = JSON.stringify(v2); const l5 = load();
+    ok('sauvegarde v2 chargée sans perte', l5.v === 3 && l5.rares.omble === 2 && l5.quotes.nichoir.rabais === 10 && l5.day === 4 && l5.journal.rare === 2 && l5.money === 4321 && l5.tools.canne === 2 && l5.island === 1 && l5.kiosk.day === -1);
+    mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 2, ferry: true, phare: { step: 2, done: false }, appats: 3, tools: { ...v1.tools, canne: 4 } }); const l6 = load();
+    ok('sauvegarde v3 (île 2, niveau 4)', l6.island === 2 && l6.ferry && l6.phare.step === 2 && l6.appats === 3 && l6.tools.canne === 4);
+    mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 7, phare: 'x', appats: -2, kiosk: null }); const l7 = load();
+    ok('champs v3 abîmés réparés', l7.island === 1 && l7.phare.step === 0 && l7.appats === 0 && l7.kiosk.day === -1); }
   reset(); ok('reset', !(KEY in mem));
   delete globalThis.localStorage;
 
@@ -91,4 +102,42 @@ export function run(ok) {
     ok('chrono généreux 20–35 s', t0 >= 20 && t0 <= 25 && t2 >= 30 && t2 <= 35 && ts === t0 + 5, `${t0} ${t2} ${ts}`);
     const tm = makeTimer(20); tm.tick(5); ok('chrono avance seulement quand on le fait avancer', tm.left === 15 && !tm.done);
     ok('chrono fini', tm.tick(30) === true && tm.done && tm.left === 0 && tm.tick(1) === false); }
+
+  // ——— Secondaire 2 ———
+  ok('12 compétences s2, arêtes vers des compétences connues', SKILLS2.length === 12 && EDGES2.every(e => isS2(e.skill) && [...SKILLS, ...SKILLS2].some(s => s.id === e.prereq)));
+  { const st = newState(21); const done = new Set(SKILLS.map(s => s.id)); SKILLS.forEach(s => { st.mastery[s.id] = { ok: MASTERY, tries: 3, miss: 0 }; }); let g = 0;
+    while (done.size < 34 && g++ < 50) for (const s of SKILLS2) if (!done.has(s.id) && isUnlocked(st, s.id)) { st.mastery[s.id] = { ok: MASTERY, tries: 3, miss: 0 }; done.add(s.id); }
+    ok('les 12 compétences s2 atteignables', done.size === 34); }
+  ok('réchauffement s2 → préalable de secondaire 1', SKILLS2.every(s => /^qc_s1_/.test(warmupFor(s.id).skill)), SKILLS2.map(s => warmupFor(s.id).skill).join());
+  { const st = newState(22);
+    ok('traversier verrouillé au départ', !canFerry(st) && ferryProgress(st).length === 5 && ferryProgress(st).every(t => !t.ok));
+    TOOLS.forEach(t => { st.tools[t.id] = 2; }); st.tools.sac = 1;
+    ok('traversier : il manque le sac', !canFerry(st) && ferryProgress(st).filter(t => !t.ok).map(t => t.id).join() === 'sac');
+    st.tools.sac = 3; ok('traversier débloqué (tous ≥ 2)', canFerry(st));
+    const s2 = newState(23); s2.ferry = true; ok('crochet QA : ferry forcé', canFerry(s2));
+    st.tools.canne = 3; const nu = nextUpgrade(st, 'canne');
+    ok('niveau 4 = compétence s2 de l’île 2', nu.level === 4 && nu.island2 && nu.skill === 'qc_s2_pro_02' && TOOLS.every(t => isS2(t.s2)));
+    SKILLS.forEach(s => { st.mastery[s.id] = { ok: MASTERY, tries: 3, miss: 0 }; });
+    ok('niveau 4 débloqué quand les préalables s1 sont maîtrisés', nextUpgrade(st, 'canne').unlocked);
+    let r; for (let i = 0; i < 3; i++) r = recordAnswer(st, 'qc_s2_pro_02', true, { tool: 'canne' });
+    ok('canne niveau 4', st.tools.canne === 4 && r.upgraded?.level === 4 && nextUpgrade(st, 'canne') === null && MAX_LEVEL === 4);
+    ok('stats niveau 4', stats('canne', 4).window > stats('canne', 3).window && stats('sac', 4).cap === 30 && stats('filet', 9).chance === 1);
+    ok('défis s2 proposés', defiChoices(st, 2).length > 0 && defiChoices(st, 2).every(isS2));
+    const r2 = makeRng(3); let bad = 0; for (let i = 0; i < 300; i++) { const q = pickQuestion(st, i % 2 ? 'maple' : 'fish', r2, 2); if (!isS2(q.skill)) bad++; }
+    ok('île 2 : érables rouges et pêche en s2', bad === 0);
+    ok('poissons rares de l’île 2', loot('fish', 0, 2) === 'gros_dore' && loot('fish', 2, 2) === 'bar' && loot('fish', 1) === 'maskinonge' && RARE_FISH2.every(k => SELL[k] > SELL.esturgeon * 0.5) && SELL.bar > SELL.saumon && SELL.saumon > SELL.gros_dore);
+    // Kiosque : une pige par jour, appât rare si réussie
+    st.island = 2; ok('kiosque ouvert', canKiosk(st)); const kx = kioskExercise(st, makeExercise, 1);
+    ok('kiosque : pige de probabilité', kx.id === 'qc_s2_prb_01' && kx.answer.kind === 'num');
+    kioskDone(st, true); ok('kiosque : appât gagné, fermé jusqu’à demain', st.appats === 1 && !canKiosk(st));
+    st.day++; ok('kiosque rouvre le lendemain', canKiosk(st));
+    ok('appât utilisé sur l’île 2 seulement', useBait(st) && st.appats === 0 && !useBait(st)); st.appats = 1; st.island = 1; ok('pas d’appât sur l’île 1', !useBait(st) && st.appats === 1); }
+  // Phare : 3 étapes, réponses exactes et arrondies acceptées
+  { let allOk = true, ks = new Set();
+    for (let s = 0; s < 200; s++) { const steps = phareSteps(s), exp = phareCheck(s); ks.add(steps[0].data.k);
+      steps.forEach((ex, i) => { const f = ex.answer.fields[0]; const v = exp[i];
+        const typed = f.pi ? (Math.round(v * 100) / 100).toFixed(2).replace('.', ',') : String(v);
+        if (!checkField(typed, f).ok || checkField(String(v + 1), f).ok || !ex.figure || ex.hints.length !== 3 || !isS2(ex.skill)) allOk = false;
+        if (f.pi && !checkField(`${f.value.n}π${f.value.d > 1 ? '/' + f.value.d : ''}`, f).ok) allOk = false; }); }
+    ok('phare : 200 graines, 3 étapes cohérentes', allOk && ks.size === 3); }
 }

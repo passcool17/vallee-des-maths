@@ -1,6 +1,6 @@
 // Questions pendant les actions (étape 2) : déclencheurs, choix de la compétence et de la difficulté, chrono, butin.
 // Logique pure (aucun DOM) pour être testée en Node.
-import { SKILLS } from './math/skills.js';
+import { SKILLS, SKILLS2 } from './math/skills.js';
 import { isUnlocked, difficultyFor, stats } from './progression.js';
 
 export const NIVEAUX = ['basique', 'standard', 'avancé'];
@@ -14,11 +14,14 @@ export const rareBiteChance = canneLevel => 0.25 + stats('canne', canneLevel).ra
 // Butin selon la difficulté (clé d’objet du sac)
 export const RARE_FISH = ['omble', 'maskinonge', 'esturgeon'];
 export const SIROP = ['tire', 'sirop', 'coulee'];
-export const loot = (kind, d) => (kind === 'fish' ? RARE_FISH : SIROP)[Math.max(0, Math.min(2, d))];
+// Île de Secondaire 2 : gros doré (trophée), saumon atlantique, bar rayé
+export const RARE_FISH2 = ['gros_dore', 'saumon', 'bar'];
+export const loot = (kind, d, isle = 1) => (kind === 'fish' ? (isle === 2 ? RARE_FISH2 : RARE_FISH) : SIROP)[Math.max(0, Math.min(2, d))];
 
 // Choisit la compétence et la difficulté. rng : { next(), chance(p), pick(list) }.
-export function pickQuestion(state, kind, rng) {
-  const pool = kind === 'maple' ? FRACTION_SKILLS : SKILLS.map(s => s.id);
+// isle = 2 : questions de secondaire 2 (pêche au quai de Bernard, érables rouges).
+export function pickQuestion(state, kind, rng, isle = 1) {
+  const pool = isle === 2 ? SKILLS2.map(s => s.id) : kind === 'maple' ? FRACTION_SKILLS : SKILLS.map(s => s.id);
   const open = pool.filter(id => isUnlocked(state, id));
   const locked = pool.filter(id => !isUnlocked(state, id));
   if ((locked.length && rng.chance(STRETCH_CHANCE)) || !open.length) {
@@ -36,7 +39,7 @@ export function pickQuestion(state, kind, rng) {
 // Durée du chrono en secondes (généreuse)
 export function timeFor(ex, { stretch = false } = {}) {
   const A = ex.answer;
-  const extra = (A.kind === 'num' && (A.fields.length > 1 || A.fields.some(f => f.frac)) ? 5 : 0) + (stretch ? 5 : 0);
+  const extra = (A.kind === 'num' && (A.fields.length > 1 || A.fields.some(f => f.frac)) ? 5 : 0) + (A.kind === 'num' && A.fields.some(f => f.pi) ? 10 : 0) + (ex.figure || ex.table ? 5 : 0) + (stretch ? 5 : 0);
   return [20, 25, 30][ex.d] + extra;
 }
 
@@ -49,3 +52,12 @@ export function makeTimer(total) {
     stop() { done = true; },
   };
 }
+
+// Kiosque de Bernard : une pige par journée de jeu ; réussie → un appât rare (touche rare garantie sur l’île 2).
+export const canKiosk = state => state.kiosk.day !== state.day;
+export function kioskExercise(state, makeExercise, difficulty) {
+  return makeExercise('qc_s2_prb_01', `kiosque-${state.seed}-${state.day}`, difficulty);
+}
+export function kioskDone(state, ok) { state.kiosk.day = state.day; if (ok) state.appats++; return state.appats; }
+// Un appât rare est utilisé à la prochaine touche sur l’île 2.
+export function useBait(state) { if (state.island !== 2 || state.appats <= 0) return false; state.appats--; return true; }
