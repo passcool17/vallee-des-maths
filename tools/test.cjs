@@ -51,8 +51,11 @@ async function run(kind) {
   // 3) Secouer un érable → pièces
   const m0 = await ev(() => __mv.state.money);
   const tree = await ev(() => { const t = __mv.world.interactables.find(i => i.kind === 'tree' && Math.hypot(i.pos.x, i.pos.z) < 20); return { x: t.pos.x, z: t.pos.z, r: t.r }; });
-  await near(tree.x, tree.z + tree.r - 0.3); await act(); await waitT(0.9);
+  await ev(() => { __mv.force.maple = false; }); // le coup de sirop est testé plus loin
+  await near(tree.x, tree.z + tree.r - 0.3); await act(); await waitT(0.5);
   ok(`${px} secouer un érable donne des sous`, (await ev(() => __mv.state.money)) > m0);
+  ok(`${px} gain affiché en pastille sous l’argent, pas sur la scène`, await ev(() => !!document.querySelector('#hud .gainpill') && !document.querySelector('#toasts .toast')));
+  hud = await ev(OVERLAP, [...HUD.filter(x => x !== '#money'), '.gainpill']); ok(`${px} pastille de gain sans chevauchement`, hud.length === 0, hud.join(' | '));
 
   // 4) Dialogue avec Gaston → établi
   await toVillager('gaston'); ok(`${px} invite « Parler à Gaston »`, (await ev(() => __mv.nearest())) === 'gaston');
@@ -118,8 +121,12 @@ async function run(kind) {
   await act(); await p.waitForSelector('#panel .items');
   const money0 = await ev(() => __mv.state.money);
   await press('#panel [data-item="nichoir"]'); await p.waitForSelector('#panel .ticket');
-  // Pour la capture, on veut un rabais : retour au catalogue tant que le devis du jour n’en a pas
-  for (let i = 0; i < 8 && !(await ev(() => __mv.flows.cur.q.rabais)); i++) { await p.getByRole('button', { name: '← Catalogue' }).click(); await press('#panel [data-item="nichoir"]'); await p.waitForSelector('#panel .ticket'); }
+  // Le devis ne change plus en rouvrant l’article (correctif étape 2)
+  const qa = await ev(() => JSON.stringify(__mv.flows.cur.q));
+  await p.getByRole('button', { name: '← Catalogue' }).click(); await press('#panel [data-item="nichoir"]'); await p.waitForSelector('#panel .ticket');
+  ok(`${px} même devis en rouvrant l’article`, (await ev(() => JSON.stringify(__mv.flows.cur.q))) === qa);
+  // Pour la capture, on veut un rabais : on passe au lendemain (nouveau devis) tant qu’il n’y en a pas
+  for (let i = 0; i < 12 && !(await ev(() => __mv.flows.cur.q.rabais)); i++) { await p.getByRole('button', { name: '← Catalogue' }).click(); await ev(() => { __mv.state.day++; }); await press('#panel [data-item="nichoir"]'); await p.waitForSelector('#panel .ticket'); }
   ok(`${px} devis avec rabais affiché`, await ev(() => !!document.querySelector('#panel .tl.rabais') && __mv.flows.cur.q.rabais > 0));
   await shot('07-magasin-taxes');
   const q = await ev(() => ({ total: __mv.flows.cur.q.totalCents, rabais: __mv.flows.cur.q.rabais }));
@@ -136,8 +143,83 @@ async function run(kind) {
   await press('#panel .x');
 
   // 9) Pêche réelle avec la canne niv. 1
+  await ev(() => { __mv.force.rare = false; });
   await near(6, 36.4); await act(); await ev(() => new Promise(res => { const t = setInterval(() => { if (__mv.G.time && document.querySelector('#prompt')?.textContent.includes('Ça mord')) { clearInterval(t); res(); } }, 30); }));
   await act(); await waitT(0.3); ok(`${px} pêche : un poisson dans le sac`, (await ev(() => __mv.state.journal.fish)) === 1);
+
+  // ---------- ÉTAPE 2 : questions pendant les actions
+  const waitPrompt = txt => ev(txt => new Promise(res => { const t = setInterval(() => { if (document.querySelector('#prompt')?.textContent.includes(txt)) { clearInterval(t); res(); } }, 30); }), txt);
+  const rareBite = async (q) => { await ev(q => { __mv.force.rare = true; if (q) __mv.force.q = q; else delete __mv.force.q; }, q); await near(6, 36.4); await act(); await waitPrompt('Ça mord fort'); await act(); await p.waitForSelector('#panel .action .tbar'); };
+  const wrongAnswer = async () => { const kind = await ev(() => __mv.flows.cur.ex.answer.kind);
+    if (kind === 'choice') { const c = await ev(() => __mv.flows.cur.ex.answer.correct); await p.locator('#panel .btn.choice').nth(c === 0 ? 1 : 0).click(); await press('#panel .validate'); }
+    else { await press('#panel .field[data-f="0"]'); for (const ch of '99999') await press(`#panel .numpad [data-k="${ch}"]`); await press('#panel .numpad [data-k="✓"]'); } };
+  const actionLayout = async tag => {
+    const lay = await ev(() => { const s = document.querySelector('#panel .sheet'); const r = s.getBoundingClientRect(); return { w: s.scrollWidth <= s.clientWidth + 1, inside: r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1 && r.top >= 0 }; });
+    const ov = await ev(OVERLAP, ['#panel .tbar', '#panel .secs', '#panel .pausebtn', '#panel .btn.hint', '#panel .btn.skip', '#panel .q', '#panel .numpad', '#panel .choices', '#panel .validate', '#panel .exhead']);
+    ok(`${px} ${tag} : panneau dans l’écran, sans chevauchement`, lay.w && lay.inside && ov.filter(x => !x.includes('hors écran')).length === 0, ov.join(' | '));
+  };
+  // A) Touche rare + bonne réponse → poisson rare dans le sac et le carnet
+  const before = await ev(() => ({ bag: __mv.state.bag.length, fish: __mv.state.journal.fish, money: __mv.state.money }));
+  await rareBite(null);
+  ok(`${px} touche rare → question chronométrée`, await ev(() => __mv.flows.cur.kind === 'action' && __mv.flows.cur.timer.total >= 20 && __mv.flows.cur.timer.total <= 35), await ev(() => String(__mv.flows.cur.timer.total)));
+  ok(`${px} « Laisser filer » toujours offert`, await ev(() => !!document.querySelector('#panel .btn.skip')));
+  await actionLayout('question de pêche'); await shot('12-peche-question');
+  const fq = await ev(() => __mv.flows.cur.q);
+  await typeAnswer(); await p.waitForSelector('#panel .actionwin');
+  const rareKey = ['omble', 'maskinonge', 'esturgeon'][fq.d];
+  const aft = await ev(() => ({ bag: __mv.state.bag.slice(), rares: __mv.state.rares, j: __mv.state.journal }));
+  ok(`${px} bonne réponse → ${rareKey} (niveau ${fq.d}, ${fq.skill.replace('qc_s1_', '')})`, aft.rares[rareKey] === 1 && aft.j.rare === 1 && aft.j.fish === before.fish + 1 && aft.bag.includes(rareKey));
+  await shot('13-prise-rare');
+  await press('#panel .action .btn.primary');
+  // B) Touche rare + mauvaise réponse → il se sauve, message gentil, rien d’autre
+  const b0 = await ev(() => ({ bag: __mv.state.bag.length, money: __mv.state.money, rare: __mv.state.journal.rare }));
+  await rareBite({ skill: 'qc_s1_ari_01', d: 0 }); await wrongAnswer(); await p.waitForSelector('#panel .actionlose');
+  const b1 = await ev(() => ({ bag: __mv.state.bag.length, money: __mv.state.money, rare: __mv.state.journal.rare, txt: document.querySelector('#panel .actionlose h3').textContent, res: __mv.flows.cur.result }));
+  ok(`${px} mauvaise réponse → le poisson se sauve, sans pénalité`, b1.res === 'miss' && b1.bag === b0.bag && b1.money === b0.money && b1.rare === b0.rare && /reparti|prochaine/.test(b1.txt), b1.txt);
+  ok(`${px} la bonne réponse est montrée`, await ev(() => !!document.querySelector('#panel .actionlose .feedback.info b')));
+  await press('#panel .action .btn.primary');
+  // C) Laisser filer
+  await rareBite({ skill: 'qc_s1_ari_01', d: 0 }); const tries0 = await ev(() => __mv.state.mastery.qc_s1_ari_01?.tries || 0);
+  await press('#panel .btn.skip'); await p.waitForSelector('#panel .actionlose');
+  ok(`${px} « Laisser filer » → aucune conséquence`, (await ev(() => __mv.flows.cur.result)) === 'skip' && (await ev(() => __mv.state.mastery.qc_s1_ari_01?.tries || 0)) === tries0 && (await ev(() => __mv.state.journal.rare)) === 1);
+  await press('#panel .action .btn.primary');
+  ok(`${px} on peut repêcher tout de suite après`, await ev(() => !document.querySelector('#panel:not(.hidden)')));
+  // D) Pause (touche P / bouton ⏸) et onglet caché : le chrono s’arrête ; puis le temps écoulé
+  await rareBite({ skill: 'qc_s1_ari_01', d: 0 }); await waitT(1);
+  const left0 = await ev(() => __mv.flows.cur.timer.left);
+  if (mobile) await press('#panel .pausebtn'); else await p.keyboard.press('KeyP');
+  ok(`${px} pause affichée`, await ev(() => __mv.G.paused && !document.getElementById('pause').classList.contains('hidden')));
+  await p.waitForTimeout(1500);
+  ok(`${px} chrono figé en pause`, (await ev(() => __mv.flows.cur.timer.left)) === left0);
+  await press('#resume'); await waitT(1);
+  const left1 = await ev(() => __mv.flows.cur.timer.left); ok(`${px} chrono repart après « Reprendre »`, left1 < left0 - 0.5, `${left0.toFixed(2)} → ${left1.toFixed(2)}`);
+  await ev(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+  const lh0 = await ev(() => __mv.flows.cur.timer.left); await p.waitForTimeout(1500); const lh1 = await ev(() => __mv.flows.cur.timer.left);
+  ok(`${px} onglet caché → pause auto, chrono figé`, (await ev(() => __mv.G.paused)) && lh0 === lh1, `${lh0} → ${lh1}`);
+  await ev(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); Object.defineProperty(document, 'hidden', { value: false, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+  ok(`${px} au retour, la pause attend « Reprendre »`, await ev(() => __mv.G.paused));
+  await press('#resume');
+  const rest = await ev(() => __mv.flows.cur.timer.left); await waitT(rest + 0.4); await p.waitForSelector('#panel .actionlose');
+  ok(`${px} temps écoulé → il se sauve gentiment`, (await ev(() => __mv.flows.cur.result)) === 'timeout' && (await ev(() => __mv.state.journal.rare)) === 1);
+  await press('#panel .action .btn.primary');
+  // E) Érable : question de fractions → sirop
+  const tr = await ev(() => { const t = __mv.world.interactables.find(i => i.kind === 'tree' && __mv.G.time >= i.ready); return { x: t.pos.x, z: t.pos.z, r: t.r }; });
+  await ev(() => { __mv.force.maple = true; __mv.force.q = { skill: 'qc_s1_ari_03', d: 1 }; });
+  const s0 = await ev(() => ({ money: __mv.state.money, sirop: __mv.state.journal.sirop }));
+  await near(tr.x, tr.z + tr.r - 0.3); await act(); await p.waitForSelector('#panel .action.maple .tbar');
+  ok(`${px} érable : sous de base donnés quand même`, (await ev(() => __mv.state.money)) > s0.money);
+  ok(`${px} érable : question de fractions`, await ev(() => ['qc_s1_ari_03', 'qc_s1_ari_04', 'qc_s1_ari_05', 'qc_s1_ari_06'].includes(__mv.flows.cur.q.skill)));
+  await actionLayout('question de l’érable'); await shot('14-erable-question');
+  await typeAnswer(); await p.waitForSelector('#panel .actionwin');
+  ok(`${px} bonne réponse → cruchon de sirop`, await ev((a) => __mv.state.rares.sirop === 1 && __mv.state.journal.sirop === a + 1 && __mv.state.bag.includes('sirop'), s0.sirop));
+  await shot('14b-sirop'); await press('#panel .action .btn.primary');
+  await ev(() => { delete __mv.force.q; });
+  // F) Carnet : section des prises rares
+  if (mobile) await press('#btn-carnet'); else await p.keyboard.press('KeyC');
+  await p.waitForSelector('#panel .carnet .rares');
+  ok(`${px} carnet : prise rare et sirop notés`, await ev(k => !!document.querySelector(`#panel .chip.rare[data-k="${k}"]`) && !!document.querySelector('#panel .chip.rare[data-k="sirop"]'), rareKey));
+  await p.evaluate(() => document.querySelector('#panel .rares').scrollIntoView({ block: 'center' })); await shot('15-carnet-rare');
+  await press('#panel .x');
 
   // 10) Nuit + perf
   await near(1, 8); await ev(() => { __mv.state.clock = 0.875; }); await waitT(1.2); await shot('11-nuit');
@@ -154,6 +236,23 @@ async function run(kind) {
   await press('#panel .x');
 
   await waitT(0.5);
+  // Une sauvegarde de l’étape 1 (vdm.save.v1, v:1) se charge et est complétée
+  if (!mobile) {
+    const c2 = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p2 = await c2.newPage();
+    p2.on('pageerror', e => errs.push(`v1 pageerror: ${e.message}`)); p2.on('console', m => { if (m.type() === 'error') errs.push(`v1 console: ${m.text()}`); });
+    const V1 = { v: 1, seed: 77, money: 4321, tools: { canne: 2, arrosoir: 1, filet: 0, pelle: 0, sac: 1 }, upg: { canne: 1 }, mastery: { qc_s1_ari_01: { ok: 3, tries: 4, miss: 0 } }, bag: ['perchaude', 'esturgeon'], decor: ['nichoir'], bridges: { erables: true },
+      pos: { x: 2, z: 6 }, clock: 0.4, exCount: 12, muted: true, met: { intro: 1, gaston: 2 }, journal: { fish: 5, bugs: 1, finds: 2, coins: 900, flowers: 3 } };
+    await c2.addInitScript(v => { if (!sessionStorage.getItem('v1done')) { localStorage.setItem('vdm.save.v1', JSON.stringify(v)); sessionStorage.setItem('v1done', '1'); } }, V1);
+    await p2.goto(URL); await p2.waitForSelector('#play');
+    ok('d sauvegarde v1 : bouton « Continuer »', (await p2.textContent('#play')) === 'Continuer');
+    await p2.click('#play'); await p2.evaluate(() => __mv.waitT(0.5));
+    const st = await p2.evaluate(() => ({ v: __mv.state.v, money: __mv.state.money, canne: __mv.state.tools.canne, bag: __mv.state.bag.length, rare: __mv.state.journal.rare, rares: __mv.state.rares, nichoir: __mv.state.decor.includes('nichoir') }));
+    ok('d sauvegarde v1 chargée et normalisée', st.v === 2 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
+    await p2.keyboard.press('KeyC'); await p2.waitForSelector('#panel .carnet .rares');
+    ok('d sauvegarde v1 : carnet ouvert sans erreur', await p2.evaluate(() => document.querySelector('#panel .rares').textContent.includes('Rien encore')));
+    await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v2 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 2));
+    await c2.close();
+  }
   ok(`${px} 0 erreur JS`, errs.length === 0, errs.slice(0, 5).join(' | '));
   await browser.close();
 }
