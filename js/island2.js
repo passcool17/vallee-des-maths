@@ -35,7 +35,7 @@ export function buildIsland2(scene, G) {
   const rgeo = new THREE.BufferGeometry(); rgeo.setAttribute('position', new THREE.Float32BufferAttribute(rpos, 3)); rgeo.setAttribute('color', new THREE.Float32BufferAttribute(rcol, 3)); rgeo.setIndex(ridx); rgeo.computeVertexNormals();
   const rp = rgeo.attributes.position, rbase = Float32Array.from(rp.array);
   const riverMat = curved(new THREE.MeshLambertMaterial({ color: 0x5fb6cc, emissive: 0x0b2a35, vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
-  root.add(new THREE.Mesh(rgeo, riverMat));
+  const river = new THREE.Mesh(rgeo, riverMat); river.userData.flat = 1; root.add(river); // flat : la passe « joli » garde l’eau en Lambert
   // berges : galets
   const bankRocks = [];
   for (let i = 0; i <= N; i += 3) { const p = pts[i]; for (const s of [-1, 1]) if (rng.chance(0.6)) bankRocks.push([p.x + s * (1.5 + rng.next() * 0.4) + (rng.next() - 0.5) * 0.5, p.z + (rng.next() - 0.5), 0.25 + rng.next() * 0.25]); }
@@ -172,7 +172,7 @@ export function buildIsland2(scene, G) {
   let wt = 0;
   function update(dt, G) {
     wt += dt;
-    const wm = G.world.water.material; riverMat.color.copy(wm.color).offsetHSL(0, 0.04, 0.05); riverMat.emissive.copy(wm.emissive);
+    const wm = G.world.water.material, rm = river.material; rm.color.copy(wm.color).offsetHSL(0, 0.04, 0.05); rm.emissive.copy(wm.emissive);
     for (let i = 0; i < rp.count; i++) if ((i & 3) === 1 || (i & 3) === 2) { const x = rbase[i * 3], z = rbase[i * 3 + 2]; rp.array[i * 3 + 1] = rbase[i * 3 + 1] + Math.sin(x * 1.7 + z * 0.9 + wt * 2.2) * 0.035; }
     rp.needsUpdate = true;
     foams.forEach((f, i) => { f.position.y += Math.sin(wt * 6 + i) * 0.004; f.scale.setScalar(0.8 + Math.abs(Math.sin(wt * 4 + i * 1.7)) * 0.5); });

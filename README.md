@@ -24,6 +24,10 @@ Paramètres d’URL utiles :
 | `?seed=1234` | Graine de la partie |
 | `?time=matin\|midi\|doree\|nuit` | Fige l’heure de la journée |
 | `?traversier` | Ouvre le traversier tout de suite (pour tester l’île 2) |
+| `?joli=0` | Coupe toute la passe visuelle « joli » (rendu d’avant, pour comparer) |
+| `&ombres=0` `&pbr=0` `&geo=0` `&herbe=0` `&cam=0` `&vignette=0` | Coupe un seul morceau : ombres douces, matériaux lisses à reflets, polygones en plus (et l’herbe), herbe, caméra rapprochée, vignette |
+| `&adapt=0` | Désactive la qualité adaptative (captures, mesures) |
+| `&q=1` à `&q=5` | Force un palier de qualité (1 = DPR 1,5 · 2 = DPR 1,25 · 3 = ombre ÷2 · 4 = sans ombres · 5 = DPR 1) |
 
 ## Tests
 
@@ -45,6 +49,7 @@ node tools/test-music.cjs 8653  # musique : piste 1 sur l’île 1, piste 2 sur 
 index.html  style.css  favicon.svg  .nojekyll
 js/main.js         boucle, caméra, actions (érables, pêche, plates-bandes, fouilles, papillons)
 js/world.js        île low-poly, monde courbé (shader), 4 moments de la journée, traversier
+js/joli.js         passe visuelle : tonemapping ACES, palette, ombres douces ajustées à la vue, matériaux lisses à reflets du ciel + liseré, herbe au vent, couronnes et personnages plus ronds, qualité adaptative
 js/island2.js      île de Secondaire 2 (construite au premier passage) : phare, sapins, rochers, rivière et chutes, érables rouges, kiosque
 js/phare.js        réparation du phare en 3 étapes (plan à l’échelle en SVG)
 js/villagers.js    Gaston le castor, Ginette l’orignale, Flocon le harfang, Rosalie la loutre, Bernard le huard

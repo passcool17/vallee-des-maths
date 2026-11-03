@@ -28,7 +28,7 @@ const canvas = document.getElementById('c');
 const touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 document.body.classList.toggle('touch', touch);
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !touch, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, touch ? 1.75 : 2)); J.setupRenderer(renderer);
+renderer.setPixelRatio(J.DPR); J.setupRenderer(renderer);
 const scene = new THREE.Scene(); J.setScene(scene);
 const camera = new THREE.PerspectiveCamera(J.CAM.fov, 1, 0.5, 900);
 const rng = makeRng(state.seed ^ 0xbeef);
@@ -245,7 +245,7 @@ function frame(now) {
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
-  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi);
+  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase);
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
   if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? (fishing.rare ? 'Ça mord fort! Ferre!' : 'Ça mord! Ferre!') : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
@@ -284,7 +284,7 @@ window.__mv = {
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
-  fps: () => fps,
+  fps: () => fps, quality: J.quality,
   unlockFerry: () => { state.ferry = true; return true; },
   travel: (n, instant = true) => G.travel(n, { instant }),
   island: () => state.island, isle2: () => isle2, W, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },
