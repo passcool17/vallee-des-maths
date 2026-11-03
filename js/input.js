@@ -30,7 +30,11 @@ export function makeInput({ canvas, onInteract, onKey, onTap }) {
     const end = e => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.z = 0; knob.style.transform = ''; };
     stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
   }
-  if (act) act.addEventListener('pointerdown', e => { e.preventDefault(); if (enabled) onInteract(); });
+  if (act) {
+    act.addEventListener('pointerdown', e => { e.preventDefault(); if (enabled) onInteract(); });
+    // Empêche le « clic fantôme » qui suivrait le toucher et activerait le bouton du panneau qui vient de s’ouvrir dessous.
+    act.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+  }
 
   return {
     move() {

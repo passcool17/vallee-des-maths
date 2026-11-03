@@ -43,7 +43,7 @@ export function makeUI() {
     numpad(onKey) {
       const keys = ['7', '8', '9', '⌫', '4', '5', '6', '/', '1', '2', '3', ',', '−', '0', 'C', '✓'];
       return h('div', { class: 'numpad' }, keys.map(k => h('button', { class: `k ${k === '✓' ? 'ok' : ''} ${/[0-9]/.test(k) ? 'd' : 'f'}`, 'data-k': k, 'aria-label': { '⌫': 'Effacer un caractère', C: 'Tout effacer', '✓': 'Valider' }[k] || k,
-        onpointerdown: e => { e.preventDefault(); onKey(k); } }, k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : k)));
+        onpointerdown: e => { e.preventDefault(); onKey(k); }, ontouchend: e => e.preventDefault() /* pas de clic fantôme sur le bouton qui apparaît dessous */ }, k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : k)));
     },
   };
   return UI;

@@ -37,7 +37,7 @@ export const GEN = {
     }
     const v = Function(`return (${js})`)();
     return { prompt: `Calcule : ${show}`, answer: num(v), data: { js },
-      hints: ['Commence par les parenthèses les plus intérieures, puis les crochets.', 'Ensuite, fais × et ÷ de gauche à droite, et seulement après + et −.', `Première étape : ${step}. Continue à partir de là.`] };
+      hints: [/[[]/.test(show) ? 'Commence par les parenthèses les plus intérieures, puis les crochets.' : /[(]/.test(show) ? 'Commence par ce qui est entre parenthèses.' : 'Pas de parenthèses ici : les × et ÷ passent avant les + et −.', 'Ensuite, fais × et ÷ de gauche à droite, et seulement après + et −.', `Première étape : ${step}. Continue à partir de là.`] };
   },
   qc_s1_ari_02(r, d) {
     let a, b, op;

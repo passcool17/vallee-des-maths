@@ -161,7 +161,15 @@ export function makeFlows(G) {
     swap(h('div', { class: 'celebrate' }, h('div', { class: 'big' }, t.icone), h('h3', {}, `${t.nom} — niveau ${level}!`), h('p', {}, stars(level)), h('p', { class: 'benefit' }, `➜ ${({ canne: 'Pêche', arrosoir: 'Arrosage', filet: 'Chasse aux papillons', pelle: 'Fouilles', sac: 'Sac' })[tool]} : ${describe(tool, level)}`),
       h('p', { class: 'line' }, '« Tiguidou! Ça, c’est de l’ouvrage bien faite. » — Gaston'), h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { click(); F.workbench(); } }, 'Retour à l’établi'), h('button', { class: 'btn', onclick: () => ui.close() }, 'Fermer'))));
   };
-  const describe = (tool, l) => { const x = stats(tool, l); return { canne: `touche en ${x.wait[0]}–${x.wait[1]} s, ${x.window.toFixed(1).replace('.', ',')} s pour ferrer${x.rare ? `, ${Math.round(x.rare * 100)} % de rares` : ''}`, arrosoir: `${x.beds} plate(s)-bande(s), ${fmtMoney(x.coins)} chacune`, filet: `portée ${String(x.reach).replace('.', ',')} m, ${Math.round(x.chance * 100)} % de réussite`, pelle: `chance ${x.luck}/3`, sac: `${x.cap} places` }[tool]; };
+  // Une fonction par outil : seules les stats de l’outil demandé sont lues.
+  const DESCRIBE = {
+    canne: x => `touche en ${x.wait[0]}–${x.wait[1]} s, ${x.window.toFixed(1).replace('.', ',')} s pour ferrer${x.rare ? `, ${Math.round(x.rare * 100)} % de rares` : ''}`,
+    arrosoir: x => `${x.beds} plate(s)-bande(s), ${fmtMoney(x.coins)} chacune`,
+    filet: x => `portée ${String(x.reach).replace('.', ',')} m, ${Math.round(x.chance * 100)} % de réussite`,
+    pelle: x => `chance ${x.luck}/3`,
+    sac: x => `${x.cap} places`,
+  };
+  const describe = (tool, l) => DESCRIBE[tool](stats(tool, l));
 
   // ---------- Défis de Flocon
   F.defi = (focus) => {
@@ -225,7 +233,7 @@ export function makeFlows(G) {
     const journal = h('p', { class: 'journal' }, `🐟 ${j.fish} · 🦋 ${j.bugs} · ⛏️ ${j.finds} · 🌸 ${j.flowers} · 🪙 ${fmtMoney(j.coins)} gagnés`);
     const doms = DOMAINES.map(dname => h('section', {}, h('h4', {}, dname), SKILLS.filter(s => s.domaine === dname).map(sk => {
       const ok = st.mastery[sk.id]?.ok || 0, m = isMastered(st, sk.id), u = isUnlocked(st, sk.id);
-      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}` }, h('div', {}, h('b', {}, `${m ? '✅' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', prereqsOf(sk.id, 'hard').map(p => skillById(p).nom).join(', ')) : null), dots(ok));
+      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}` }, h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', prereqsOf(sk.id, 'hard').map(p => skillById(p).nom).join(', ')) : null), dots(ok));
     })));
     open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face('flocon'), h('div', {}, h('b', {}, 'Mon carnet'), h('p', { class: 'line' }, `${masteryCount(st)} / ${SKILLS.length} compétences maîtrisées — Secondaire 1 (PDA du MEQ)`))), tools, journal, doms), { cls: 'carnet' });
   };

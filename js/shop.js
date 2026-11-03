@@ -32,7 +32,7 @@ export function quote(item, rng) {
   const altTotalCents = r2(baseCents * (1 + TPS + TVQ));
   const hints = [
     rabais ? `Calcule d’abord le rabais : ${rabais} % de ${$(prixCents)}, puis enlève-le du prix.` : 'Pas de rabais aujourd’hui : on part du prix affiché.',
-    `Les taxes se calculent sur le prix ${rabais ? 'après rabais' : ''} (${$(baseCents)}) : TPS = 5 %, TVQ = 9,975 %.`,
+    `Les taxes se calculent sur le prix${rabais ? ' après rabais' : ''} (${$(baseCents)}) : TPS = 5 %, TVQ = 9,975 %.`,
     `TPS ≈ ${$(tpsCents)} et TVQ ≈ ${$(tvqCents)}. Additionne tout !`,
   ];
   return { item, prixCents, rabais, baseCents, tpsCents, tvqCents, totalCents, altTotalCents, hints };
