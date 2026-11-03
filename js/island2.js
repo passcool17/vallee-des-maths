@@ -26,12 +26,15 @@ export function buildIsland2(scene, G) {
   const curve3 = new THREE.CatmullRomCurve3(RIVER.map(([x, z]) => new THREE.Vector3(x, 0, z)));
   const N = 140, pts = curve3.getSpacedPoints(N);
   const riverY = t => 0.1 + (t < FALLS[0] ? 0.34 : t < FALLS[1] ? 0.17 : 0);
-  const rpos = [], ridx = [];
-  for (let i = 0; i <= N; i++) { const t = i / N, p = pts[i], q = pts[Math.min(N, i + 1)], o = pts[Math.max(0, i - 1)]; const dx = q.x - o.x, dz = q.z - o.z, L = Math.hypot(dx, dz) || 1; const nx = -dz / L, nz = dx / L, w = 1.3;
-    const y = riverY(t); rpos.push(p.x + nx * w, y, p.z + nz * w, p.x - nx * w, y, p.z - nz * w);
-    if (i < N) { const a = i * 2; ridx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } }
-  const rgeo = new THREE.BufferGeometry(); rgeo.setAttribute('position', new THREE.Float32BufferAttribute(rpos, 3)); rgeo.setIndex(ridx); rgeo.computeVertexNormals();
-  const riverMat = curved(new THREE.MeshLambertMaterial({ color: 0x5fb6cc, emissive: 0x0b2a35, side: THREE.DoubleSide }));
+  // Ruban en 4 colonnes : bords clairs (eau peu profonde, écume) et centre qui ondule (reflets en facettes, comme le lac).
+  const COLS = [[-1.3, 1.45], [-0.6, 1], [0.6, 1], [1.3, 1.45]]; // [décalage, éclat de la couleur]
+  const rpos = [], ridx = [], rcol = [];
+  for (let i = 0; i <= N; i++) { const t = i / N, p = pts[i], q = pts[Math.min(N, i + 1)], o = pts[Math.max(0, i - 1)]; const dx = q.x - o.x, dz = q.z - o.z, L = Math.hypot(dx, dz) || 1; const nx = -dz / L, nz = dx / L;
+    const y = riverY(t); for (const [w, k] of COLS) { rpos.push(p.x + nx * w, y, p.z + nz * w); rcol.push(k, k, k); }
+    if (i < N) { const a = i * 4; for (let c = 0; c < 3; c++) ridx.push(a + c, a + 4 + c, a + c + 1, a + c + 1, a + 4 + c, a + 5 + c); } }
+  const rgeo = new THREE.BufferGeometry(); rgeo.setAttribute('position', new THREE.Float32BufferAttribute(rpos, 3)); rgeo.setAttribute('color', new THREE.Float32BufferAttribute(rcol, 3)); rgeo.setIndex(ridx); rgeo.computeVertexNormals();
+  const rp = rgeo.attributes.position, rbase = Float32Array.from(rp.array);
+  const riverMat = curved(new THREE.MeshLambertMaterial({ color: 0x5fb6cc, emissive: 0x0b2a35, vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
   root.add(new THREE.Mesh(rgeo, riverMat));
   // berges : galets
   const bankRocks = [];
@@ -169,7 +172,9 @@ export function buildIsland2(scene, G) {
   let wt = 0;
   function update(dt, G) {
     wt += dt;
-    riverMat.color.copy(G.world.water.material.color).offsetHSL(0, 0.04, 0.05);
+    const wm = G.world.water.material; riverMat.color.copy(wm.color).offsetHSL(0, 0.04, 0.05); riverMat.emissive.copy(wm.emissive);
+    for (let i = 0; i < rp.count; i++) if ((i & 3) === 1 || (i & 3) === 2) { const x = rbase[i * 3], z = rbase[i * 3 + 2]; rp.array[i * 3 + 1] = rbase[i * 3 + 1] + Math.sin(x * 1.7 + z * 0.9 + wt * 2.2) * 0.035; }
+    rp.needsUpdate = true;
     foams.forEach((f, i) => { f.position.y += Math.sin(wt * 6 + i) * 0.004; f.scale.setScalar(0.8 + Math.abs(Math.sin(wt * 4 + i * 1.7)) * 0.5); });
     for (const it of interactables) {
       if (it.kind === 'tree' && it.shake > 0) { it.shake = Math.max(0, it.shake - dt); const s = Math.sin(it.shake * 40) * it.shake * 0.25; it.crown.rotation.z = s; it.crown.rotation.x = s * 0.5; }

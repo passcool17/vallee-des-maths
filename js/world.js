@@ -54,11 +54,13 @@ const blobMat = curved(new THREE.MeshBasicMaterial({ map: blobTex, transparent: 
 export function blob(r) { const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2), blobMat); m.rotation.x = -Math.PI / 2; m.position.y = 0.03; m.renderOrder = 1; return m; }
 
 // ---------- Palettes des 4 moments de la journée
+// water = couleur propre de l’eau (toujours bleu-vert) ; waterE = lueur du ciel reflété, qui ne dépend pas de la lumière
+// (sans elle, le soleil orangé de l’heure dorée multipliait l’eau et la rendait couleur terre battue).
 export const TIMES = {
-  matin: { sky: ['#bfe3f2', '#ffe2c4'], fog: '#f4dcc8', sun: '#ffe0b8', sunI: 1.6, hemi: ['#e9f3ff', '#c9b28a'], hemiI: 1.25, water: '#7fc4cf', sunPos: [-30, 22, 18] },
-  midi: { sky: ['#8fd0f0', '#e6f6ff'], fog: '#dff0f5', sun: '#fff6e6', sunI: 2.0, hemi: ['#f2fbff', '#b9b07a'], hemiI: 1.35, water: '#5fb6cc', sunPos: [10, 40, 12] },
-  doree: { sky: ['#f6b48a', '#ffe5a8'], fog: '#f7c99c', sun: '#ffc27a', sunI: 1.9, hemi: ['#ffd9b0', '#b3876a'], hemiI: 1.15, water: '#e3a57e', sunPos: [32, 14, 10] },
-  nuit: { sky: ['#1d2550', '#5b4b7c'], fog: '#3a3a66', sun: '#a9b8ff', sunI: 0.55, hemi: ['#6f7fc0', '#2c2440'], hemiI: 0.75, water: '#2f4f7a', sunPos: [-12, 30, -10] },
+  matin: { sky: ['#bfe3f2', '#ffe2c4'], fog: '#f4dcc8', sun: '#ffe0b8', sunI: 1.6, hemi: ['#e9f3ff', '#c9b28a'], hemiI: 1.25, water: '#7fc4cf', waterE: '#0d3640', sunPos: [-30, 22, 18] },
+  midi: { sky: ['#8fd0f0', '#e6f6ff'], fog: '#dff0f5', sun: '#fff6e6', sunI: 2.0, hemi: ['#f2fbff', '#b9b07a'], hemiI: 1.35, water: '#5fb6cc', waterE: '#0b2f3a', sunPos: [10, 40, 12] },
+  doree: { sky: ['#f6b48a', '#ffe5a8'], fog: '#f7c99c', sun: '#ffc27a', sunI: 1.9, hemi: ['#ffd9b0', '#b3876a'], hemiI: 1.15, water: '#3fa6c4', waterE: '#1a5566', sunPos: [32, 14, 10] },
+  nuit: { sky: ['#1d2550', '#5b4b7c'], fog: '#3a3a66', sun: '#a9b8ff', sunI: 0.55, hemi: ['#6f7fc0', '#2c2440'], hemiI: 0.75, water: '#2f4f7a', waterE: '#0b1c38', sunPos: [-12, 30, -10] },
 };
 export const TIME_ORDER = ['matin', 'midi', 'doree', 'nuit'];
 export const TIME_NOMS = { matin: 'Matin', midi: 'Midi', doree: 'Heure dorée', nuit: 'Nuit' };
@@ -288,7 +290,7 @@ export function buildWorld(scene, G) {
     sun.color.set(P0.sun).lerp(cB.set(P1.sun), t); sun.intensity = P0.sunI + (P1.sunI - P0.sunI) * t;
     sun.position.set(...P0.sunPos.map((v, k) => v + (P1.sunPos[k] - v) * t));
     hemi.color.set(P0.hemi[0]).lerp(cB.set(P1.hemi[0]), t); hemi.groundColor.set(P0.hemi[1]).lerp(cB.set(P1.hemi[1]), t); hemi.intensity = P0.hemiI + (P1.hemiI - P0.hemiI) * t;
-    water.material.color.set(P0.water).lerp(cB.set(P1.water), t);
+    water.material.color.set(P0.water).lerp(cB.set(P1.water), t); water.material.emissive.set(P0.waterE).lerp(cB.set(P1.waterE), t);
     const night = (i0 === 3 ? 1 - t : 0) + (i1 === 3 ? t : 0); stars.material.opacity = night; stars.visible = night > 0.02;
     for (const d of Object.values(decor)) if (d.userData.light) d.userData.light.intensity = root.visible ? 0.4 + night * 14 : 0;
     return { phase: TIME_ORDER[t > 0.5 ? i1 : i0], night };
