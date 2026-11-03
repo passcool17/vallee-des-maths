@@ -73,7 +73,7 @@ export function buildIsland2(scene, G) {
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xfff1b0, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
   for (const s of [1, -1]) { const b = new THREE.Mesh(new THREE.ConeGeometry(2.4, 26, 14, 1, true), beamMat); b.rotation.z = s * Math.PI / 2; b.position.x = s * 13; beams.add(b); }
   beams.visible = false;
-  const light = new THREE.PointLight(0xffd98a, 0, 46, 1.3); light.position.y = 9.9; phare.add(light);
+  const light = new THREE.PointLight(0xffd98a, 0, 46, 1.3); light.position.y = 9.9; light.visible = false; phare.add(light); // visible seulement la nuit : une lumière de plus coûte cher à chaque pixel
   // chantier (avant réparation) : planches et échafaudage
   const chantier = new THREE.Group();
   for (const [x, z, r] of [[-2.6, 1.2, 0.3], [-2.9, 1.6, 0.2]]) chantier.add(at(mesh(new THREE.BoxGeometry(2.2, 0.12, 0.4), '#c4a070'), x, 0.1 + r * 0.4, z, r));
@@ -133,9 +133,9 @@ export function buildIsland2(scene, G) {
     root.add(at(g, x, 0, z)); const it = { id: `trou2_${i}`, kind: 'dig', pos: new THREE.Vector3(x, 0, z), r: 1.6, label: 'Creuser', obj: g, mark: xm, ready: 0, zone: 'ile2' }; interactables.push(it); return it; });
 
   // ---------- Conifères et rochers (instanciés : peu d’appels de dessin)
-  const firs = [], rocks = [];
+  const firs = [], rocks = []; // 46 sapins : au-delà, le remplissage de pixels fait chuter les FPS sur mobile
   const busy = (x, z, r) => placeNear(x, z, r) || nearRiver(x, z, 2.8) || MAPLES.some(([mx, mz]) => Math.hypot(mx - x, mz - z) < 3) || interactables.some(it => it.pos.distanceTo(new THREE.Vector3(x, 0, z)) < 3.2) || firs.some(f => Math.hypot(f[0] - x, f[1] - z) < 2.2);
-  for (let tries = 0; firs.length < 64 && tries < 900; tries++) { const a = rng.next() * 6.283, d = 4 + Math.sqrt(rng.next()) * (ISLE2.r - 5.5); const x = Math.cos(a) * d, z = Math.sin(a) * d; if (busy(x, z, 5)) continue; firs.push([x, z, 0.8 + rng.next() * 0.6, rng.next() * 6]); }
+  for (let tries = 0; firs.length < 46 && tries < 900; tries++) { const a = rng.next() * 6.283, d = 4 + Math.sqrt(rng.next()) * (ISLE2.r - 5.5); const x = Math.cos(a) * d, z = Math.sin(a) * d; if (busy(x, z, 5)) continue; firs.push([x, z, 0.8 + rng.next() * 0.6, rng.next() * 6]); }
   for (let tries = 0; rocks.length < 30 && tries < 600; tries++) { const a = rng.next() * 6.283, d = 3 + Math.sqrt(rng.next()) * (ISLE2.r - 3.5); const x = Math.cos(a) * d, z = Math.sin(a) * d; if (placeNear(x, z, 4) || nearRiver(x, z, 2) || firs.some(f => Math.hypot(f[0] - x, f[1] - z) < 1.5)) continue; rocks.push([x, z, 0.35 + rng.next() * 0.6, rng.next() * 6]); }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   function inst(geo, color, list, place) { const im = new THREE.InstancedMesh(geo, curved(new THREE.MeshLambertMaterial({ color, flatShading: true })), list.length);
@@ -176,8 +176,8 @@ export function buildIsland2(scene, G) {
       if (it.kind === 'dig') it.mark.visible = G.time >= it.ready;
     }
     const lit = G.state.phare.done;
-    if (lit) { const n = G.night; light.intensity = n * 60; beams.visible = n > 0.05; beamMat.opacity = n * 0.22; beams.rotation.y += dt * 0.6; lens.scale.setScalar(1 + n * 0.4); }
-    else { light.intensity = 0; beams.visible = false; }
+    if (lit) { const n = G.night; light.intensity = n * 60; light.visible = n > 0.05; beams.visible = n > 0.05; beamMat.opacity = n * 0.22; beams.rotation.y += dt * 0.6; lens.scale.setScalar(1 + n * 0.4); }
+    else { light.intensity = 0; light.visible = false; beams.visible = false; }
   }
   setPhare(!!G.state.phare.done);
   const fishSpot = { x: (DOCK2.x0 + DOCK2.x1) / 2, z: DOCK2.z1 - 0.8, fx: (DOCK2.x0 + DOCK2.x1) / 2, fz: DOCK2.z1 + 3 };

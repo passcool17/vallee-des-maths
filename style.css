@@ -205,3 +205,5 @@ body.modal #touch, body.modal #prompt { display: none; }
 .fp.ok { background: #e2f5e0; } .fp .stars { color: #c89a1a; }
 .prog.phare, .prog.kiosk { color: #2c6e8f; }
 .max.isle2 { color: #2c6e8f; }
+.exercise .figure { max-width: 260px; } .exercise .figure svg { max-height: 20vh; }
+@media (max-width: 480px) { .exercise .figure svg { max-height: 17vh; } .vtable { font-size: 14px; } .vtable th, .vtable td { padding: 4px 8px; } }

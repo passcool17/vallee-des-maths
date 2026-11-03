@@ -248,10 +248,10 @@ async function run(kind) {
     ok('d sauvegarde v1 : bouton « Continuer »', (await p2.textContent('#play')) === 'Continuer');
     await p2.click('#play'); await p2.evaluate(() => __mv.waitT(0.5));
     const st = await p2.evaluate(() => ({ v: __mv.state.v, money: __mv.state.money, canne: __mv.state.tools.canne, bag: __mv.state.bag.length, rare: __mv.state.journal.rare, rares: __mv.state.rares, nichoir: __mv.state.decor.includes('nichoir') }));
-    ok('d sauvegarde v1 chargée et normalisée', st.v === 2 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
+    ok('d sauvegarde v1 chargée et normalisée', st.v === 3 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
     await p2.keyboard.press('KeyC'); await p2.waitForSelector('#panel .carnet .rares');
     ok('d sauvegarde v1 : carnet ouvert sans erreur', await p2.evaluate(() => document.querySelector('#panel .rares').textContent.includes('Rien encore')));
-    await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v2 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 2));
+    await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v3 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 3));
     await c2.close();
   }
   ok(`${px} 0 erreur JS`, errs.length === 0, errs.slice(0, 5).join(' | '));

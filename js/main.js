@@ -278,7 +278,7 @@ G.travel = async (to, { instant = false } = {}) => {
 
 // Crochet de test (lecture seule pour l’essentiel)
 window.__mv = {
-  G, state, world, player, flows,
+  G, state, world, player, flows, renderer, scene,
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
