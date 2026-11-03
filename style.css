@@ -181,3 +181,27 @@ body.modal #touch, body.modal #prompt { display: none; }
   .choices.grid { grid-template-columns: 1fr; }
   #title h1 { font-size: 32px; }
 }
+
+/* ---------- Île de secondaire 2 */
+.face.rosalie { background: #fff1b8; } .face.bernard { background: #d9efe6; }
+.figure { margin: 6px auto 10px; max-width: 320px; }
+.figure svg { width: 100%; height: auto; display: block; }
+.fig { font: 700 11px system-ui, sans-serif; }
+.fig rect, .fig circle, .fig polygon, .fig path, .fig ellipse { fill: #fdf6e9; stroke: #6b5a45; stroke-width: 1.5; }
+.fig line, .fig polyline { stroke: #6b5a45; stroke-width: 1.5; fill: none; }
+.fig text { fill: var(--ink); stroke: none; }
+.fig .on { fill: #ffd86b; stroke: #c86a1a; stroke-width: 2.5; }
+.vtable { border-collapse: collapse; margin: 6px auto 12px; font-size: 16px; }
+.vtable th, .vtable td { border: 2px solid #e5d6bd; padding: 5px 12px; text-align: center; min-width: 34px; }
+.vtable th { background: #f1e3cb; }
+.numpad .k[data-k="π"] { background: #ffe6a3; font-family: Georgia, serif; }
+.tabs { display: flex; gap: 6px; margin: 8px 0; }
+.btn.tab { flex: 1; padding: 8px 10px; background: #f3ead9; color: var(--soft); }
+.btn.tab.on { background: var(--gold); color: var(--ink); }
+.journal.s2 { font-size: 14px; }
+.pre.s1 { color: #3b7a57; }
+.ferryprog { display: grid; gap: 6px; margin: 10px 0; }
+.fp { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; background: #fbeee0; font-size: 15px; }
+.fp.ok { background: #e2f5e0; } .fp .stars { color: #c89a1a; }
+.prog.phare, .prog.kiosk { color: #2c6e8f; }
+.max.isle2 { color: #2c6e8f; }

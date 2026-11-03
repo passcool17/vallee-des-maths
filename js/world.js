@@ -75,6 +75,34 @@ export const BRIDGES = {
   erables: { x0: -5.4, x1: -2.6, z0: -37.5, z1: -28 },
 };
 export const DOCK = { x0: 4.8, x1: 7.2, z0: 27, z1: 38 };
+// Quai du traversier : même endroit (côte ouest) sur les deux îles.
+export const FERRY = { x0: -40, x1: -29.2, z0: 2.8, z1: 5.2, boatX: -43, arrive: [-34, 4] };
+export const onFerryDock = (x, z) => x > FERRY.x0 + 0.2 && x < FERRY.x1 + 0.4 && z > FERRY.z0 + 0.2 && z < FERRY.z1 - 0.2;
+// Quai + bateau du traversier (île 1 et île 2). Retourne { group, setLocked(bool) }.
+export function makeFerry(parent, lockable) {
+  const g = new THREE.Group(); const len = FERRY.x1 - FERRY.x0, cz = (FERRY.z0 + FERRY.z1) / 2;
+  for (let i = 0; i < len / 0.6; i++) g.add(at(mesh(new THREE.BoxGeometry(0.52, 0.16, 2.6), i % 3 ? '#b88a5c' : '#a77a4f'), FERRY.x0 + 0.3 + i * 0.6, 0.05, cz));
+  for (let i = 0; i <= 3; i++) for (const pz of [FERRY.z0 - 0.05, FERRY.z1 + 0.05]) g.add(at(mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.8, 6), '#7a5236'), FERRY.x0 + 0.6 + i * (len - 2) / 3, -0.5, pz));
+  // le bateau : coque, cabine, cheminée
+  const boat = new THREE.Group();
+  boat.add(at(mesh(new THREE.BoxGeometry(5.2, 1, 3), '#f3efe6'), 0, -0.2, 0));
+  boat.add(at(mesh(new THREE.BoxGeometry(5.3, 0.3, 3.1), '#2f5d8a'), 0, -0.55, 0));
+  boat.add(at(mesh(new THREE.BoxGeometry(2.2, 1.2, 2.2), '#d64545'), -0.6, 0.9, 0));
+  for (const wz of [-1.12, 1.12]) boat.add(at(mesh(new THREE.BoxGeometry(1.6, 0.45, 0.05), '#bfe3f2'), -0.6, 1.05, wz));
+  boat.add(at(mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.9, 8), '#2b2b33'), -1.2, 1.9, 0));
+  boat.add(at(mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 4), '#7a5236'), 1.6, 1.1, 0));
+  const flag = at(mesh(new THREE.BoxGeometry(0.05, 0.5, 0.8), '#e2572e'), 1.6, 2, 0.42); boat.add(flag);
+  boat.position.set(FERRY.boatX, 0, cz); g.add(boat);
+  // panneau
+  const sign = new THREE.Group(); sign.add(at(mesh(new THREE.BoxGeometry(0.12, 1.4, 0.12), '#7a5236'), 0, 0.7, 0)); sign.add(at(mesh(new THREE.BoxGeometry(1.4, 0.7, 0.1), '#f3e3c3'), 0, 1.4, 0));
+  const open = label('⛴️ Traversier', { size: 26 }), shut = label('⛴️ Traversier 🔒', { size: 26 }); for (const l of [open, shut]) { l.position.set(0, 2.3, 0); sign.add(l); }
+  sign.position.set(FERRY.x1 + 1.4, 0, FERRY.z1 + 1.2); g.add(sign);
+  const chain = new THREE.Group(); for (const pz of [FERRY.z0 + 0.2, FERRY.z1 - 0.2]) chain.add(at(mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.1, 5), '#4a4a50'), FERRY.x1 - 1.5, 0.6, pz));
+  const bar = at(mesh(new THREE.BoxGeometry(0.1, 0.14, 2.2), '#f2c230'), FERRY.x1 - 1.5, 0.95, cz); chain.add(bar); g.add(chain);
+  parent.add(g);
+  const api = { group: g, boat, setLocked(on) { shut.visible = on && lockable; open.visible = !(on && lockable); chain.visible = on && lockable; } };
+  api.setLocked(!!lockable); return api;
+}
 export const PLACES = {
   etabli: [-12, -3], magasin: [12, -9], erable: [-2, -16], quai: [6, 37.2], plates: [17, 7],
 };
@@ -102,7 +130,7 @@ export function buildWorld(scene, G) {
 
   // Lac
   const waterGeo = new THREE.PlaneGeometry(260, 260, 52, 52); waterGeo.rotateX(-Math.PI / 2);
-  const water = new THREE.Mesh(waterGeo, curved(new THREE.MeshLambertMaterial({ color: 0x5fb6cc, flatShading: true }))); water.position.y = -0.7; root.add(water);
+  const water = new THREE.Mesh(waterGeo, curved(new THREE.MeshLambertMaterial({ color: 0x5fb6cc, flatShading: true }))); water.position.y = -0.7; scene.add(water); // partagée par les deux îles
   const wp = waterGeo.attributes.position, wbase = Float32Array.from(wp.array);
 
   // Îles : sable + gazon, bord irrégulier
@@ -184,6 +212,10 @@ export function buildWorld(scene, G) {
     interactables.push({ id: 'quai', kind: 'fish', pos: new THREE.Vector3(6, 0, DOCK.z1 - 0.8), r: 1.8, label: 'Pêcher', obj: g }); }
   const bobber = at(mesh(new THREE.SphereGeometry(0.16, 8, 6), '#ff5a4a'), 6, -0.55, DOCK.z1 + 2.2); bobber.visible = false; root.add(bobber);
 
+  // ---------- Traversier (vers l’île de Secondaire 2)
+  const ferry = makeFerry(root, true);
+  interactables.push({ id: 'traversier', kind: 'ferry', pos: new THREE.Vector3(FERRY.x0 + 3, 0, (FERRY.z0 + FERRY.z1) / 2), r: 2.4, label: 'Prendre le traversier', obj: ferry.group });
+
   // ---------- Plates-bandes
   const beds = [];
   for (let i = 0; i < 4; i++) { const x = PLACES.plates[0] + (i % 2) * 2.6 - 1.3, z = PLACES.plates[1] + Math.floor(i / 2) * 2.4 - 1.2; const g = new THREE.Group();
@@ -238,7 +270,7 @@ export function buildWorld(scene, G) {
   // ---------- Marcher
   function walkable(x, z, state) {
     const onIsland = ISLANDS.some(i => (i.id === 'main' || state.bridges[i.id]) && Math.hypot(x - i.x, z - i.z) < i.r - 0.3);
-    const onDock = x > DOCK.x0 + 0.2 && x < DOCK.x1 - 0.2 && z > DOCK.z0 - 1 && z < DOCK.z1 - 0.3;
+    const onDock = (x > DOCK.x0 + 0.2 && x < DOCK.x1 - 0.2 && z > DOCK.z0 - 1 && z < DOCK.z1 - 0.3) || onFerryDock(x, z);
     const onBridge = Object.entries(BRIDGES).some(([k, b]) => state.bridges[k] && x > b.x0 + 0.25 && x < b.x1 - 0.25 && z > b.z0 + 0.25 && z < b.z1 - 0.25);
     if (!(onIsland || onDock || onBridge)) return false;
     return !obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.r + 0.35);
@@ -258,7 +290,7 @@ export function buildWorld(scene, G) {
     hemi.color.set(P0.hemi[0]).lerp(cB.set(P1.hemi[0]), t); hemi.groundColor.set(P0.hemi[1]).lerp(cB.set(P1.hemi[1]), t); hemi.intensity = P0.hemiI + (P1.hemiI - P0.hemiI) * t;
     water.material.color.set(P0.water).lerp(cB.set(P1.water), t);
     const night = (i0 === 3 ? 1 - t : 0) + (i1 === 3 ? t : 0); stars.material.opacity = night; stars.visible = night > 0.02;
-    for (const d of Object.values(decor)) if (d.userData.light) d.userData.light.intensity = 0.4 + night * 14;
+    for (const d of Object.values(decor)) if (d.userData.light) d.userData.light.intensity = root.visible ? 0.4 + night * 14 : 0;
     return { phase: TIME_ORDER[t > 0.5 ? i1 : i0], night };
   }
 
@@ -267,6 +299,7 @@ export function buildWorld(scene, G) {
     wt += dt;
     for (let i = 0; i < wp.count; i++) { const x = wbase[i * 3], z = wbase[i * 3 + 2]; wp.array[i * 3 + 1] = Math.sin(x * 0.35 + wt * 1.2) * 0.08 + Math.cos(z * 0.3 + wt) * 0.08; }
     wp.needsUpdate = true;
+    if (!root.visible) return; // île 1 cachée pendant qu’on est sur l’île 2
     for (const it of interactables) {
       if (it.kind === 'tree' && it.shake > 0) { it.shake = Math.max(0, it.shake - dt); const s = Math.sin(it.shake * 40) * it.shake * 0.25; it.crown.rotation.z = s; it.crown.rotation.x = s * 0.5; }
       if (it.kind === 'bed') { const target = G.time >= it.ready ? 1 : 0.35; it.grow += (target - it.grow) * Math.min(1, dt * 2); it.flowers.scale.setScalar(it.grow); }
@@ -278,5 +311,6 @@ export function buildWorld(scene, G) {
     for (const d of Object.values(decor)) if (d.userData.flame) { d.userData.flame.scale.y = 1 + Math.sin(wt * 9) * 0.15; }
     for (const g of bleuets) g.rotation.y = Math.sin(wt * 0.5 + g.position.x) * 0.03;
   }
-  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS };
+  const fishSpot = { x: 6, z: DOCK.z1 - 0.8, fx: 6, fz: DOCK.z1 + 3 };
+  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS, water, ferry, fishSpot, isle: 1, sky, sun, hemi };
 }

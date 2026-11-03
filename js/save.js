@@ -24,7 +24,7 @@ export function normalize(raw, seed) {
   const obj = x => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
   const ph = obj(raw.phare);
   return { ...base, ...raw, v: 3, island: raw.island === 2 ? 2 : 1, ferry: !!raw.ferry, appats: Number.isFinite(raw.appats) ? Math.max(0, raw.appats) : 0,
-    phare: { step: Math.max(0, Math.min(3, Number.isFinite(ph.step) ? ph.step : 0)), done: !!ph.done }, kiosk: { day: Number.isFinite(obj(raw.kiosk).day) ? raw.kiosk.day : -1 }, tools: { ...base.tools, ...obj(raw.tools) }, upg: obj(raw.upg), mastery: obj(raw.mastery), bridges: { ...base.bridges, ...obj(raw.bridges) },
+    phare: { step: Math.max(0, Math.min(3, Number.isFinite(ph.step) ? ph.step : 0)), done: !!ph.done, redo: Number.isFinite(ph.redo) ? ph.redo : 0 }, kiosk: { day: Number.isFinite(obj(raw.kiosk).day) ? raw.kiosk.day : -1 }, tools: { ...base.tools, ...obj(raw.tools) }, upg: obj(raw.upg), mastery: obj(raw.mastery), bridges: { ...base.bridges, ...obj(raw.bridges) },
     journal: { ...base.journal, ...obj(raw.journal) }, rares: obj(raw.rares), quotes: obj(raw.quotes), day: Number.isFinite(raw.day) ? raw.day : 0,
     bag: Array.isArray(raw.bag) ? raw.bag : [], decor: Array.isArray(raw.decor) ? raw.decor : [], met: obj(raw.met) };
 }

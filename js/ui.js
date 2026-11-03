@@ -45,9 +45,10 @@ export function makeUI() {
     swap(content) { const sheet = panel.firstChild; sheet.replaceChildren(sheet.firstChild, content); sheet.scrollTop = 0; return sheet; },
     close() { if (!UI.isOpen) return; panel.className = 'panel hidden'; panel.replaceChildren(); document.body.classList.remove('modal'); const f = onClose; onClose = null; f && f(); },
     // Pavé numérique : 0-9 , / − ⌫ effacer valider
-    numpad(onKey) {
-      const keys = ['7', '8', '9', '⌫', '4', '5', '6', '/', '1', '2', '3', ',', '−', '0', 'C', '✓'];
-      return h('div', { class: 'numpad' }, keys.map(k => h('button', { class: `k ${k === '✓' ? 'ok' : ''} ${/[0-9]/.test(k) ? 'd' : 'f'}`, 'data-k': k, 'aria-label': { '⌫': 'Effacer un caractère', C: 'Tout effacer', '✓': 'Valider' }[k] || k,
+    numpad(onKey, { pi = false } = {}) {
+      // Avec π : la touche « Effacer » cède sa place (⌫ efface encore)
+      const keys = ['7', '8', '9', '⌫', '4', '5', '6', '/', '1', '2', '3', ',', '−', '0', pi ? 'π' : 'C', '✓'];
+      return h('div', { class: 'numpad' }, keys.map(k => h('button', { class: `k ${k === '✓' ? 'ok' : ''} ${/[0-9]/.test(k) ? 'd' : 'f'}`, 'data-k': k, 'aria-label': { '⌫': 'Effacer un caractère', C: 'Tout effacer', '✓': 'Valider', 'π': 'pi' }[k] || k,
         onpointerdown: e => { e.preventDefault(); onKey(k); }, ontouchend: e => e.preventDefault() /* pas de clic fantôme sur le bouton qui apparaît dessous */ }, k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : k)));
     },
   };

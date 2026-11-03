@@ -1,23 +1,33 @@
-// Parcours d’interface : dialogues, établi, exercices (indices, réchauffement), magasin, défis, carnet.
+// Parcours d’interface : dialogues, établi, atelier, exercices (indices, réchauffement), magasin, défis, carnet,
+// traversier, phare de Rosalie, kiosque de Bernard.
 import { h, fmtMoney } from './ui.js';
 import { makeExercise, canonical } from './math/gen.js';
 import { checkAnswer } from './math/check.js';
-import { SKILLS, DOMAINES, skillById, shortId, prereqsOf } from './math/skills.js';
-import { MASTERY, TOOLS, toolById, nextUpgrade, difficultyFor, recordAnswer, isMastered, isUnlocked, defiChoices, masteryCount, stats } from './progression.js';
+import { SKILLS, SKILLS2, DOMAINES, skillById, shortId, prereqsOf, isS2 } from './math/skills.js';
+import { MASTERY, TOOLS, toolById, nextUpgrade, difficultyFor, recordAnswer, isMastered, isUnlocked, defiChoices, masteryCount, stats, canFerry, ferryProgress, FERRY_LEVEL } from './progression.js';
+import { phareSteps, phareSVG, phareData } from './phare.js';
 import { CATALOG, SELL, quoteFor, forgetQuote, checkTotal } from './shop.js';
 import { NOMS, EMOJI } from './villagers.js';
-import { NIVEAUX, loot, timeFor, makeTimer } from './actionq.js';
+import { NIVEAUX, loot, timeFor, makeTimer, canKiosk, kioskExercise, kioskDone } from './actionq.js';
 
 export const ITEMS = {
   perchaude: ['🐟', 'Perchaude'], achigan: ['🐟', 'Achigan'], dore: ['🐠', 'Doré jaune'], truite: ['🐠', 'Truite arc-en-ciel'],
   omble: ['🐠', 'Omble de fontaine'], maskinonge: ['🐟', 'Maskinongé'], esturgeon: ['🐋', 'Esturgeon jaune'],
   tire: ['🍭', 'Tire d’érable'], sirop: ['🍯', 'Cruchon de sirop ambré'], coulee: ['🍁', 'Sirop de première coulée'],
   monarque: ['🦋', 'Monarque'], amiral: ['🦋', 'Amiral'], lune: ['🦋', 'Papillon lune'],
+  gros_dore: ['🐟', 'Gros doré'], saumon: ['🐟', 'Saumon atlantique'], bar: ['🐟', 'Bar rayé'],
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
 };
 const dots = (n, max = MASTERY) => h('span', { class: 'dots', 'aria-label': `${Math.min(n, max)} sur ${max}` }, Array.from({ length: max }, (_, i) => h('i', { class: i < n ? 'on' : '' })));
-const stars = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+// 3 étoiles sur l’île 1 ; une 4e (secondaire 2) une fois le traversier ouvert
+const stars = (n, max = 3) => '★'.repeat(Math.max(0, n)) + '☆'.repeat(Math.max(0, max - n));
 const face = id => h('div', { class: `face ${id}` }, EMOJI[id]);
+// Figure SVG (générée par le jeu) et table de valeurs
+function figureEl(svg) { const d = h('div', { class: 'figure' }); d.innerHTML = svg; return d; }
+const tableEl = rows => h('table', { class: 'vtable' }, h('tbody', {}, rows.map(r => h('tr', {}, r.map((c, i) => h(i ? 'td' : 'th', {}, String(c)))))));
+// Quand la table est dessinée, on retire sa version texte de l’énoncé
+const promptText = ex => (ex.table ? ex.prompt.replace(/\s*x : .*$/, '') : ex.prompt);
+const exBody = ex => [h('p', { class: 'q' }, promptText(ex)), ex.figure ? figureEl(ex.figure) : null, ex.table ? tableEl(ex.table) : null];
 
 export function makeFlows(G) {
   const { ui, audio } = G;
@@ -26,6 +36,7 @@ export function makeFlows(G) {
   let keyHandler = null; // clavier actif dans le panneau (exercice, total)
   const F = {
     cur: null, // exercice ou devis en cours (pour les tests)
+    piActive: () => !!(ui.isOpen && keyHandler && keyHandler.pi),
     handleKey(e) {
       if (!ui.isOpen) return false;
       if (e.code === 'Escape') { ui.close(); return true; }
@@ -45,6 +56,8 @@ export function makeFlows(G) {
     if (v.id === 'gaston') opts.push(['🔨 Voir l’établi', () => F.workbench()]);
     if (v.id === 'ginette') { opts.push(['🛒 Acheter', () => F.shop()]); opts.push([`💰 Vendre le sac (${st.bag.length})`, () => F.sell()]); }
     if (v.id === 'flocon') { opts.push(['⭐ Un défi!', () => F.defi()]); opts.push(['📒 Mon carnet', () => F.carnet()]); }
+    if (v.id === 'rosalie') { opts.push(['🔧 Mon atelier (niveau 4)', () => F.workbench(2)]); opts.push([st.phare.done ? '🗼 Voir le phare' : '🗼 Réparer le phare', () => F.phare()]); opts.push(['⭐ Défi de secondaire 2', () => F.defi(undefined, 2)]); }
+    if (v.id === 'bernard') { opts.push(['🎲 Piger au kiosque', () => F.kiosk()]); opts.push([`🪱 Mes appâts rares : ${st.appats}`, () => F.kiosk()]); }
     opts.push(['👋 À plus tard!', () => ui.close()]);
     open(h('div', { class: 'dialog' },
       h('div', { class: 'who' }, face(v.id), h('div', {}, h('b', {}, NOMS[v.id]), h('p', { class: 'line' }, line))),
@@ -52,21 +65,27 @@ export function makeFlows(G) {
   };
 
   // ---------- Établi de Gaston
-  F.workbench = () => {
-    const st = S();
+  // isle = 1 : établi de Gaston (niveaux 1 à 3) ; isle = 2 : atelier de Rosalie (niveau 4, secondaire 2)
+  F.workbench = (isle = 1) => {
+    const st = S(), max = canFerry(st) ? 4 : 3;
     const cards = TOOLS.map(t => {
       const lvl = st.tools[t.id] || 0, up = nextUpgrade(st, t.id);
       let body;
       if (!up) body = h('p', { class: 'max' }, 'Niveau maximum! Beau travail.');
+      else if (isle === 1 && up.island2) body = [h('p', { class: 'next' }, 'Niveau 4 : ', h('b', {}, skillById(up.skill).nom)), h('p', { class: 'max isle2' }, canFerry(st) ? '⛴️ Ça se passe à l’atelier de Rosalie, sur l’île de secondaire 2!' : '⛴️ Niveau 4 sur l’île de secondaire 2 (traversier : tous les outils au niveau 2).')];
+      else if (isle === 2 && !up.island2) body = h('p', { class: 'locked' }, `🔒 Monte d’abord ton outil au niveau 3 chez Gaston (niveau ${lvl} pour l’instant).`);
       else {
         const sk = skillById(up.skill);
         body = [h('p', { class: 'next' }, `Niveau ${up.level} : `, h('b', {}, sk.nom)), h('p', { class: 'benefit' }, `➜ ${up.benefit}`),
           up.unlocked ? h('div', { class: 'row' }, dots(up.progress), h('button', { class: 'btn primary', 'data-tool': t.id, onclick: () => { click(); F.exercise({ kind: 'upgrade', tool: t.id, skill: up.skill }); } }, 'Améliorer'))
-            : h('div', { class: 'locked' }, '🔒 D’abord maîtriser : ', up.missing.map(id => skillById(id).nom).join(', '), h('button', { class: 'btn small', onclick: () => { click(); F.defi(up.missing[0]); } }, 'Défi de Flocon'))];
+            : h('div', { class: 'locked' }, '🔒 D’abord maîtriser : ', up.missing.map(id => skillById(id).nom).join(', '), h('button', { class: 'btn small', onclick: () => { click(); F.defi(up.missing[0], isS2(up.missing[0]) ? 2 : 1); } }, isS2(up.missing[0]) ? 'Défi de Rosalie' : 'Défi de Flocon'))];
       }
-      return h('div', { class: `tool ${!up ? 'done' : up.unlocked ? '' : 'lock'}` }, h('div', { class: 'ticon' }, t.icone), h('div', { class: 'tbody' }, h('div', { class: 'thead' }, h('b', {}, t.nom), h('span', { class: 'stars' }, stars(lvl))), body));
+      return h('div', { class: `tool ${!up ? 'done' : up.unlocked ? '' : 'lock'}` }, h('div', { class: 'ticon' }, t.icone), h('div', { class: 'tbody' }, h('div', { class: 'thead' }, h('b', {}, t.nom), h('span', { class: 'stars' }, stars(lvl, max))), body));
     });
-    open(h('div', {}, h('div', { class: 'who' }, face('gaston'), h('div', {}, h('b', {}, 'L’établi de Gaston'), h('p', { class: 'line' }, 'Chaque amélioration : 3 bonnes réponses dans une compétence. Pas de presse!'))), h('div', { class: 'tools' }, cards)), { cls: 'bench' });
+    const who = isle === 2 ? face('rosalie') : face('gaston');
+    const title = isle === 2 ? 'L’atelier de Rosalie' : 'L’établi de Gaston';
+    const line = isle === 2 ? 'Niveau 4 : 3 bonnes réponses dans une compétence de secondaire 2. Ici, on travaille fin!' : 'Chaque amélioration : 3 bonnes réponses dans une compétence. Pas de presse!';
+    open(h('div', {}, h('div', { class: 'who' }, who, h('div', {}, h('b', {}, title), h('p', { class: 'line' }, line))), h('div', { class: 'tools' }, cards)), { cls: 'bench' });
   };
 
   // ---------- Champs de réponse + pavé
@@ -78,7 +97,7 @@ export function makeFlows(G) {
       keyHandler = e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= btns.length) { btns[n - 1].click(); return true; } if (e.code === 'Enter' || e.code === 'NumpadEnter') { onSubmit(sel); return true; } return false; };
       return { el: box, clear() { sel = -1; btns.forEach(b => b.classList.remove('sel')); } };
     }
-    const vals = A.fields.map(() => ''); let active = 0;
+    const vals = A.fields.map(() => ''); let active = 0; const pi = A.fields.some(f => f.pi);
     const inputs = A.fields.map((f, i) => h('button', { class: 'field', 'data-f': i, onclick: () => { active = i; paint(); } }));
     function paint() { inputs.forEach((b, i) => { b.textContent = vals[i] || ' '; b.classList.toggle('active', i === active); }); }
     function key(k) {
@@ -91,13 +110,15 @@ export function makeFlows(G) {
     }
     keyHandler = e => {
       if (/^[0-9]$/.test(e.key)) key(e.key); else if (e.key === ',' || e.key === '.') key(','); else if (e.key === '/') key('/'); else if (e.key === '-') key('−');
+      else if (pi && (e.key === 'π' || e.key === 'p' || e.key === 'P')) key('π');
       else if (e.code === 'Backspace') key('⌫'); else if (e.code === 'Delete') key('C'); else if (e.code === 'Enter' || e.code === 'NumpadEnter') key('✓');
       else if (e.code === 'Tab') { active = (active + (e.shiftKey ? inputs.length - 1 : 1)) % inputs.length; paint(); } else return false;
       return true;
     };
+    keyHandler.pi = pi; // « p » tape π au lieu de mettre en pause
     paint();
-    const box = h('div', { class: 'answer' }, h('div', { class: 'fields' }, A.fields.map((f, i) => h('label', { class: 'fl' }, f.label ? h('span', {}, f.label) : null, inputs[i], f.unit ? h('span', { class: 'unit' }, f.unit) : null))), ui.numpad(k => { click(); key(k); }));
-    return { el: box, clear() { vals.fill(''); active = 0; paint(); }, get values() { return vals; } };
+    const box = h('div', { class: 'answer' }, h('div', { class: 'fields' }, A.fields.map((f, i) => h('label', { class: 'fl' }, f.label ? h('span', {}, f.label) : null, inputs[i], f.unit ? h('span', { class: 'unit' }, f.unit) : null))), ui.numpad(k => { click(); key(k); }, { pi }));
+    return { el: box, pi, clear() { vals.fill(''); active = 0; paint(); }, get values() { return vals; } };
   }
 
   // ---------- Séance d’exercices
@@ -106,7 +127,8 @@ export function makeFlows(G) {
     s.done = s.done || 0; s.goal = s.goal || (s.kind === 'warmup' ? 1 : MASTERY);
     const st = S(); st.exCount = (st.exCount || 0) + 1;
     const d = s.d ?? difficultyFor(st, s.skill);
-    const ex = makeExercise(s.skill, `${st.seed}:${st.exCount}`, d);
+    // Exercice déjà construit (étapes du phare, pige du kiosque) ou fabriqué à partir de la compétence
+    const ex = s.ex || makeExercise(s.skill, `${st.seed}:${st.exCount}`, d);
     const sk = skillById(s.skill); let misses = 0, hintN = 0, locked = false;
     const hintsEl = h('div', { class: 'hints' }), fb = h('div', { class: 'feedback', role: 'status' });
     const hintBtn = h('button', { class: 'btn hint', onclick: () => { click(); showHint(); } }, '💡 Indice');
@@ -114,13 +136,19 @@ export function makeFlows(G) {
     function showHint() { if (hintN >= ex.hints.length) return; hintsEl.append(h('p', { class: 'hintline' }, h('b', {}, `Indice ${hintN + 1} : `), ex.hints[hintN])); hintN++; hintBtn.textContent = hintN >= ex.hints.length ? '💡 Plus d’indices' : `💡 Indice ${hintN + 1}`; hintBtn.disabled = hintN >= ex.hints.length; }
     function progress() {
       if (s.kind === 'upgrade') return h('div', { class: 'prog' }, `${toolById(s.tool).icone} ${toolById(s.tool).nom} → niv. ${(st.tools[s.tool] || 0) + 1}`, dots(st.upg[s.tool] || 0));
-      if (s.kind === 'defi') return h('div', { class: 'prog' }, '⭐ Défi de Flocon', dots(s.done));
+      if (s.kind === 'defi') return h('div', { class: 'prog' }, s.sec === 2 ? '⭐ Défi de Rosalie · secondaire 2' : '⭐ Défi de Flocon', dots(s.done));
+      if (s.kind === 'phare') return h('div', { class: 'prog phare' }, `🗼 Phare de Rosalie · étape ${ex.step + 1} sur 3`, dots(st.phare.step, 3));
+      if (s.kind === 'kiosk') return h('div', { class: 'prog kiosk' }, '🎲 Kiosque de Bernard · une pige par jour');
       return h('div', { class: 'prog warm' }, '🔥 Réchauffement avec Flocon');
     }
     const next = h('button', { class: 'btn primary hidden', onclick: () => { click(); after(); } }, 'Continuer');
     let afterFn = null; const after = () => afterFn && afterFn();
     function done(fn, label = 'Continuer') { locked = true; afterFn = fn; next.textContent = label; next.classList.remove('hidden'); box.el.classList.add('hidden'); keyHandler = e => { if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') { after(); return true; } return false; }; }
-    function reveal() { fb.className = 'feedback info'; fb.replaceChildren('La réponse était : ', h('b', {}, canonical(ex.answer)), '. On en essaie un autre, sans pénalité.'); showBtn.classList.add('hidden'); done(() => F.exercise(s), 'Nouvel exercice'); }
+    function reveal() {
+      fb.className = 'feedback info'; fb.replaceChildren('La réponse était : ', h('b', {}, canonical(ex.answer)), '. On en essaie un autre, sans pénalité.'); showBtn.classList.add('hidden');
+      if (s.kind === 'phare') { st.phare.redo = (st.phare.redo || 0) + 1; G.save(); return done(() => F.phareStep(), 'Nouveau plan'); }
+      done(() => F.exercise({ ...s, ex: null }), 'Nouvel exercice');
+    }
     function submit(v) {
       if (locked) return;
       const r = checkAnswer(v, ex.answer);
@@ -128,16 +156,19 @@ export function makeFlows(G) {
       if (r.ok) {
         audio.sfx('ok'); const out = recordAnswer(st, s.skill, true, { tool: s.kind === 'upgrade' ? s.tool : null }); s.done++; G.save();
         fb.className = 'feedback ok'; fb.replaceChildren(h('b', {}, ['Bravo!', 'Excellent!', 'Tiguidou!', 'Bien joué!'][st.exCount % 4]), ' ', canonical(ex.answer));
+        if (s.kind === 'phare') return F.phareOk(ex, fb, done);
+        if (s.kind === 'kiosk') { const n = kioskDone(st, true); G.save(); fb.append(h('p', { class: 'benefit' }, `🪱 Bernard te donne un appât rare! (${n} en réserve) Ta prochaine touche au quai de l’île 2 sera un poisson rare.`)); return done(() => ui.close(), 'Merci Bernard!'); }
         if (s.kind === 'defi') { st.money += 100; st.journal.coins += 100; fb.append(h('span', { class: 'gain' }, ' +1,00 $')); }
         if (out.mastered) ui.toast(`📒 Compétence maîtrisée : ${sk.nom}!`, 'gold');
         if (out.upgraded) return done(() => F.celebrate(out.upgraded), 'Voir mon outil!');
         if (s.kind === 'warmup') return done(() => s.back ? F.exercise(s.back) : ui.close(), s.back ? 'On y retourne!' : 'Terminer');
         if (s.kind === 'defi' && s.done >= s.goal) return done(() => F.defiEnd(s), 'Terminer');
-        return done(() => F.exercise(s), 'Suivant');
+        return done(() => F.exercise({ ...s, ex: null }), 'Suivant');
       }
       misses++;
       if (r.near) { audio.sfx('near'); recordAnswer(st, s.skill, false, { near: true }); fb.className = 'feedback near'; fb.textContent = r.msg; return; }
       audio.sfx('miss'); const out = recordAnswer(st, s.skill, false, {}); G.save();
+      if (s.kind === 'kiosk') { kioskDone(st, false); G.save(); fb.className = 'feedback no'; fb.replaceChildren('Pas cette fois! La réponse était : ', h('b', {}, canonical(ex.answer)), '. Reviens demain pour une autre pige.'); return done(() => ui.close(), 'À demain!'); }
       fb.className = 'feedback no'; fb.textContent = r.msg || ['Pas tout à fait. Essaie encore!', 'Presque… un indice peut aider.', 'On respire, pis on recommence.'][Math.min(misses - 1, 2)];
       hintBtn.classList.add('pulse'); if (misses >= 2 && hintN === 0) showHint();
       if (misses >= 3) showBtn.classList.remove('hidden');
@@ -146,13 +177,14 @@ export function makeFlows(G) {
     }
     function offerWarmup(w) {
       const wsk = skillById(w.skill);
-      const why = w.skill === s.skill ? 'une version plus simple' : `« ${wsk.nom} »`;
-      const card = h('div', { class: 'warmup' }, face('flocon'), h('div', {}, h('p', {}, `Hou hou! Ça accroche un peu? Faisons un petit réchauffement sur ${why}, ça va aider.`),
+      const why = w.skill === s.skill ? 'une version plus simple' : w.why === 'préalable de secondaire 1' ? `« ${wsk.nom} » (secondaire 1)` : `« ${wsk.nom} »`;
+      const who = isS2(s.skill) ? 'rosalie' : 'flocon', hi = who === 'rosalie' ? 'Pas de stress!' : 'Hou hou!';
+      const card = h('div', { class: 'warmup' }, face(who), h('div', {}, h('p', {}, `${hi} Ça accroche un peu? Faisons un petit réchauffement sur ${why}, ça va aider.`),
         h('div', { class: 'row' }, h('button', { class: 'btn primary warm-yes', onclick: () => { click(); F.exercise({ kind: 'warmup', skill: w.skill, d: 0, back: { ...s, done: s.done } }); } }, 'Oui!'), h('button', { class: 'btn', onclick: () => { click(); card.remove(); } }, 'Non merci, je réessaie'))));
       fb.after(card);
     }
     const head = h('div', { class: 'exhead' }, progress(), h('h3', {}, sk.nom), h('span', { class: 'ref', title: 'Progression des apprentissages (MEQ)' }, `MEQ · ${sk.pda.split(' — ')[0]}`), h('span', { class: 'ref id' }, shortId(sk.id)));
-    const content = h('div', { class: 'exercise' }, head, h('p', { class: 'q' }, ex.prompt), fb, hintsEl, h('div', { class: 'row tools' }, hintBtn, showBtn), next);
+    const content = h('div', { class: `exercise ${s.kind}` }, head, ...exBody(ex), fb, hintsEl, h('div', { class: 'row tools' }, hintBtn, s.kind === 'kiosk' ? null : showBtn), next);
     const sheetFn = ui.isOpen ? swap : open; sheetFn(content, { cls: 'ex' });
     const box = answerBox(ex, submit); next.before(box.el);
     F.cur = { kind: 'exercise', ex, answer: () => canonical(ex.answer), session: s };
@@ -160,26 +192,27 @@ export function makeFlows(G) {
 
   F.celebrate = ({ tool, level }) => {
     const t = toolById(tool); audio.sfx('up'); G.onUpgrade && G.onUpgrade(tool, level);
-    swap(h('div', { class: 'celebrate' }, h('div', { class: 'big' }, t.icone), h('h3', {}, `${t.nom} — niveau ${level}!`), h('p', {}, stars(level)), h('p', { class: 'benefit' }, `➜ ${({ canne: 'Pêche', arrosoir: 'Arrosage', filet: 'Chasse aux papillons', pelle: 'Fouilles', sac: 'Sac' })[tool]} : ${describe(tool, level)}`),
-      h('p', { class: 'line' }, '« Tiguidou! Ça, c’est de l’ouvrage bien faite. » — Gaston'), h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { click(); F.workbench(); } }, 'Retour à l’établi'), h('button', { class: 'btn', onclick: () => ui.close() }, 'Fermer'))));
+    swap(h('div', { class: 'celebrate' }, h('div', { class: 'big' }, t.icone), h('h3', {}, `${t.nom} — niveau ${level}!`), h('p', {}, stars(level, Math.max(3, level))), h('p', { class: 'benefit' }, `➜ ${({ canne: 'Pêche', arrosoir: 'Arrosage', filet: 'Chasse aux papillons', pelle: 'Fouilles', sac: 'Sac' })[tool]} : ${describe(tool, level)}`),
+      h('p', { class: 'line' }, level >= 4 ? '« Niveau 4! Même mon phare est jaloux. » — Rosalie' : '« Tiguidou! Ça, c’est de l’ouvrage bien faite. » — Gaston'), h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { click(); F.workbench(level >= 4 ? 2 : 1); } }, level >= 4 ? 'Retour à l’atelier' : 'Retour à l’établi'), h('button', { class: 'btn', onclick: () => ui.close() }, 'Fermer'))));
   };
   // Une fonction par outil : seules les stats de l’outil demandé sont lues.
   const DESCRIBE = {
     canne: x => `touche en ${x.wait[0]}–${x.wait[1]} s, ${x.window.toFixed(1).replace('.', ',')} s pour ferrer, ${Math.round((0.25 + x.rare * 0.7) * 100)} % de touches rares`,
     arrosoir: x => `${x.beds} plate(s)-bande(s), ${fmtMoney(x.coins)} chacune`,
     filet: x => `portée ${String(x.reach).replace('.', ',')} m, ${Math.round(x.chance * 100)} % de réussite`,
-    pelle: x => `chance ${x.luck}/3`,
+    pelle: x => `chance ${x.luck}/4`,
     sac: x => `${x.cap} places`,
   };
   const describe = (tool, l) => DESCRIBE[tool](stats(tool, l));
 
   // ---------- Défis de Flocon
-  F.defi = (focus) => {
-    const st = S(); const list = defiChoices(st); const pick = focus && isUnlocked(st, focus) ? [focus, ...list.filter(x => x !== focus)] : list;
-    const rows = pick.slice(0, 5).map(id => { const sk = skillById(id); return h('button', { class: 'btn skill', 'data-skill': id, onclick: () => { click(); F.exercise({ kind: 'defi', skill: id, goal: 3 }); } }, h('span', {}, sk.nom), dots(st.mastery[id]?.ok || 0)); });
-    open(h('div', {}, h('div', { class: 'who' }, face('flocon'), h('div', {}, h('b', {}, 'Défi de Flocon'), h('p', { class: 'line' }, '3 questions, 1,00 $ par bonne réponse. Choisis ta notion!'))), h('div', { class: 'skills' }, rows)), { cls: 'defi' });
+  F.defi = (focus, sec = 1) => {
+    const st = S(); const list = defiChoices(st, sec); const pick = focus && isUnlocked(st, focus) ? [focus, ...list.filter(x => x !== focus)] : list;
+    const rows = pick.slice(0, 5).map(id => { const sk = skillById(id); return h('button', { class: 'btn skill', 'data-skill': id, onclick: () => { click(); F.exercise({ kind: 'defi', skill: id, goal: 3, sec }); } }, h('span', {}, sk.nom), dots(st.mastery[id]?.ok || 0)); });
+    const who = sec === 2 ? 'rosalie' : 'flocon';
+    open(h('div', {}, h('div', { class: 'who' }, face(who), h('div', {}, h('b', {}, sec === 2 ? 'Défi de Rosalie · secondaire 2' : 'Défi de Flocon'), h('p', { class: 'line' }, '3 questions, 1,00 $ par bonne réponse. Choisis ta notion!'))), h('div', { class: 'skills' }, rows.length ? rows : h('p', { class: 'pre' }, 'Aucune notion débloquée pour l’instant.'))), { cls: 'defi' });
   };
-  F.defiEnd = s => swap(h('div', { class: 'celebrate' }, h('div', { class: 'big' }, '🦉'), h('h3', {}, 'Défi réussi!'), h('p', {}, `${skillById(s.skill).nom} : `, dots(S().mastery[s.skill]?.ok || 0)), h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => F.defi() }, 'Un autre!'), h('button', { class: 'btn', onclick: () => ui.close() }, 'Fermer'))));
+  F.defiEnd = s => swap(h('div', { class: 'celebrate' }, h('div', { class: 'big' }, s.sec === 2 ? '🦦' : '🦉'), h('h3', {}, 'Défi réussi!'), h('p', {}, `${skillById(s.skill).nom} : `, dots(S().mastery[s.skill]?.ok || 0)), h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => F.defi(undefined, s.sec || 1) }, 'Un autre!'), h('button', { class: 'btn', onclick: () => ui.close() }, 'Fermer'))));
 
   // ---------- Magasin général
   F.shop = () => {
@@ -236,8 +269,11 @@ export function makeFlows(G) {
     maple: { icon: '🍁', titre: 'Coup de sirop!', line: 'L’érable coule! Une petite question de fractions pour remplir ton seau. Tu peux aussi laisser filer.',
       win: k => `${ITEMS[k][1]} pour toi! C’est noté dans ton carnet.`, lose: { miss: 'La sève s’est arrêtée de couler. L’érable va se reprendre, promis!', timeout: 'Le seau a débordé dans la neige. Les écureuils sont ben contents!', skip: 'Tu laisses l’érable tranquille pour l’instant.' } },
   };
+  ACTION.fish2 = { ...ACTION.fish, line: 'Un gros poisson de l’île 2 tire sur ta ligne! Une question de secondaire 2 pour le sortir… ou laisse-le filer.',
+    lose: { ...ACTION.fish.lose, timeout: 'Il a remonté la rivière, par-dessus la petite chute. Pas grave!' } };
+  ACTION.maple2 = { ...ACTION.maple, titre: 'L’érable rouge coule!', line: 'Une question de secondaire 2 pour remplir ton seau. Tu peux aussi laisser filer.' };
   F.actionQ = (q) => {
-    const st = S(), cfg = ACTION[q.kind]; st.exCount = (st.exCount || 0) + 1;
+    const st = S(), isle = st.island === 2 ? 2 : 1, cfg = ACTION[q.kind + (isle === 2 ? '2' : '')]; st.exCount = (st.exCount || 0) + 1;
     const ex = makeExercise(q.skill, `${st.seed}:${st.exCount}:${q.kind}`, q.d);
     const sk = skillById(q.skill), timer = makeTimer(timeFor(ex, q));
     let settled = false, hintN = 0;
@@ -252,7 +288,7 @@ export function makeFlows(G) {
       if (closed) { audio.sfx('click'); ui.toast(`${q.kind === 'fish' ? '💨' : '🍂'} ${cfg.lose.skip}`); F.cur = null; q.onEnd && q.onEnd('skip'); return; }
       let body;
       if (result === 'win') {
-        const key = loot(q.kind, q.d), got = G.grant(key);
+        const key = loot(q.kind, q.d, isle), got = G.grant(key);
         st.rares[key] = (st.rares[key] || 0) + 1; st.journal[q.kind === 'fish' ? 'rare' : 'sirop']++; if (q.kind === 'fish') st.journal.fish++;
         audio.sfx('up');
         body = h('div', { class: 'celebrate actionwin' }, h('div', { class: 'big' }, ITEMS[key][0]), h('h3', {}, cfg.win(key)),
@@ -282,7 +318,7 @@ export function makeFlows(G) {
       h('div', { class: 'who' }, h('div', { class: 'face' }, cfg.icon), h('div', {}, h('b', {}, cfg.titre), h('p', { class: 'line' }, cfg.line))),
       h('div', { class: 'timer' }, h('div', { class: 'tbar', role: 'progressbar', 'aria-label': 'Temps restant' }, bar), secs, pauseBtn),
       h('div', { class: 'exhead' }, h('span', { class: `ref lvl d${q.d}` }, `Niveau ${NIVEAUX[q.d]}`), q.stretch ? h('span', { class: 'ref stretch' }, '⭐ Défi surprise') : null, h('span', { class: 'ref' }, sk.nom)),
-      h('p', { class: 'q' }, ex.prompt), fb, hintsEl);
+      ...exBody(ex), fb, hintsEl);
     open(content, { cls: 'ex', close: () => end('skip', true) });
     const box = answerBox(ex, submit); content.append(box.el, h('div', { class: 'row tools' }, hintBtn, skipBtn));
     paint();
@@ -294,17 +330,80 @@ export function makeFlows(G) {
   // ---------- Carnet
   F.carnet = () => {
     const st = S(); const j = st.journal;
-    const tools = h('div', { class: 'ctools' }, TOOLS.map(t => h('span', { class: 'chip' }, `${t.icone} ${stars(st.tools[t.id] || 0)}`)));
+    const max = canFerry(st) ? 4 : 3;
+    const tools = h('div', { class: 'ctools' }, TOOLS.map(t => h('span', { class: 'chip' }, `${t.icone} ${stars(st.tools[t.id] || 0, max)}`)));
     const journal = h('p', { class: 'journal' }, `🐟 ${j.fish} (✨ ${j.rare || 0} rare${(j.rare || 0) > 1 ? "s" : ""}) · 🍯 ${j.sirop || 0} · 🦋 ${j.bugs} · ⛏️ ${j.finds} · 🌸 ${j.flowers} · 🪙 ${fmtMoney(j.coins)} gagnés`);
-    const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee'];
+    const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee', 'gros_dore', 'saumon', 'bar'];
     const rares = h('section', { class: 'rares' }, h('h4', {}, '✨ Prises rares et sirop'), RARE_KEYS.some(k => st.rares[k])
       ? h('div', { class: 'ctools' }, RARE_KEYS.filter(k => st.rares[k]).map(k => h('span', { class: 'chip rare', 'data-k': k }, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${st.rares[k]}`)))
       : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort ou qu’un érable coule, une petite question peut te rapporter une prise rare!'));
-    const doms = DOMAINES.map(dname => h('section', {}, h('h4', {}, dname), SKILLS.filter(s => s.domaine === dname).map(sk => {
+    const doms = list => DOMAINES.filter(dn => list.some(s => s.domaine === dn)).map(dname => h('section', {}, h('h4', {}, dname), list.filter(s => s.domaine === dname).map(sk => {
       const ok = st.mastery[sk.id]?.ok || 0, m = isMastered(st, sk.id), u = isUnlocked(st, sk.id);
-      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}` }, h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', prereqsOf(sk.id, 'hard').map(p => skillById(p).nom).join(', ')) : null), dots(ok));
+      const pre = prereqsOf(sk.id, 'hard').map(p => `${skillById(p).nom}${isS2(sk.id) && !isS2(p) ? ' (sec. 1)' : ''}`).join(', ');
+      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}`, 'data-skill': sk.id }, h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', pre) : isS2(sk.id) ? h('p', { class: 'pre s1' }, 'S’appuie sur : ', pre) : null), dots(ok));
     })));
-    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face('flocon'), h('div', {}, h('b', {}, 'Mon carnet'), h('p', { class: 'line' }, `${masteryCount(st)} / ${SKILLS.length} compétences maîtrisées — Secondaire 1 (PDA du MEQ)`))), tools, journal, rares, doms), { cls: 'carnet' });
+    const line = h('p', { class: 'line' });
+    const s2extra = h('p', { class: 'journal s2' }, `⛴️ Traversier : ${canFerry(st) ? 'ouvert' : 'fermé'} · 🗼 Phare : ${st.phare.done ? 'réparé, il brille la nuit!' : `étape ${st.phare.step} sur 3`} · 🪱 Appâts rares : ${st.appats}`);
+    const body = h('div', { class: 'cbody' });
+    const tabs = [['s1', 'Secondaire 1'], ['s2', 'Secondaire 2']].map(([id, t]) => h('button', { class: 'btn tab', role: 'tab', 'data-tab': id, onclick: () => { click(); show(id); } }, t));
+    function show(id) {
+      tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+      const list = id === 's2' ? SKILLS2 : SKILLS;
+      line.textContent = `${masteryCount(st, list)} / ${list.length} compétences maîtrisées — Secondaire ${id === 's2' ? 2 : 1} (PDA du MEQ)`;
+      body.replaceChildren(...(id === 's2' ? [s2extra] : []), ...doms(list));
+      F.carnetTab = id;
+    }
+    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face(st.island === 2 ? 'rosalie' : 'flocon'), h('div', {}, h('b', {}, 'Mon carnet'), line)), h('div', { class: 'tabs', role: 'tablist' }, tabs), tools, journal, rares, body), { cls: 'carnet' });
+    show(st.island === 2 ? 's2' : 's1');
+  };
+
+  // ---------- Traversier : verrouillé tant que les 5 outils ne sont pas au niveau 2
+  F.ferry = () => {
+    const st = S(), here = st.island === 2 ? 2 : 1, to = here === 2 ? 1 : 2;
+    if (to === 2 && !canFerry(st)) {
+      const prog = ferryProgress(st), n = prog.filter(t => t.ok).length;
+      open(h('div', { class: 'dialog ferry locked' }, h('div', { class: 'who' }, h('div', { class: 'face' }, '⛴️'), h('div', {}, h('b', {}, 'Traversier — fermé pour l’instant'), h('p', { class: 'line' }, `Le capitaine attend que tes 5 outils soient au niveau ${FERRY_LEVEL}. Améliore-les à l’établi de Gaston! (${n} sur 5)`))),
+        h('div', { class: 'ferryprog' }, prog.map(t => h('div', { class: `fp ${t.ok ? 'ok' : ''}`, 'data-tool': t.id }, h('span', {}, `${t.icone} ${t.nom}`), h('span', { class: 'stars' }, stars(t.level)), h('b', {}, t.ok ? '✓' : `niv. ${t.level} / ${FERRY_LEVEL}`)))),
+        h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); F.workbench(); } }, '🔨 Aller à l’établi'), h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Plus tard'))), { cls: 'talk' });
+      return;
+    }
+    const line = to === 2 ? 'Embarque! On traverse vers l’île de secondaire 2 : phare, rivière, érables rouges pis poissons rares.' : 'On retourne à la Vallée des Maths? Ta partie suit, rien ne se perd.';
+    open(h('div', { class: 'dialog ferry' }, h('div', { class: 'who' }, h('div', { class: 'face' }, '⛴️'), h('div', {}, h('b', {}, to === 2 ? 'Traversier vers l’île 2' : 'Traversier vers l’île 1'), h('p', { class: 'line' }, line))),
+      h('div', { class: 'choices' }, h('button', { class: 'btn primary board', onclick: () => { click(); ui.close(); G.travel(to); } }, '⛴️ Embarquer'), h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Rester ici'))), { cls: 'talk' });
+  };
+
+  // ---------- Phare de Rosalie : 3 étapes (échelle, aire latérale, aire de la lentille)
+  const phareSeed = () => `${S().seed}:${S().phare.redo || 0}`;
+  F.phare = () => {
+    const st = S();
+    if (st.phare.done) {
+      open(h('div', { class: 'dialog' }, h('div', { class: 'who' }, face('rosalie'), h('div', {}, h('b', {}, 'Le phare est réparé!'), h('p', { class: 'line' }, 'Grâce à toi, il brille toutes les nuits. Reviens le voir quand le soleil se couche!'))),
+        h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); ui.close(); } }, 'Super!'))), { cls: 'talk' });
+      return;
+    }
+    const p = phareData(phareSeed());
+    open(h('div', { class: 'dialog phare' }, h('div', { class: 'who' }, face('rosalie'), h('div', {}, h('b', {}, 'Réparer le phare'), h('p', { class: 'line' }, `Voici mon plan à l’échelle 1 : ${p.k}. Trois calculs, pis on rallume la lumière! (étape ${st.phare.step + 1} sur 3)`))),
+      figureEl(phareSVG(p, st.phare.step)), h('div', { class: 'row' }, dots(st.phare.step, 3)),
+      h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); F.phareStep(); } }, `Étape ${st.phare.step + 1}`), h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Plus tard'))), { cls: 'talk' });
+  };
+  F.phareStep = () => { const st = S(), ex = phareSteps(phareSeed())[Math.min(2, st.phare.step)]; F.exercise({ kind: 'phare', skill: ex.skill, ex }); };
+  F.phareOk = (ex, fb, done) => {
+    const st = S(); st.phare.step = Math.max(st.phare.step, ex.step + 1);
+    if (st.phare.step >= 3) { st.phare.done = true; G.isle2 && G.isle2.setPhare(true); st.money += 500; st.journal.coins += 500; G.save(); ui.toast('🗼 Le phare est réparé! Il va briller cette nuit.', 'gold');
+      fb.append(h('p', { class: 'benefit' }, '🗼 Dernière étape réussie! Rosalie te donne 5,00 $. Le phare brillera à la nuit tombée.')); return done(() => F.phare(), 'Voir le phare'); }
+    G.save(); fb.append(h('p', { class: 'benefit' }, `Étape ${ex.step + 1} réussie!`)); return done(() => F.phareStep(), `Étape ${st.phare.step + 1}`);
+  };
+
+  // ---------- Kiosque de Bernard : une pige par jour (avec ou sans remise) → un appât rare
+  F.kiosk = () => {
+    const st = S();
+    if (!canKiosk(st)) {
+      open(h('div', { class: 'dialog kiosk' }, h('div', { class: 'who' }, face('bernard'), h('div', {}, h('b', {}, 'Kiosque de pêche'), h('p', { class: 'line' }, `T’as déjà pigé aujourd’hui! Reviens demain. Appâts rares en réserve : ${st.appats}.`))),
+        h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); ui.close(); } }, 'D’accord'))), { cls: 'talk' });
+      return;
+    }
+    open(h('div', { class: 'dialog kiosk' }, h('div', { class: 'who' }, face('bernard'), h('div', {}, h('b', {}, 'La pige de Bernard'), h('p', { class: 'line' }, `Une question sur ma chaudière de billes : avec ou sans remise? Bonne réponse = un appât rare (poisson rare garanti au quai). Une seule chance par jour! Appâts : ${st.appats}.`))),
+      h('div', { class: 'choices' }, h('button', { class: 'btn primary pige', onclick: () => { click(); const ex = kioskExercise(st, makeExercise, difficultyFor(st, 'qc_s2_prb_01')); F.exercise({ kind: 'kiosk', skill: ex.id, ex }); } }, '🎲 Piger!'), h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Plus tard'))), { cls: 'talk' });
   };
   return F;
 }

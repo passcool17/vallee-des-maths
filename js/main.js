@@ -1,14 +1,15 @@
 // Vallée des Maths — boucle de jeu, actions (secouer, pêcher, arroser, creuser, attraper), caméra, sauvegarde.
 import * as THREE from '../vendor/three.module.min.js';
-import { buildWorld, curve, curveDrop, phaseOf, TIME_NOMS, PLACES, DOCK, updateLabels, mesh, at } from './world.js';
+import { buildWorld, curve, curveDrop, phaseOf, TIME_NOMS, PLACES, DOCK, FERRY, updateLabels, mesh, at } from './world.js';
+import { buildIsland2 } from './island2.js';
 import { makePlayer } from './player.js';
 import { makeVillagers } from './villagers.js';
 import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
 import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
-import { stats } from './progression.js';
-import { rareBiteChance, pickQuestion, MAPLE_CHANCE } from './actionq.js';
+import { stats, canFerry } from './progression.js';
+import { rareBiteChance, pickQuestion, MAPLE_CHANCE, useBait } from './actionq.js';
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
@@ -19,6 +20,7 @@ const seedParam = params.has('seed') ? parseInt(params.get('seed'), 10) : undefi
 const state = params.has('fresh') ? newState(seedParam ?? 20260) : load(seedParam);
 const fixedTime = params.has('time') ? { matin: 0.125, midi: 0.375, doree: 0.625, nuit: 0.875 }[params.get('time')] ?? parseFloat(params.get('time')) : null;
 if (fixedTime != null) state.clock = fixedTime;
+if (params.has('traversier')) state.ferry = true; // QA : force l’ouverture du traversier
 const DAY = 480; // secondes réelles par journée
 
 const canvas = document.getElementById('c');
@@ -35,11 +37,19 @@ const G = { state, time: 0, paused: false, night: 0, phase: 'matin', ui, audio, 
 const world = buildWorld(scene, G); G.world = world;
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
-const start = world.walkable(state.pos.x, state.pos.z, state) ? state.pos : { x: 2, z: 6 };
+// ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
+const allVillagers = makeVillagers(world.root); G.allVillagers = allVillagers;
+let isle2 = null;
+function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); return isle2; }
+if (state.island === 2) ensureIsle2();
+const W = () => state.island === 2 && isle2 ? isle2 : world; G.W = W;
+let villagers = [];
+function showIsland() { world.root.visible = state.island !== 2; if (isle2) isle2.root.visible = state.island === 2; villagers = allVillagers.filter(v => v.isle === (state.island === 2 ? 2 : 1)); G.villagers = villagers; }
+showIsland();
+const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.island === 2 ? { x: FERRY.arrive[0], z: FERRY.arrive[1] } : { x: 2, z: 6 };
 const player = makePlayer(scene, start); G.player = player;
-const villagers = makeVillagers(scene); G.villagers = villagers;
 const flows = makeFlows(G); G.flows = flows;
-const walkableFn = (x, z) => world.walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
+const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
 
 // Outil tenu en main selon l’action
 const held = {
@@ -66,25 +76,27 @@ const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cen
 G.grant = key => { if (state.bag.length < bagCap()) { state.bag.push(key); return { bag: true }; } const c = SELL[key] || 0; earn(c, player.pos.x, player.pos.z); return { coins: c }; };
 // Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, q: { skill, d, stretch } }
 const force = {};
-const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng);
+const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng, state.island === 2 ? 2 : 1);
 
 // ---------- Pêche
 const fishing = { state: null, t: 0, rare: false };
 function weighted(table) { const tot = table.reduce((a, [, w]) => a + w, 0); let r = rng.next() * tot; for (const [k, w] of table) { if ((r -= w) < 0) return k; } return table[0][0]; }
 function startFishing() {
   const s = stats('canne', state.tools.canne); fishing.state = 'wait'; fishing.t = s.wait[0] + rng.next() * (s.wait[1] - s.wait[0]);
-  player.teleport(6, DOCK.z1 - 0.8); player.face(6, DOCK.z1 + 3); hold('canne', 0); world.bobber.visible = true; audio.sfx('splash');
-  ui.toast('🎣 Attends que ça morde… pis appuie au bon moment!');
+  const f = W().fishSpot; player.teleport(f.x, f.z); player.face(f.fx, f.fz); hold('canne', 0); W().bobber.visible = true; audio.sfx('splash');
+  fishing.bait = useBait(state);
+  ui.toast(fishing.bait ? `🪱 Appât rare de Bernard accroché! Un gros poisson s’en vient… (il t’en reste ${state.appats})` : '🎣 Attends que ça morde… pis appuie au bon moment!');
 }
-function stopFishing() { fishing.state = null; fishing.rare = false; world.bobber.visible = false; player.tool.clear(); }
+function stopFishing() { fishing.state = null; fishing.rare = false; fishing.bait = false; W().bobber.visible = false; player.tool.clear(); }
 function fishTick(dt) {
   if (!fishing.state) return;
-  if (Math.hypot(player.pos.x - 6, player.pos.z - (DOCK.z1 - 0.8)) > 1.2) { stopFishing(); return; }
-  fishing.t -= dt; const b = world.bobber;
+  const f = W().fishSpot;
+  if (Math.hypot(player.pos.x - f.x, player.pos.z - f.z) > 1.2) { stopFishing(); return; }
+  fishing.t -= dt; const b = W().bobber;
   b.position.y = -0.45 + Math.sin(G.time * 3) * 0.04 - (fishing.state === 'bite' ? 0.18 + Math.sin(G.time * 30) * 0.05 : 0);
   if (fishing.rare && fishing.state === 'bite') b.position.y -= 0.12 + Math.sin(G.time * 18) * 0.06; // ça cale fort
   if (fishing.state === 'wait' && fishing.t <= 0) {
-    fishing.rare = 'rare' in force ? force.rare : rng.chance(rareBiteChance(state.tools.canne)); delete force.rare;
+    fishing.rare = 'rare' in force ? force.rare : fishing.bait || rng.chance(rareBiteChance(state.tools.canne)); delete force.rare;
     fishing.state = 'bite'; fishing.t = stats('canne', state.tools.canne).window + (fishing.rare ? 0.5 : 0); audio.sfx('bite');
     if (fishing.rare) setTimeout(() => audio.sfx('bite'), 160);
   }
@@ -95,7 +107,7 @@ function reel() {
   if (fishing.state === 'wait') { ui.toast('Trop tôt! Attends que le bouchon cale.'); stopFishing(); return; }
   const lvl = state.tools.canne;
   if (fishing.rare) { stopFishing(); audio.sfx('catch'); flows.actionQ({ kind: 'fish', ...question('fish') }); return; }
-  const kind = weighted([['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]);
+  const kind = state.island === 2 ? weighted([['truite', 40], ['achigan', 25], ['dore', 20 + lvl * 4], ['perchaude', 15]]) : weighted([['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]);
   stopFishing(); if (!bagAdd(kind)) return;
   state.journal.fish++; audio.sfx('catch'); ui.toast(`${ITEMS[kind][0]} Une belle prise : ${ITEMS[kind][1]}!`); G.save();
 }
@@ -105,9 +117,9 @@ function nearest() {
   const p = player.pos; let best = null, bd = Infinity;
   const consider = (o, d, r) => { if (d < r && d < bd) { bd = d; best = o; } };
   for (const v of villagers) consider({ kind: 'npc', v, label: `Parler à ${v.nom.split(' ')[0]}`, pos: v.pos }, Math.hypot(p.x - v.pos.x, p.z - v.pos.z), 2.4);
-  for (const it of world.interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
+  for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
-  for (const b of world.butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
+  for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
   return best;
 }
 function interact(target = nearest()) {
@@ -119,18 +131,22 @@ function interact(target = nearest()) {
     case 'npc': flows.talk(it.v); break;
     case 'etabli': flows.workbench(); break;
     case 'magasin': flows.shop(); break;
+    case 'ferry': flows.ferry(); break;
+    case 'atelier': flows.workbench(2); break;
+    case 'phare': flows.phare(); break;
+    case 'kiosk': flows.kiosk(); break;
     case 'fish': startFishing(); break;
     case 'tree': {
       if (G.time < it.ready) { it.shake = 0.3; ui.toast('🍁 Cet érable se repose. Reviens tantôt!'); break; }
       it.shake = 1; it.ready = G.time + 45; audio.sfx('shake'); player.busyFor(0.5);
-      const c = (it.big ? 150 : 50) + Math.floor(rng.next() * 5) * 25; setTimeout(() => { earn(c, it.pos.x, it.pos.z); ui.gain(c); }, 350);
-      // Coup de sirop : parfois, une question de fractions (facultative) en bonus
-      const sirop = 'maple' in force ? force.maple : rng.chance(MAPLE_CHANCE); delete force.maple;
+      const c = (it.red ? 120 : it.big ? 150 : 50) + Math.floor(rng.next() * 5) * 25; setTimeout(() => { earn(c, it.pos.x, it.pos.z); ui.gain(c); }, 350);
+      // Coup de sirop : parfois, une question (facultative) en bonus — secondaire 2 sur les érables rouges
+      const sirop = 'maple' in force ? force.maple : rng.chance(it.red ? Math.max(0.45, MAPLE_CHANCE) : MAPLE_CHANCE); delete force.maple;
       if (sirop) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'maple', ...question('maple') }); });
       break;
     }
     case 'bed': {
-      const s = stats('arrosoir', state.tools.arrosoir); const ready = world.beds.filter(b => G.time >= b.ready).sort((a, b) => a.pos.distanceTo(player.pos) - b.pos.distanceTo(player.pos)).slice(0, s.beds);
+      const s = stats('arrosoir', state.tools.arrosoir); const ready = W().beds.filter(b => G.time >= b.ready).sort((a, b) => a.pos.distanceTo(player.pos) - b.pos.distanceTo(player.pos)).slice(0, s.beds);
       if (!ready.length) { ui.toast('🌱 Les fleurs repoussent. Patience!'); break; }
       hold('arrosoir', 1.2); audio.sfx('water'); player.busyFor(0.8);
       for (const b of ready) b.ready = G.time + 60;
@@ -161,7 +177,7 @@ function onTap(cx, cy) {
   if (fishing.state) { reel(); return; }
   const r = canvas.getBoundingClientRect();
   // 1) Un objet interactif près du doigt (en coordonnées écran, pour tenir compte de la courbure)
-  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...world.interactables, ...world.butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position }))];
+  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position }))];
   let best = null, bd = 46;
   for (const c of cands) { tmp.set(c.pos.x, (c.kind === 'npc' ? 1.2 : 0.6) - curveDrop(c.pos.x, c.pos.z), c.pos.z).project(camera); const sx = (tmp.x + 1) / 2 * r.width + r.left, sy = (1 - tmp.y) / 2 * r.height + r.top; const d = Math.hypot(sx - cx, sy - cy); if (tmp.z < 1 && d < bd) { bd = d; best = c; } }
   if (best) { const tgt = best; const rr = tgt.kind === 'bug' ? stats('filet', state.tools.filet).reach * 0.8 : tgt.kind === 'npc' ? 1.8 : (tgt.r || 2) * 0.8; player.walkTo(tgt.pos.x, tgt.pos.z, () => interact(tgt), rr); return; }
@@ -174,7 +190,7 @@ const input = makeInput({ canvas, onInteract: () => interact(), onTap,
   onKey(e) {
     if (!started) { if (e.code === 'Enter' || e.code === 'Space') { document.getElementById('play').click(); return true; } return false; }
     if (G.paused) { if (['KeyP', 'Escape', 'Enter', 'Space'].includes(e.code)) G.pause(false); return true; }
-    if (e.code === 'KeyP') { G.pause(true); return true; }
+    if (e.code === 'KeyP' && !flows.piActive()) { G.pause(true); return true; }
     if (flows.handleKey(e)) return true;
     if (ui.isOpen) return false;
     if (e.code === 'KeyC') { flows.carnet(); return true; }
@@ -225,7 +241,8 @@ function frame(now) {
   if ((mv.x || mv.z) && fishing.state) stopFishing();
   player.update(dt, mv, walkableFn);
   for (const v of villagers) v.update(dt, player);
-  world.update(dt, G); fishTick(dt); updateFx(dt); flows.tick(dt);
+  world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
+  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); } } updateFx(dt); flows.tick(dt);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels();
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
@@ -239,12 +256,35 @@ function frame(now) {
 requestAnimationFrame(frame);
 addEventListener('pagehide', () => G.save());
 
+// ---------- Traversier : fondu, échange d’île, arrivée sur le quai
+const fondu = document.createElement('div'); fondu.id = 'fondu';
+fondu.style.cssText = 'position:fixed;inset:0;z-index:40;pointer-events:none;opacity:0;transition:opacity .45s;background:radial-gradient(circle,#2f5d8a,#132a40);display:flex;align-items:center;justify-content:center;color:#fff6e0;font:800 1.4rem Nunito,"Trebuchet MS",sans-serif;text-align:center;padding:1rem';
+document.body.appendChild(fondu);
+G.travel = async (to, { instant = false } = {}) => {
+  if (to !== 1 && to !== 2) return false;
+  if (to === 2 && !canFerry(state)) return false;
+  stopFishing(); player.cancelWalk();
+  if (!instant) { fondu.textContent = to === 2 ? '⛴️ Cap sur l’île de secondaire 2…' : '⛴️ Retour vers la Vallée des Maths…'; fondu.style.pointerEvents = 'auto'; fondu.style.opacity = '1'; audio.sfx('splash'); await new Promise(r => setTimeout(r, 650)); }
+  if (to === 2) ensureIsle2();
+  state.island = to; if (to === 2) state.ferry = true; showIsland();
+  player.teleport(FERRY.arrive[0], FERRY.arrive[1]); player.face(FERRY.arrive[0] + 5, FERRY.arrive[1]);
+  { const o = camOffset(); camPos.set(player.pos.x + o[0], o[1], player.pos.z + o[2]); }
+  G.save();
+  if (!instant) { await new Promise(r => setTimeout(r, 250)); fondu.style.opacity = '0'; fondu.style.pointerEvents = 'none'; }
+  if (to === 2 && !state.met.ile2) { state.met.ile2 = 1; ui.toast('🌲 Bienvenue sur l’île de secondaire 2! Rosalie t’attend au phare, au nord-est.'); }
+  else ui.toast(to === 2 ? '🌲 Île de secondaire 2' : '🍁 De retour sur l’île principale');
+  return true;
+};
+
 // Crochet de test (lecture seule pour l’essentiel)
 window.__mv = {
   G, state, world, player, flows,
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
-  fps: () => fps, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },
+  fps: () => fps,
+  unlockFerry: () => { state.ferry = true; return true; },
+  travel: (n, instant = true) => G.travel(n, { instant }),
+  island: () => state.island, isle2: () => isle2, W, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },
   screen(x, z, y = 0.6) { tmp.set(x, y - curveDrop(x, z), z).project(camera); const r = canvas.getBoundingClientRect(); return { x: (tmp.x + 1) / 2 * r.width + r.left, y: (1 - tmp.y) / 2 * r.height + r.top }; },
 };

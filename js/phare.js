@@ -18,11 +18,11 @@ export function phareData(seed) {
 // Figure simple du phare sur le plan (cotes en cm)
 export function phareSVG(p, step) {
   const on = i => (step === i ? ' on' : '');
-  return `<svg class="fig" viewBox="0 0 240 150" role="img" aria-label="Plan du phare"><rect x="96" y="44" width="48" height="96" class="side${on(0)}"/>` +
+  return `<svg class="fig" viewBox="0 0 240 162" role="img" aria-label="Plan du phare"><rect x="96" y="44" width="48" height="96" class="side${on(0)}"/>` +
     `<rect x="104" y="20" width="32" height="24" class="glass${on(1)}"/><polygon points="100,20 120,6 140,20"/>` +
     `<circle cx="120" cy="32" r="7" class="lens${on(2)}"/><line x1="84" y1="20" x2="84" y2="140"/>` +
     `<text x="80" y="84" text-anchor="end">${n(p.hp)} cm</text><text x="150" y="36">r = ${n(p.rp)} cm</text><text x="150" y="52">h = ${n(p.hq)} cm</text>` +
-    `<text x="120" y="148" text-anchor="middle">Échelle 1 : ${p.k}</text></svg>`;
+    `<text x="120" y="158" text-anchor="middle">Échelle 1 : ${p.k}</text></svg>`;
 }
 
 export function phareSteps(seed) {
