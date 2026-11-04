@@ -11,6 +11,7 @@ import { makeRng } from '../js/math/rng.js';
 import { quoteFor, forgetQuote, SELL } from '../js/shop.js';
 import { pickQuestion, rareBiteChance, loot, timeFor, makeTimer, FRACTION_SKILLS, RARE_FISH, SIROP } from '../js/actionq.js';
 import { makeExercise } from '../js/math/gen.js';
+import { missRate, weakList } from '../js/adapt.js';
 
 export function run(ok) {
   // Graphe sans cycle, toutes les compétences atteignables en maîtrisant dans l’ordre
@@ -61,16 +62,23 @@ export function run(ok) {
     pos: { x: 3, z: 7 }, clock: 0.4, exCount: 12, muted: true, met: { intro: 1, gaston: 2 }, journal: { fish: 5, bugs: 1, finds: 2, coins: 900, flowers: 3 } };
   mem[KEY] = JSON.stringify(v1); const l3 = load();
   ok('sauvegarde v1 chargée sans perte', l3.money === 4321 && l3.tools.canne === 2 && l3.bag.length === 2 && l3.decor[0] === 'nichoir' && l3.bridges.erables && l3.mastery.qc_s1_ari_01.ok === 3 && l3.journal.fish === 5 && l3.exCount === 12 && l3.muted);
-  ok('sauvegarde v1 normalisée', l3.v === 3 && l3.island === 1 && l3.ferry === false && l3.phare.step === 0 && l3.appats === 0 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
+  ok('sauvegarde v1 normalisée (→ v4)', l3.v === 4 && l3.island === 1 && l3.ferry === false && l3.phare.step === 0 && l3.appats === 0 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
   mem[KEY] = JSON.stringify({ ...v1, rares: null, quotes: [], bag: 'x' }); const l4 = load(); ok('champs abîmés réparés', JSON.stringify(l4.rares) === '{}' && JSON.stringify(l4.quotes) === '{}' && Array.isArray(l4.bag));
-  save(l3); ok('v3 relue', load().v === 3 && load().money === 4321);
+  save(l3); ok('v4 relue', load().v === 4 && load().money === 4321);
   { const v2 = { ...v1, v: 2, rares: { omble: 2 }, quotes: { nichoir: { rabais: 10 } }, day: 4, journal: { ...v1.journal, rare: 2, sirop: 1 } };
     mem[KEY] = JSON.stringify(v2); const l5 = load();
-    ok('sauvegarde v2 chargée sans perte', l5.v === 3 && l5.rares.omble === 2 && l5.quotes.nichoir.rabais === 10 && l5.day === 4 && l5.journal.rare === 2 && l5.money === 4321 && l5.tools.canne === 2 && l5.island === 1 && l5.kiosk.day === -1);
+    ok('sauvegarde v2 chargée sans perte', l5.v === 4 && l5.rares.omble === 2 && l5.quotes.nichoir.rabais === 10 && l5.day === 4 && l5.journal.rare === 2 && l5.money === 4321 && l5.tools.canne === 2 && l5.island === 1 && l5.kiosk.day === -1);
     mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 2, ferry: true, phare: { step: 2, done: false }, appats: 3, tools: { ...v1.tools, canne: 4 } }); const l6 = load();
     ok('sauvegarde v3 (île 2, niveau 4)', l6.island === 2 && l6.ferry && l6.phare.step === 2 && l6.appats === 3 && l6.tools.canne === 4);
     mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 7, phare: 'x', appats: -2, kiosk: null }); const l7 = load();
     ok('champs v3 abîmés réparés', l7.island === 1 && l7.phare.step === 0 && l7.appats === 0 && l7.kiosk.day === -1); }
+  // v4 : statistiques par compétence, migrées depuis la maîtrise des vieilles sauvegardes
+  ok('v1 → v4 : statistiques reconstruites depuis la maîtrise', l3.stats.qc_s1_ari_01?.n === 4 && l3.stats.qc_s1_ari_01.ok === 3 && l3.stats.qc_s1_ari_01.h === '' && Array.isArray(l3.recentQ));
+  { mem[KEY] = JSON.stringify({ ...v1, v: 3, mastery: { qc_s1_ari_04: { ok: 1, tries: 6, miss: 5 }, qc_s1_geo_01: { ok: 0, tries: 0, miss: 0 } } }); const m3 = load();
+    ok('v3 → v4 : essais et réussites conservés', m3.v === 4 && m3.stats.qc_s1_ari_04.n === 6 && m3.stats.qc_s1_ari_04.ok === 1 && !m3.stats.qc_s1_geo_01 && m3.money === 4321);
+    mem[KEY] = JSON.stringify({ ...v1, v: 4, stats: { qc_s1_ari_05: { n: 4, ok: 1, h: '0100', sec: 22 }, bad: { n: 'x' }, qc_s1_alg_01: { n: 2, ok: 9, h: 'a1' } }, recentQ: ['qc_s1_ari_05', 3] }); const m4 = load();
+    ok('v4 relue, stats abîmées réparées', m4.stats.qc_s1_ari_05.h === '0100' && m4.stats.qc_s1_ari_05.sec === 22 && !m4.stats.bad && m4.stats.qc_s1_alg_01.ok === 2 && m4.stats.qc_s1_alg_01.h === '1' && m4.recentQ.join() === 'qc_s1_ari_05');
+    mem[KEY] = JSON.stringify({ ...v1, v: 4, stats: [1, 2], recentQ: 'x' }); const m5 = load(); ok('v4 : stats illisibles → vides', JSON.stringify(m5.stats) === JSON.stringify({ qc_s1_ari_01: { n: 4, ok: 3, h: '' } }) && m5.recentQ.length === 0); }
   reset(); ok('reset', !(KEY in mem));
   delete globalThis.localStorage;
 
@@ -97,6 +105,42 @@ export function run(ok) {
     st.mastery.qc_s1_ari_03 = { ok: 3, tries: 3, miss: 0 }; st.mastery.qc_s1_ari_04 = { ok: 3, tries: 3, miss: 0 }; st.mastery.qc_s1_ari_05 = { ok: 3, tries: 3, miss: 0 }; st.mastery.qc_s1_ari_06 = { ok: 3, tries: 3, miss: 0 };
     let adv = 0; for (let i = 0; i < 200; i++) if (pickQuestion(st, 'maple', r).d === 2) adv++;
     ok('fractions maîtrisées → avancé', adv === 200); }
+  // Statistiques par réponse + questions adaptatives
+  { const st = newState(31);
+    recordAnswer(st, 'qc_s1_ari_01', true, { sec: 12 }); recordAnswer(st, 'qc_s1_ari_01', false, { sec: 30 }); recordAnswer(st, 'qc_s1_ari_01', false, { near: true });
+    const s = st.stats.qc_s1_ari_01;
+    ok('statistiques : essais, bonnes, historique, temps (« presque » ignoré)', s.n === 2 && s.ok === 1 && s.h === '10' && s.sec === 17.4 && st.mastery.qc_s1_ari_01.tries === 3, JSON.stringify(s));
+    for (let i = 0; i < 15; i++) recordAnswer(st, 'qc_s1_ari_02', i % 3 === 0);
+    ok('historique limité aux 10 dernières', st.stats.qc_s1_ari_02.h.length === 10 && st.stats.qc_s1_ari_02.n === 15 && st.stats.qc_s1_ari_02.ok === 5);
+    ok('taux d’erreur lissé', Math.abs(missRate(st, 'qc_s1_ari_01') - 0.5) < 1e-9 && missRate(st, 'qc_s1_geo_01') === null);
+    ok('à pratiquer = les plus ratées d’abord', weakList(st, SKILLS.map(x => x.id)).join() === 'qc_s1_ari_02,qc_s1_ari_01', weakList(st, SKILLS.map(x => x.id)).join()); }
+  { // Tout débloqué, deux compétences qui accrochent : elles reçoivent ~55–60 % des piges, les autres ne sont pas oubliées
+    const st = newState(32); SKILLS.forEach(x => { st.mastery[x.id] = { ok: MASTERY, tries: 3, miss: 0 }; });
+    const ids = SKILLS.map(x => x.id), weak = ['qc_s1_ari_05', 'qc_s1_alg_04'];
+    const base = newState(33); base.mastery = st.mastery;
+    for (const id of ids) st.stats[id] = { n: 5, ok: 5, h: '11111' };
+    st.stats.qc_s1_ari_05 = { n: 8, ok: 2, h: '00100100' }; st.stats.qc_s1_alg_04 = { n: 6, ok: 2, h: '010010' };
+    const r = makeRng(5), rb = makeRng(5), N = 6000, cnt = {}, cntB = {}; let w = 0, wb = 0, run = 1, maxRun = 1, prev = null, weakFlag = 0, easyWeak = 0;
+    for (let i = 0; i < N; i++) {
+      const q = pickQuestion(st, 'fish', r); if (q.stretch) continue; cnt[q.skill] = (cnt[q.skill] || 0) + 1; if (weak.includes(q.skill)) w++;
+      if (q.weak) { weakFlag++; if (q.d > 1) easyWeak++; }
+      run = q.skill === prev ? run + 1 : 1; maxRun = Math.max(maxRun, run); prev = q.skill;
+      const b = pickQuestion(base, 'fish', rb); if (!b.stretch) { cntB[b.skill] = (cntB[b.skill] || 0) + 1; if (weak.includes(b.skill)) wb++; } }
+    const tot = Object.values(cnt).reduce((a, b) => a + b, 0), totB = Object.values(cntB).reduce((a, b) => a + b, 0), share = w / tot, shareB = wb / totB;
+    const others = ids.filter(id => !weak.includes(id)), minOther = Math.min(...others.map(id => cnt[id] || 0));
+    ok('adaptatif : les compétences ratées reçoivent ~50–65 % des piges', share > 0.5 && share < 0.65, share.toFixed(3));
+    ok('adaptatif : sans statistiques, part normale (~2/22)', shareB < 0.15, shareB.toFixed(3));
+    ok('adaptatif : aucune autre compétence affamée', others.every(id => cnt[id] > 0) && minOther > (tot * (1 - share) / others.length) * 0.4, `${minOther}`);
+    ok('adaptatif : jamais 3 fois de suite la même', maxRun <= 2, `${maxRun}`);
+    ok('adaptatif : en pratique ciblée, niveau basique ou standard', weakFlag > 0 && easyWeak === 0, `${weakFlag} ${easyWeak}`);
+    // Compétences jamais vues : une vraie chance même quand d’autres accrochent
+    const sn = newState(34); sn.mastery = st.mastery; sn.stats = { qc_s1_ari_05: { n: 8, ok: 1, h: '00000010' } }; const rn = makeRng(8), seen = new Set();
+    for (let i = 0; i < 3000; i++) seen.add(pickQuestion(sn, 'fish', rn).skill);
+    ok('adaptatif : les compétences jamais vues sortent aussi', ids.every(id => seen.has(id)), `${seen.size}`);
+    // Érable : la pratique ciblée reste dans les fractions
+    const rm = makeRng(9); let bad = 0, f5 = 0; for (let i = 0; i < 2000; i++) { const q = pickQuestion(st, 'maple', rm); if (!FRACTION_SKILLS.includes(q.skill)) bad++; if (q.skill === 'qc_s1_ari_05') f5++; }
+    ok('érable adaptatif : fractions seulement, la plus ratée en tête', bad === 0 && f5 / 2000 > 0.45, `${bad} ${f5}`);
+    ok('défi : la notion à pratiquer proposée en premier', defiChoices(st)[0] === 'qc_s1_ari_05'); }
   { const ex0 = makeExercise('qc_s1_ari_01', 's', 0), ex2 = makeExercise('qc_s1_ari_04', 's', 2);
     const t0 = timeFor(ex0), t2 = timeFor(ex2), ts = timeFor(ex0, { stretch: true });
     ok('chrono généreux 20–35 s', t0 >= 20 && t0 <= 25 && t2 >= 30 && t2 <= 35 && ts === t0 + 5, `${t0} ${t2} ${ts}`);

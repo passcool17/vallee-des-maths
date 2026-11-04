@@ -1,5 +1,6 @@
 // Progression : maîtrise des compétences, déblocage par préalables, améliorations d’outils.
 import { SKILLS, SKILLS2, prereqsOf, skillById, isS2, sec1Prereqs } from './math/skills.js';
+import { logAnswer, weakList } from './adapt.js';
 
 export const MASTERY = 3; // bonnes réponses pour maîtriser une compétence
 export const TOOLS = [
@@ -47,9 +48,10 @@ export function nextUpgrade(state, toolId) {
 // Difficulté adaptée : 0 pour la 1re réponse, 1 ensuite, 2 une fois maîtrisée.
 export function difficultyFor(state, id) { const ok = state.mastery[id]?.ok || 0; return ok === 0 ? 0 : ok < MASTERY ? 1 : 2; }
 
-// Enregistre une réponse. ctx = { tool?, near? }. Retourne ce qui vient de se passer.
+// Enregistre une réponse. ctx = { tool?, near?, sec? }. Retourne ce qui vient de se passer.
 export function recordAnswer(state, id, ok, ctx = {}) {
   const s = m(state, id); s.tries++;
+  if (!ctx.near) logAnswer(state, id, ok, ctx.sec); // « presque » = un indice, pas une erreur
   const out = { mastered: false, upgraded: null, warmup: null };
   if (ok) {
     const before = s.ok >= MASTERY; s.ok++; s.miss = 0;
@@ -83,11 +85,11 @@ export function warmupFor(id, state) {
 // Défis de Flocon : compétences débloquées, priorité à celles qui ne sont pas encore maîtrisées.
 export function defiChoices(state, sec = 1) {
   if (sec === 2) { const all2 = SKILLS2.map(s => s.id).filter(id => isUnlocked(state, id)); const not2 = all2.filter(id => !isMastered(state, id));
-    const pref2 = not2.filter(id => TOOLS.some(t => nextUpgrade(state, t.id)?.missing.includes(id) || nextUpgrade(state, t.id)?.skill === id)); return [...new Set([...pref2, ...not2, ...all2])]; }
+    const pref2 = not2.filter(id => TOOLS.some(t => nextUpgrade(state, t.id)?.missing.includes(id) || nextUpgrade(state, t.id)?.skill === id)); return [...new Set([...weakList(state, all2), ...pref2, ...not2, ...all2])]; }
   const all = SKILLS.map(s => s.id).filter(id => isUnlocked(state, id));
   const notM = all.filter(id => !isMastered(state, id));
   const pref = notM.filter(id => DEFI_SKILLS.includes(id) || TOOLS.some(t => nextUpgrade(state, t.id)?.missing.includes(id)));
-  return [...new Set([...pref, ...notM, ...all])];
+  return [...new Set([...weakList(state, all), ...pref, ...notM, ...all])]; // « à pratiquer » en premier
 }
 export const masteryCount = (state, list = SKILLS) => list.filter(s => isMastered(state, s.id)).length;
 // Traversier : tous les outils au niveau 2 ou plus (ou déjà débloqué).

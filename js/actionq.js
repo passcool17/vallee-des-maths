@@ -2,6 +2,7 @@
 // Logique pure (aucun DOM) pour être testée en Node.
 import { SKILLS, SKILLS2 } from './math/skills.js';
 import { isUnlocked, difficultyFor, stats } from './progression.js';
+import { pickAdaptive, missRate } from './adapt.js';
 
 export const NIVEAUX = ['basique', 'standard', 'avancé'];
 export const FRACTION_SKILLS = ['qc_s1_ari_03', 'qc_s1_ari_04', 'qc_s1_ari_05', 'qc_s1_ari_06'];
@@ -28,12 +29,13 @@ export function pickQuestion(state, kind, rng, isle = 1) {
     const skill = rng.pick(locked.length ? locked : pool);
     return { skill, d: 0, stretch: true };
   }
-  // Priorité douce aux compétences pas encore maîtrisées : on pige deux fois et on garde la moins maîtrisée.
-  const a = rng.pick(open), b = rng.pick(open);
-  const skill = (state.mastery[a]?.ok || 0) <= (state.mastery[b]?.ok || 0) ? a : b;
+  // Adaptatif : ~55 % vers ce que Camille rate le plus (dans le bassin permis de l’activité). Sinon, priorité douce
+  // aux compétences pas encore maîtrisées : on pige deux fois et on garde la moins maîtrisée.
+  const { skill, weak } = pickAdaptive(state, open, rng, list => { const a = rng.pick(list), b = rng.pick(list); return (state.mastery[a]?.ok || 0) <= (state.mastery[b]?.ok || 0) ? a : b; });
   let d = difficultyFor(state, skill);
-  if (d < 2 && rng.chance(BUMP_CHANCE)) d++;
-  return { skill, d, stretch: false };
+  if (weak) { if ((missRate(state, skill) ?? 0) >= 0.5) d = Math.min(d, 1); } // on pratique ce qui accroche sans monter la marche
+  else if (d < 2 && rng.chance(BUMP_CHANCE)) d++;
+  return { skill, d, stretch: false, weak };
 }
 
 // Durée du chrono en secondes (généreuse)

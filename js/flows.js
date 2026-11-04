@@ -8,6 +8,7 @@ import { MASTERY, TOOLS, toolById, nextUpgrade, difficultyFor, recordAnswer, isM
 import { phareSteps, phareSVG, phareData } from './phare.js';
 import { CATALOG, SELL, quoteFor, forgetQuote, checkTotal } from './shop.js';
 import { NOMS, EMOJI } from './villagers.js';
+import { logAnswer, weakList, successRate } from './adapt.js';
 import { NIVEAUX, loot, timeFor, makeTimer, canKiosk, kioskExercise, kioskDone } from './actionq.js';
 
 export const ITEMS = {
@@ -18,6 +19,7 @@ export const ITEMS = {
   gros_dore: ['🐟', 'Gros doré'], saumon: ['🐟', 'Saumon atlantique'], bar: ['🐟', 'Bar rayé'],
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
 };
+const SHOP_SKILL = 'qc_s1_ari_08'; // magasin : rabais en pourcentage + taxes
 const dots = (n, max = MASTERY) => h('span', { class: 'dots', 'aria-label': `${Math.min(n, max)} sur ${max}` }, Array.from({ length: max }, (_, i) => h('i', { class: i < n ? 'on' : '' })));
 // 3 étoiles sur l’île 1 ; une 4e (secondaire 2) une fois le traversier ouvert
 const stars = (n, max = 3) => '★'.repeat(Math.max(0, n)) + '☆'.repeat(Math.max(0, max - n));
@@ -129,7 +131,8 @@ export function makeFlows(G) {
     const d = s.d ?? difficultyFor(st, s.skill);
     // Exercice déjà construit (étapes du phare, pige du kiosque) ou fabriqué à partir de la compétence
     const ex = s.ex || makeExercise(s.skill, `${st.seed}:${st.exCount}`, d);
-    const sk = skillById(s.skill); let misses = 0, hintN = 0, locked = false;
+    const sk = skillById(s.skill); let misses = 0, hintN = 0, locked = false; const t0 = performance.now();
+    const sec = () => (performance.now() - t0) / 1000;
     const hintsEl = h('div', { class: 'hints' }), fb = h('div', { class: 'feedback', role: 'status' });
     const hintBtn = h('button', { class: 'btn hint', onclick: () => { click(); showHint(); } }, '💡 Indice');
     const showBtn = h('button', { class: 'btn small hidden', onclick: () => { click(); reveal(); } }, 'Montre-moi la réponse');
@@ -154,7 +157,7 @@ export function makeFlows(G) {
       const r = checkAnswer(v, ex.answer);
       if (r.empty || (ex.answer.kind === 'choice' && v < 0)) { fb.className = 'feedback info'; fb.textContent = ex.answer.kind === 'choice' ? 'Choisis une réponse.' : r.msg || 'Écris une réponse.'; return; }
       if (r.ok) {
-        audio.sfx('ok'); const out = recordAnswer(st, s.skill, true, { tool: s.kind === 'upgrade' ? s.tool : null }); s.done++; G.save();
+        audio.sfx('ok'); const out = recordAnswer(st, s.skill, true, { tool: s.kind === 'upgrade' ? s.tool : null, sec: sec() }); s.done++; G.save();
         fb.className = 'feedback ok'; fb.replaceChildren(h('b', {}, ['Bravo!', 'Excellent!', 'Tiguidou!', 'Bien joué!'][st.exCount % 4]), ' ', canonical(ex.answer));
         if (s.kind === 'phare') return F.phareOk(ex, fb, done);
         if (s.kind === 'kiosk') { const n = kioskDone(st, true); G.save(); fb.append(h('p', { class: 'benefit' }, `🪱 Bernard te donne un appât rare! (${n} en réserve) Ta prochaine touche au quai de l’île 2 sera un poisson rare.`)); return done(() => ui.close(), 'Merci Bernard!'); }
@@ -167,7 +170,7 @@ export function makeFlows(G) {
       }
       misses++;
       if (r.near) { audio.sfx('near'); recordAnswer(st, s.skill, false, { near: true }); fb.className = 'feedback near'; fb.textContent = r.msg; return; }
-      audio.sfx('miss'); const out = recordAnswer(st, s.skill, false, {}); G.save();
+      audio.sfx('miss'); const out = recordAnswer(st, s.skill, false, { sec: sec() }); G.save();
       if (s.kind === 'kiosk') { kioskDone(st, false); G.save(); fb.className = 'feedback no'; fb.replaceChildren('Pas cette fois! La réponse était : ', h('b', {}, canonical(ex.answer)), '. Reviens demain pour une autre pige.'); return done(() => ui.close(), 'À demain!'); }
       fb.className = 'feedback no'; fb.textContent = r.msg || ['Pas tout à fait. Essaie encore!', 'Presque… un indice peut aider.', 'On respire, pis on recommence.'][Math.min(misses - 1, 2)];
       hintBtn.classList.add('pulse'); if (misses >= 2 && hintN === 0) showHint();
@@ -235,6 +238,7 @@ export function makeFlows(G) {
     let box;
     const submit = v => {
       if (locked) return; const r = checkTotal(v[0], q);
+      logAnswer(st, SHOP_SKILL, !!r.ok); // statistiques seulement : la maîtrise se gagne avec les outils et les défis
       if (r.ok) {
         locked = true; audio.sfx('ok'); ticket.lastChild.lastChild.textContent = fmtMoney(q.totalCents);
         if (st.money < q.totalCents) { fb.className = 'feedback info'; fb.textContent = `Bon calcul! Mais il te manque ${fmtMoney(q.totalCents - st.money)}. Reviens quand tu auras assez d’argent.`; }
@@ -285,6 +289,7 @@ export function makeFlows(G) {
     const paint = () => { bar.style.width = `${(timer.left / timer.total) * 100}%`; bar.classList.toggle('low', timer.left < 6); secs.textContent = `${Math.ceil(timer.left)} s`; };
     function end(result, closed = false) {
       if (settled) return; settled = true; timer.stop(); keyHandler = null;
+      if (result === 'timeout' && !q.stretch) logAnswer(st, q.skill, false);
       if (closed) { audio.sfx('click'); ui.toast(`${q.kind === 'fish' ? '💨' : '🍂'} ${cfg.lose.skip}`); F.cur = null; q.onEnd && q.onEnd('skip'); return; }
       let body;
       if (result === 'win') {
@@ -311,7 +316,7 @@ export function makeFlows(G) {
       const r = checkAnswer(v, ex.answer);
       if (r.empty || (ex.answer.kind === 'choice' && v < 0)) { fb.className = 'feedback info'; fb.textContent = ex.answer.kind === 'choice' ? 'Choisis une réponse.' : r.msg || 'Écris une réponse.'; return; }
       if (r.near) { audio.sfx('near'); fb.className = 'feedback near'; fb.textContent = r.msg; return; } // presque : un indice, pas d’échec
-      if (!q.stretch) { const out = recordAnswer(st, q.skill, !!r.ok, {}); if (out.mastered) ui.toast(`📒 Compétence maîtrisée : ${sk.nom}!`, 'gold'); }
+      if (!q.stretch) { const out = recordAnswer(st, q.skill, !!r.ok, { sec: timer.total - timer.left }); if (out.mastered) ui.toast(`📒 Compétence maîtrisée : ${sk.nom}!`, 'gold'); }
       end(r.ok ? 'win' : 'miss');
     }
     const content = h('div', { class: `exercise action ${q.kind}` },
@@ -337,11 +342,24 @@ export function makeFlows(G) {
     const rares = h('section', { class: 'rares' }, h('h4', {}, '✨ Prises rares et sirop'), RARE_KEYS.some(k => st.rares[k])
       ? h('div', { class: 'ctools' }, RARE_KEYS.filter(k => st.rares[k]).map(k => h('span', { class: 'chip rare', 'data-k': k }, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${st.rares[k]}`)))
       : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort ou qu’un érable coule, une petite question peut te rapporter une prise rare!'));
-    const doms = list => DOMAINES.filter(dn => list.some(s => s.domaine === dn)).map(dname => h('section', {}, h('h4', {}, dname), list.filter(s => s.domaine === dname).map(sk => {
-      const ok = st.mastery[sk.id]?.ok || 0, m = isMastered(st, sk.id), u = isUnlocked(st, sk.id);
+    // Progrès par compétence : essais, % de réussite, niveau (à découvrir / en apprentissage / maîtrisé)
+    const pct = id => Math.round((successRate(st, id) ?? 0) * 100);
+    const essais = id => { const s = st.stats?.[id]; return s?.n ? `${s.n} essai${s.n > 1 ? 's' : ''} · ${pct(id)} % réussi${s.sec ? ` · ~${Math.round(s.sec)} s` : ''}` : 'Pas encore essayé'; };
+    const niveau = id => isMastered(st, id) ? ['m', 'Maîtrisé'] : st.stats?.[id]?.n || st.mastery[id]?.tries ? ['a', 'En apprentissage'] : ['d', 'À découvrir'];
+    const weakOf = list => weakList(st, list.map(s => s.id).filter(id => isUnlocked(st, id)), 3);
+    const pratiquer = (list, sec) => { const w = weakOf(list);
+      return h('section', { class: 'pratiquer' }, h('h4', {}, '🎯 À pratiquer'), w.length
+        ? w.map(id => h('div', { class: 'prat' }, h('div', {}, h('b', {}, skillById(id).nom), h('p', { class: 'pre' }, essais(id))),
+          h('button', { class: 'btn small primary', 'data-skill': id, onclick: () => { click(); F.defi(id, sec); } }, 'Pratiquer')))
+        : h('p', { class: 'pre' }, list.some(s => st.stats?.[s.id]?.n) ? 'Rien qui accroche en ce moment. Bravo!' : 'Réponds à quelques questions : je noterai ici ce qui mérite un peu de pratique.')); };
+    const doms = list => { const weak = weakOf(list); return DOMAINES.filter(dn => list.some(s => s.domaine === dn)).map(dname => h('section', {}, h('h4', {}, dname), list.filter(s => s.domaine === dname).map(sk => {
+      const ok = st.mastery[sk.id]?.ok || 0, m = isMastered(st, sk.id), u = isUnlocked(st, sk.id), [nc, nt] = niveau(sk.id), n = st.stats?.[sk.id]?.n || 0;
       const pre = prereqsOf(sk.id, 'hard').map(p => `${skillById(p).nom}${isS2(sk.id) && !isS2(p) ? ' (sec. 1)' : ''}`).join(', ');
-      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}`, 'data-skill': sk.id }, h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', pre) : isS2(sk.id) ? h('p', { class: 'pre s1' }, 'S’appuie sur : ', pre) : null), dots(ok));
-    })));
+      return h('div', { class: `sk ${m ? 'm' : u ? '' : 'lock'}${weak.includes(sk.id) ? ' faible' : ''}`, 'data-skill': sk.id },
+        h('div', {}, h('b', {}, `${m ? '✅ ' : u ? '' : '🔒 '}${sk.nom}`), h('p', { class: 'pda' }, sk.pda), !u ? h('p', { class: 'pre' }, 'Préalable : ', pre) : isS2(sk.id) ? h('p', { class: 'pre s1' }, 'S’appuie sur : ', pre) : null,
+          h('p', { class: 'essais' }, essais(sk.id)), n ? h('div', { class: 'rbar', role: 'progressbar', 'aria-label': 'Réussite', 'aria-valuenow': pct(sk.id) }, h('i', { style: `width:${pct(sk.id)}%` })) : null),
+        h('div', { class: 'niv' }, h('span', { class: `lv ${nc}` }, weak.includes(sk.id) ? `🎯 ${nt}` : nt), dots(ok)));
+    }))); };
     const line = h('p', { class: 'line' });
     const s2extra = h('p', { class: 'journal s2' }, `⛴️ Traversier : ${canFerry(st) ? 'ouvert' : 'fermé'} · 🗼 Phare : ${st.phare.done ? 'réparé, il brille la nuit!' : `étape ${st.phare.step} sur 3`} · 🪱 Appâts rares : ${st.appats}`);
     const body = h('div', { class: 'cbody' });
@@ -350,7 +368,7 @@ export function makeFlows(G) {
       tabs.forEach(b => { const on = b.dataset.tab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
       const list = id === 's2' ? SKILLS2 : SKILLS;
       line.textContent = `${masteryCount(st, list)} / ${list.length} compétences maîtrisées — Secondaire ${id === 's2' ? 2 : 1} (PDA du MEQ)`;
-      body.replaceChildren(...(id === 's2' ? [s2extra] : []), ...doms(list));
+      body.replaceChildren(...(id === 's2' ? [s2extra] : []), pratiquer(list, id === 's2' ? 2 : 1), ...doms(list));
       F.carnetTab = id;
     }
     open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face(st.island === 2 ? 'rosalie' : 'flocon'), h('div', {}, h('b', {}, 'Mon carnet'), line)), h('div', { class: 'tabs', role: 'tablist' }, tabs), tools, journal, rares, body), { cls: 'carnet' });
