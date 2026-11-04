@@ -168,6 +168,13 @@ Il a deux onglets, **Sec 1** et **Sec 2**. Sur l’île 2, il s’ouvre sur Sec 
 
 Chaque île a sa musique, en boucle : « Une petite île 1 » sur l’île de Secondaire 1 et « Une petite île 2 » sur l’île de Secondaire 2 (pistes de passcool17, `music/ile1.mp3` et `music/ile2.mp3`). Elle démarre quand on touche « Jouer ». Au traversier, une piste se fond dans l’autre. La musique baisse un peu pendant une question ou un dialogue, pour qu’on entende bien les effets, et elle s’arrête pendant la pause. M ou 🔊 coupe tout le son, et ce choix est sauvegardé. La piste 2 ne se télécharge que lorsque le traversier s’ouvre. Si une piste ne se charge pas, le jeu continue sans musique.
 
+## Sons de vie (js/sons.js)
+Tout est synthétisé en WebAudio (aucun fichier). Bus « vie » (0,8) sous la musique, baissé pendant les questions, coupé par 🔊/M (tout) ou 🐦/N (sons de vie seulement, `state.sons`). Rien ne joue avant le geste « Jouer ».
+- **Nappes** : vagues (bruit filtré 420 Hz, selon la distance à l’eau, hors bâtiments/arbres), vent dans les feuilles (selon les arbres à 9 m, coupé aux paliers bas), grillons la nuit (4,4 kHz hachés en rafales).
+- **Pas de Camille** au rythme de `walkPhase` : herbe, pierre (sentier), bois (quais), sable (rive).
+- **Créatures** (positionnées : volume (1−d/22)², panoramique gauche/droite) : Charlie jappe/halète (flatté, rapporte), Gisèle/Olga miaou + ronron (Olga plus aiguë), villageois « blablas » à hauteur propre (Ginette grave, Hortense lente, Gaston moyen, Bernard + cri du huard, Rosalie couinante, Flocon aiguë + hululement), oiseaux le jour, grenouilles la nuit près de l’eau, goélands près du phare/quai (île 2), lucioles muettes.
+- **Perf** : max 8 voix (5 aux paliers fxQ ≥ 3), un seul tampon de bruit partagé. Test : `node tools/test-sons.cjs`.
+
 ## Rendu (« joli »)
 
 Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans post-traitement coûteux :

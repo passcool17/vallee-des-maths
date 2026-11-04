@@ -12,6 +12,7 @@ import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
 import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
+import { makeSons } from './sons.js';
 import { stats, canFerry } from './progression.js';
 import { rareBiteChance, pickQuestion, MAPLE_CHANCE, useBait } from './actionq.js';
 import { SELL } from './shop.js';
@@ -36,7 +37,7 @@ const scene = new THREE.Scene(); J.setScene(scene);
 const camera = new THREE.PerspectiveCamera(J.CAM.fov, 1, 0.5, 900);
 const rng = makeRng(state.seed ^ 0xbeef);
 
-const ui = makeUI(), audio = makeAudio(); audio.setMuted(!!state.muted);
+const ui = makeUI(), audio = makeAudio(); audio.setMuted(!!state.muted); audio.setSons(state.sons !== false);
 const G = { state, time: 0, paused: false, night: 0, phase: 'matin', ui, audio, save: () => { state.pos = { x: +player.pos.x.toFixed(2), z: +player.pos.z.toFixed(2) }; save(state); } };
 const world = buildWorld(scene, G); G.world = world;
 J.addGrass(world.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6cb946', count: 2600, ok: (x, z) => world.walkable(x, z, { bridges: {} }) && !Object.values(PLACES).some(([px, pz]) => Math.hypot(px - x, pz - z) < 3.2) && Math.abs(x - (6 * ((z + 10) / 36) ** 2 - 0.5)) > 1.6 });
@@ -53,7 +54,7 @@ function showIsland() { world.root.visible = state.island !== 2; if (isle2) isle
 showIsland();
 const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.island === 2 ? { x: FERRY.arrive[0], z: FERRY.arrive[1] } : { x: 2, z: 6 };
 const player = makePlayer(scene, start); G.player = player;
-const pets = makePets(scene, world, G); G.pets = pets; pets.regroup(player); J.dress(scene);
+const pets = makePets(scene, world, G); G.pets = pets; const sons = makeSons(audio, G); G.sons = sons; pets.regroup(player); J.dress(scene);
 const vie = J.ON ? makeVie(scene, world, G, W) : null; G.vie = vie; // nuit, eau vivante, lucioles, lanternes, feuilles (seulement avec « joli »)
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
@@ -145,7 +146,7 @@ function interact(target = nearest()) {
   const it = target; player.face(it.pos.x, it.pos.z); player.cancelWalk();
   switch (it.kind) {
     case 'npc': flows.talk(it.v); break;
-    case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); if (a.id === 'charlie') waitT(0.6).then(() => comp.fetch(true)); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
+    case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); if (audio.sons) sons.pet(a); else audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); if (a.id === 'charlie') waitT(0.6).then(() => comp.fetch(true)); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
     case 'fetch': comp.pickup(); break;
     case 'quete': comp.trouver(); break;
     case 'etabli': flows.workbench(); break;
@@ -214,10 +215,14 @@ const input = makeInput({ canvas, onInteract: () => interact(), onTap,
     if (flows.handleKey(e)) return true;
     if (ui.isOpen) return false;
     if (e.code === 'KeyC') { flows.carnet(); return true; }
+    if (e.code === 'KeyN') { toggleSons(); return true; }
     if (e.code === 'KeyM' || e.code === 'Semicolon' || e.key === 'm') { toggleMute(); return true; }
     return false;
   } });
+function toggleSons() { state.sons = state.sons === false; audio.setSons(state.sons); save(state); ui.refresh?.(state); document.getElementById('btn-vie').textContent = state.sons ? '🐦' : '🔕'; ui.toast(state.sons ? '🐦 Sons de vie activés' : '🔕 Sons de vie coupés (la musique reste)'); }
 function toggleMute() { state.muted = !state.muted; audio.setMuted(state.muted); save(state); ui.toast(state.muted ? '🔇 Son coupé' : '🔊 Son activé'); }
+document.getElementById('btn-vie').textContent = state.sons === false ? '🔕' : '🐦';
+document.getElementById('btn-vie').addEventListener('click', e => { e.currentTarget.blur(); toggleSons(); });
 document.getElementById('btn-son').addEventListener('click', e => { e.currentTarget.blur(); toggleMute(); });
 document.getElementById('btn-carnet').addEventListener('click', e => { e.currentTarget.blur(); if (!ui.isOpen && started) flows.carnet(); });
 
@@ -263,7 +268,7 @@ function frame(now) {
   comp.tick(dt, started && !ui.isOpen && !fishing.state);
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
-  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
+  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); if (started) sons.update(dt, player, W()); updateFx(dt); flows.tick(dt);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase); if (vie) vie.update(dt, player, camera, renderer);
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
@@ -303,7 +308,7 @@ window.__mv = {
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
-  fps: () => fps, quality: J.quality, vie: () => vie && vie.stats(), calls: () => renderer.info.render.calls,
+  fps: () => fps, sons: () => sons, audio, quality: J.quality, vie: () => vie && vie.stats(), calls: () => renderer.info.render.calls,
   walk: () => ({ player: player.moving, phase: player.walkPhase, villagers: allVillagers.filter(v => v.walking).map(v => v.id), pets: pets.pets.filter(a => a.walking).map(a => a.id) }),
   camK: k => { J.CAM.k = k; }, // test : rapprocher la caméra pour les captures
   pets: () => pets.visible(state.island).map(a => ({ id: a.id, x: +a.pos.x.toFixed(2), z: +a.pos.z.toFixed(2) })), pet: id => { const a = pets.pets.find(q => q.id === id); return a && pets.pat(a); },

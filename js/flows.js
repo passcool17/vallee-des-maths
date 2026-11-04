@@ -100,7 +100,7 @@ export function makeFlows(G) {
 
   // ---------- Dialogue avec un villageois
   F.talk = (v) => {
-    const st = S(); st.met[v.id] = (st.met[v.id] || 0) + 1; v.talkTo(); audio.sfx('talk');
+    const st = S(); st.met[v.id] = (st.met[v.id] || 0) + 1; v.talkTo(); if (G.sons && audio.sons) G.sons.talk(v); else audio.sfx('talk');
     const line = v.nextLine(st.met[v.id] - 1);
     const opts = [];
     if (v.id === 'gaston') opts.push(['🔨 Voir l’établi', () => F.workbench()]);

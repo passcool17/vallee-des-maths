@@ -34,7 +34,7 @@ export function makeUI() {
     },
     // Petite pastille « +x,xx $ » qui sort de la puce d’argent (au lieu d’une notification sur la scène)
     gain(cents) {
-      const g = h('div', { class: 'gainpill' }, `+${fmtMoney(cents)}`); $('hud').append(g);
+      const g = h('div', { class: 'gainpill' }, `+${fmtMoney(cents)}`); g.style.top = `${document.querySelector('#hud .chips').offsetHeight + 11}px`; $('hud').append(g); // sous les pastilles, même quand elles passent sur 2 lignes
       setTimeout(() => g.remove(), 1400);
     },
     open(content, { cls = '', close } = {}) {

@@ -1,8 +1,8 @@
 // Musique de fond : une piste par île (music/ile1.mp3, music/ile2.mp3), en boucle, fondu enchaîné au traversier.
 // Effets sonores synthétisés (WebAudio). La piste 2 n’est téléchargée qu’au besoin; une piste introuvable = silence, sans erreur.
-const VOL = 0.32, DUCK = 0.55, FADE = 1.2; // musique sous les effets; un peu plus bas pendant une question
+const LIFE = 0.8, VOL = 0.32, DUCK = 0.55, FADE = 1.2; // musique sous les effets; un peu plus bas pendant une question
 export function makeAudio() {
-  let ctx = null, master, music, sfxBus, muted = false, paused = false, ducked = false, cur = 0;
+  let ctx = null, master, music, sfxBus, life, sons = true, muted = false, paused = false, ducked = false, cur = 0;
   const NOTE = n => 440 * 2 ** ((n - 69) / 12);
   const tracks = {}; // n → { el, g }
   function tone(t, f, dur, { type = 'triangle', vol = 0.2, bus = sfxBus, attack = 0.01, glide = 0 } = {}) {
@@ -27,6 +27,7 @@ export function makeAudio() {
   function sync() { // applique île courante + muet + pause à toutes les pistes, avec fondu
     if (!ctx) return; const t = ctx.currentTime, on = !muted && !paused;
     music.gain.setTargetAtTime(ducked ? VOL * DUCK : VOL, t, 0.3);
+    life.gain.setTargetAtTime(!sons || paused ? 0 : ducked ? LIFE * DUCK : LIFE, t, 0.3);
     for (const [n, k] of Object.entries(tracks)) {
       const live = +n === cur && on;
       k.g.gain.cancelScheduledValues(t); k.g.gain.setValueAtTime(k.g.gain.value, t); k.g.gain.linearRampToValueAtTime(live ? 1 : 0, t + (on ? FADE : 0.05));
@@ -34,13 +35,15 @@ export function makeAudio() {
     }
   }
   const A = {
-    get started() { return !!ctx; }, get muted() { return muted; },
+    get started() { return !!ctx; }, get muted() { return muted; }, get ctx() { return ctx; }, get life() { return life; }, get sons() { return sons; },
+    setSons(on) { sons = !!on; sync(); },
     start(island = 1) { // à appeler dans le geste « Jouer » (iOS / blocage de lecture automatique)
       if (ctx) { ctx.resume(); return; }
       const AC = globalThis.AudioContext || globalThis.webkitAudioContext; if (!AC) return;
       ctx = new AC(); master = ctx.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(ctx.destination);
       music = ctx.createGain(); music.gain.value = VOL; music.connect(master);
       sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
+      life = ctx.createGain(); life.gain.value = sons ? LIFE : 0; life.connect(master); // « sons de vie » : ambiance + bêtes, sous la musique
       A.island(island);
     },
     island(n) { cur = n; track(n); sync(); },   // fondu enchaîné vers la piste de l’île n

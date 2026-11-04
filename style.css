@@ -193,7 +193,8 @@ body.modal #touch, body.modal #prompt { display: none; }
 /* Téléphone portrait : panneau en feuille du bas */
 @media (max-width: 600px) {
   .chip { font-size: 13px; padding: 5px 9px; }
-  .round { width: 38px; height: 38px; font-size: 18px; }
+  .round { width: 34px; height: 34px; font-size: 16px; }
+  #hud .btns, #hud .chips { gap: 4px; }
   .panel { align-items: flex-end; padding: 0; }
   .sheet { width: 100%; border-radius: 22px 22px 0 0; max-height: calc(100dvh - 56px - var(--safe-t)); padding: 16px 14px calc(14px + var(--safe-b)); }
   .q { font-size: 17px; margin: 6px 0; }
