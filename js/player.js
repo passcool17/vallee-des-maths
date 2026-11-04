@@ -4,7 +4,7 @@ import { blob } from './world.js';
 import { bake, part } from './bake.js';
 
 // Camille : longs cheveux blonds, lunettes rondes or rose, grand coton ouaté brun, jeans évasés pâles, espadrilles noir et blanc, sac à dos rose.
-const C = { peau: '#f7d9c2', joue: '#f4a9a0', blond: '#f1c04e', blond2: '#d9a03a', brun: '#5b3a2b', brun2: '#4a2f23', jean: '#a9c9e8', jean2: '#93b6da',
+const C = { peau: '#f7d9c2', joue: '#f4a9a0', blond: '#f1c04e', blond2: '#d9a03a', blond3: '#ffe08a', brun: '#5b3a2b', brun2: '#4a2f23', jean: '#a9c9e8', jean2: '#93b6da',
   noir: '#25232a', blanc: '#f6f4ef', rose: '#ff4fa8', rose2: '#e23d8f', lunettes: '#d99a86', oeil: '#3a2a22', bouche: '#c0586a' };
 function camille() {
   const body = new THREE.Group(), S = (r, w = 16, h = 12) => new THREE.SphereGeometry(r, w, h), Cy = (a, b, h, n = 14) => new THREE.CylinderGeometry(a, b, h, n);
@@ -24,12 +24,22 @@ function camille() {
   }
   body.add(part(Cy(0.008, 0.008, 0.06, 4), C.lunettes, 0, 1.5, 0.3, null, [0, 0, Math.PI / 2]));       // pont
   body.add(part(new THREE.TorusGeometry(0.055, 0.012, 5, 10, Math.PI), C.bouche, 0, 1.39, 0.29, null, [0, 0, Math.PI])); // petit sourire
-  // cheveux : calotte avec raie au milieu, rideau dans le dos jusque sous les épaules, mèches devant les épaules
-  body.add(part(new THREE.SphereGeometry(0.33, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.56), C.blond, 0, 1.49, -0.02, [1.04, 1, 1.05], [-0.28, 0, 0]));
-  body.add(part(new THREE.BoxGeometry(0.02, 0.02, 0.32), C.blond2, 0, 1.815, 0.06, null, [-0.4, 0, 0]));
-  body.add(part(new THREE.CapsuleGeometry(0.27, 0.42, 6, 14), C.blond, 0, 1.17, -0.17, [1.12, 1, 0.42]));
+  // cheveux : sous-couche plus foncée, mèches en relief qui partent de la raie (reflets plus pâles sur le dessus),
+  // frange balayée sur le côté, longues mèches dans le dos et devant les épaules — vus d’en haut, ça se lit comme des cheveux
+  body.add(part(new THREE.SphereGeometry(0.325, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), C.blond2, 0, 1.49, -0.02, [1.04, 1, 1.05], [-0.28, 0, 0]));
+  for (const sx of [-1, 1]) for (let k = 0; k < 5; k++) {
+    const z = 0.2 - k * 0.11, y = 1.49 + Math.sqrt(Math.max(0.01, 0.1 - z * z * 0.9)) * 0.86, lit = (k + (sx > 0 ? 1 : 0)) % 2;
+    body.add(part(S(0.1, 10, 8), lit ? C.blond3 : C.blond, sx * 0.15, y + 0.02 - k * 0.012, z - 0.02, [1.75, 0.62, 0.85], [-0.25 + k * 0.12, 0, -sx * (0.62 + k * 0.04)]));
+  }
+  body.add(part(new THREE.BoxGeometry(0.018, 0.02, 0.34), C.blond2, 0, 1.815, 0.04, null, [-0.4, 0, 0]));                 // raie
+  for (const [bx, r, l] of [[-0.15, 0.055, 0.1], [-0.06, 0.06, 0.12], [0.04, 0.058, 0.13], [0.13, 0.05, 0.1]])               // frange balayée
+    body.add(part(new THREE.CapsuleGeometry(r, l, 4, 8), bx < 0 ? C.blond3 : C.blond, bx, 1.665, 0.235 - Math.abs(bx) * 0.25, [1, 1, 0.55], [0.55, 0, 0.55 + bx * 1.2]));
+  body.add(part(new THREE.CapsuleGeometry(0.25, 0.4, 6, 12), C.blond2, 0, 1.18, -0.19, [1.08, 1, 0.38]));                    // fond du rideau
+  for (let i = 0; i < 5; i++) { const x = (i - 2) * 0.1;                                                                        // mèches du dos
+    body.add(part(new THREE.CapsuleGeometry(0.08, 0.5 - Math.abs(i - 2) * 0.06, 4, 8), i % 2 ? C.blond3 : C.blond, x, 1.2 + Math.abs(i - 2) * 0.03, -0.25 - (2 - Math.abs(i - 2)) * 0.015, [1, 1, 0.6], [0.1, 0, x * 0.5])); }
   for (const sx of [-1, 1]) {
-    body.add(part(new THREE.CapsuleGeometry(0.09, 0.55, 4, 10), C.blond, sx * 0.27, 1.2, 0.12, [1, 1, 0.6], [0.12, 0, sx * 0.07]));
+    body.add(part(new THREE.CapsuleGeometry(0.085, 0.55, 4, 10), C.blond, sx * 0.27, 1.2, 0.12, [1, 1, 0.6], [0.12, 0, sx * 0.07]));
+    body.add(part(new THREE.CapsuleGeometry(0.05, 0.42, 4, 8), C.blond3, sx * 0.23, 1.22, 0.17, [1, 1, 0.6], [0.14, 0, sx * 0.12]));
     body.add(part(new THREE.CapsuleGeometry(0.07, 0.36, 4, 10), C.blond2, sx * 0.3, 1.18, -0.05, [1, 1, 0.8], [0, 0, sx * 0.12]));
   }
   // sac à dos rose
@@ -84,7 +94,12 @@ export function makePlayer(scene, start) {
       phase += dt * (P.speed > 0.1 ? P.speed * 2.2 : 2);
       const sw = P.speed > 0.1 ? Math.sin(phase) * 0.6 : 0;
       legs[0].rotation.x = sw; legs[1].rotation.x = -sw; arms[0].rotation.x = -sw; arms[1].rotation.x = busy > 0 ? -1.2 : sw;
-      body.position.y = P.speed > 0.1 ? Math.abs(Math.sin(phase)) * 0.08 : Math.sin(phase) * 0.015;
+      // marche : balancier jambes/bras, petit rebond, torse qui tourne un peu ; arrêt : respiration et bras qui bercent
+      const walk = P.speed > 0.1; P.walkPhase = phase;
+      body.position.y = walk ? Math.abs(Math.sin(phase)) * 0.08 : Math.sin(phase) * 0.012;
+      body.rotation.y = walk ? Math.sin(phase) * 0.09 : 0; body.rotation.x = walk ? 0.05 : 0;
+      body.scale.set(1, walk ? 1 : 1 + Math.sin(phase * 0.9) * 0.012, 1);
+      arms[0].rotation.z = walk ? 0 : -0.06 - Math.sin(phase * 0.9) * 0.03; arms[1].rotation.z = walk ? 0 : 0.06 + Math.sin(phase * 0.9) * 0.03;
       obj.position.copy(pos); obj.rotation.y = facing;
     },
   };

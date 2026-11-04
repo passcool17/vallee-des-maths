@@ -21,7 +21,8 @@ if (ON) {
   Object.assign(TIMES.matin, { sky: ['#7fc0ea', '#ffd9b4'], fog: '#f2d6be', sunI: 2.2, hemiI: 1.3 });
   Object.assign(TIMES.midi, { sky: ['#3f9fe8', '#c4ecff'], fog: '#c9e8f6', sun: '#fff3dc', sunI: 1.9, hemi: ['#d6ecff', '#93a86a'], hemiI: 1.05, sunPos: [20, 34, 18] });
   Object.assign(TIMES.doree, { sky: ['#e98a5c', '#ffd08a'], fog: '#f0b27c', sun: '#ffaa5e', sunI: 2.9, hemi: ['#ffdcbc', '#a2906c'], hemiI: 1.3, sunPos: [34, 16, 8] });
-  Object.assign(TIMES.nuit, { sunI: 0.7, hemiI: 0.8 });
+  // nuit : clair de lune bleu froid, assez lumineux pour lire Flocon, les troncs et le sentier
+  Object.assign(TIMES.nuit, { sky: ['#1f2f66', '#56679e'], fog: '#2c3866', sun: '#9fb6ff', sunI: 0.95, hemi: ['#7f98e6', '#262c55'], hemiI: 1.05, water: '#2f5f8e', waterE: '#14305a' });
 }
 
 let R = null; // renderer
@@ -200,6 +201,9 @@ function viewFootprint(cam, out) {
 // Qualité adaptative : si l’image tombe sous ~40 i/s pendant 4 s d’affilée, on descend d’UN palier (puis 4 s de répit).
 // Paliers : 0 plein · 1 DPR 1,5 · 2 DPR 1,25 · 3 carte d’ombre ÷2 · 4 sans ombres · 5 DPR 1
 const LEVELS = [{ dpr: 2, sh: 1 }, { dpr: 1.5, sh: 1 }, { dpr: 1.25, sh: 1 }, { dpr: 1.25, sh: 0.5 }, { dpr: 1.25, sh: 0 }, { dpr: 1, sh: 0 }];
+// Effets « vie » par palier : fx = part des lucioles/feuilles, lights = vraies lumières de lanternes, refl = reflets/miroitement de l’eau
+const FXL = [{ fx: 1, lights: 2, refl: 1 }, { fx: 1, lights: 2, refl: 1 }, { fx: 0.75, lights: 2, refl: 1 }, { fx: 0.6, lights: 1, refl: 0 }, { fx: 0.45, lights: 1, refl: 0 }, { fx: 0.3, lights: 0, refl: 0 }];
+export const fxQ = () => ({ i: Q.level, ...FXL[Q.level] });
 const Q = { level: 0, slow: 0, win: 0, frames: 0, calm: 3, fps: 60, steps: [] };
 export const quality = () => ({ level: Q.level, fps: Math.round(Q.fps * 10) / 10, dpr: R ? R.getPixelRatio() : DPR, steps: Q.steps.slice() });
 let shMap = touch ? 1024 : 2048;

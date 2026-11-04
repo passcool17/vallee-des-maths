@@ -150,7 +150,11 @@ export function makeVillagers(parent, ids = ['gaston', 'ginette', 'flocon', 'hor
         if (d < 4 || talk) want = Math.atan2(player.pos.x - obj.position.x, player.pos.z - obj.position.z);
         else if (dd > 0.15) { obj.position.x += dx / dd * dt * 1.2; obj.position.z += dz / dd * dt * 1.2; want = Math.atan2(dx, dz); }
         let a = want - obj.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); obj.rotation.y += a * Math.min(1, dt * 6);
-        body.position.y = Math.abs(Math.sin(t * (dd > 0.15 && !(d < 4) ? 7 : 2))) * (talk ? 0.12 : 0.04);
+        // marche : dandinement, penché vers l’avant, rebond ; immobile : respiration lente
+        const walk = dd > 0.15 && !(d < 4) && !talk; V.walking = walk;
+        body.position.y = Math.abs(Math.sin(t * (walk ? 7 : 2))) * (talk ? 0.12 : walk ? 0.06 : 0.02);
+        body.rotation.z = walk ? Math.sin(t * 7) * 0.09 : Math.sin(t * 0.9) * 0.015; body.rotation.x = walk ? 0.08 : 0;
+        body.scale.set(1, walk ? 1 - Math.abs(Math.cos(t * 7)) * 0.04 : 1 + Math.sin(t * 1.7) * 0.018, 1);
         if (id === 'flocon') body.children[1].rotation.z = Math.sin(t * 0.8) * 0.05;
       } };
     return V;

@@ -19,7 +19,6 @@ export const PET_NOMS = { charlie: 'Charlie', gisele: 'Gisèle', olga: 'Olga' };
 function charlie() {
   const W = '#f5f0e8', B = '#8b7464', B2 = '#6e5a4d', K = '#1e1b1c', g = new THREE.Group();
   g.add(part(Cap(0.17, 0.3), W, 0, 0.3, 0, [1, 0.95, 1], [Math.PI / 2, 0, 0]));                 // corps
-  for (const [x, z] of [[-0.1, 0.17], [0.1, 0.17], [-0.1, -0.17], [0.1, -0.17]]) g.add(part(Cy(0.055, 0.065, 0.2, 8), W, x, 0.12, z)); // pattes
   g.add(part(S(0.13), W, 0, 0.2, 0, [1.25, 0.6, 1.9]));                                          // poil long qui tombe
   g.add(part(S(0.18, 14, 12), W, 0, 0.52, 0.24));                                                // tête
   g.add(part(S(0.1), W, 0, 0.47, 0.39, [1.2, 0.85, 0.8]));                                       // museau
@@ -32,12 +31,16 @@ function charlie() {
   }
   g.add(part(Cy(0.035, 0.035, 0.012, 10), '#e7c25a', 0, 0.31, 0.34, null, [Math.PI / 2, 0, 0])); // médaille
   bake(g);
+  // pattes en deux paires diagonales (trot) : 2 mailles qui pivotent à l’épaule/la hanche
+  const legs = [0, 1].map(k => { const l = new THREE.Group(); l.position.y = 0.22;
+    for (const [x, z] of k ? [[0.1, 0.17], [-0.1, -0.17]] : [[-0.1, 0.17], [0.1, -0.17]]) l.add(part(Cy(0.055, 0.065, 0.2, 8), W, x, -0.1, z));
+    bake(l); g.add(l); return l; });
   const tail = new THREE.Group(); tail.position.set(0, 0.42, -0.3);
   tail.add(part(S(0.09), W, 0, 0.08, -0.03, [0.8, 1.3, 0.8], [-0.5, 0, 0])); tail.add(part(S(0.06), B, 0, 0.17, 0.04, [0.9, 1, 0.9])); bake(tail); g.add(tail);
   // collier à part (une seule maille de plus) : sa couleur change avec les récompenses de quêtes
   const collar = mesh(new THREE.TorusGeometry(0.13, 0.025, 6, 14), '#2f74d8'); collar.material = collar.material.clone();
   collar.position.set(0, 0.4, 0.22); collar.rotation.x = Math.PI / 2 - 0.35; g.add(collar);
-  return { g, tail, collar };
+  return { g, tail, collar, legs };
 }
 // ---------- Petites trouvailles que Charlie rapporte (et sa balle)
 const LOOT_GEO = {
@@ -63,7 +66,6 @@ function cat({ fur, fur2, belly, ears, eyes, nose, sleepy, loaf, blaze }) {
     for (const sx of [-0.08, 0.08]) g.add(part(S(0.06, 8, 6), belly, sx, 0.06, 0.3, [1, 0.7, 1.3])); // pattes repliées
   } else {
     g.add(part(Cap(0.15, 0.3), fur, 0, 0.3, -0.02, null, [Math.PI / 2, 0, 0]));
-    for (const [x, z] of [[-0.08, 0.16], [0.08, 0.16], [-0.08, -0.18], [0.08, -0.18]]) { g.add(part(Cy(0.045, 0.045, 0.22, 8), fur, x, 0.14, z)); g.add(part(S(0.05, 8, 6), belly, x, 0.04, z + 0.01, [1, 0.7, 1.2])); }
   }
   const hy = loaf ? 0.34 : 0.5, hz = loaf ? 0.26 : 0.26;
   g.add(part(S(0.15, 14, 12), fur, 0, hy, hz, [1.1, 0.95, 1]));
@@ -82,7 +84,11 @@ function cat({ fur, fur2, belly, ears, eyes, nose, sleepy, loaf, blaze }) {
   if (loaf) { tail.add(part(new THREE.TorusGeometry(0.24, 0.07, 6, 14, Math.PI * 0.9), fur2, 0.0, -0.05, 0.2, null, [Math.PI / 2, 0, 0.3])); }
   else tail.add(part(Cap(0.04, 0.34), fur, 0, 0.17, -0.05, null, [-0.35, 0, 0]));
   bake(tail); g.add(tail);
-  return { g, tail };
+  let legs = null;
+  if (!loaf) legs = [0, 1].map(k => { const l = new THREE.Group(); l.position.y = 0.25;
+    for (const [x, z] of k ? [[0.08, 0.16], [-0.08, -0.18]] : [[-0.08, 0.16], [0.08, -0.18]]) { l.add(part(Cy(0.045, 0.045, 0.22, 8), fur, x, -0.11, z)); l.add(part(S(0.05, 8, 6), belly, x, -0.21, z + 0.01, [1, 0.7, 1.2])); }
+    bake(l); g.add(l); return l; });
+  return { g, tail, legs };
 }
 
 function cushion() { const g = new THREE.Group();
@@ -93,7 +99,7 @@ export function makePets(scene, world, G) {
   const pets = [];
   function make(id, built, parent, x, z, isle) {
     const obj = new THREE.Group(); obj.add(built.g); built.g.scale.setScalar(id === 'charlie' ? 1.15 : 1.3); obj.add(blob(id === 'charlie' ? 0.45 : 0.42)); obj.position.set(x, 0, z); parent.add(obj);
-    const P = { id, nom: PET_NOMS[id], obj, pos: obj.position, body: built.g, tail: built.tail, isle, t: Math.random() * 9, pet: 0, n: 0, say() { return PET_LINES[id][P.n++ % PET_LINES[id].length]; } };
+    const P = { id, nom: PET_NOMS[id], obj, pos: obj.position, body: built.g, tail: built.tail, legs: built.legs, gait: 0, isle, t: Math.random() * 9, pet: 0, n: 0, say() { return PET_LINES[id][P.n++ % PET_LINES[id].length]; } };
     pets.push(P); return P;
   }
   // Charlie dans la scène (pas dans une île) : il prend le traversier avec Camille
@@ -115,6 +121,12 @@ export function makePets(scene, world, G) {
   const hide = { id: null, x: 0, z: 0, meow: 1.5 };
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), v3 = new THREE.Vector3();
 
+  // Démarche : pattes en paires diagonales, rebond, tangage ; immobile : respiration (le corps gonfle un peu)
+  function gait(P, dt, f, moving) { P.gait = moving ? P.gait + dt * f : 0; P.walking = moving;
+    const s = Math.sin(P.gait); if (P.legs) { P.legs[0].rotation.x = moving ? s * 0.6 : 0; P.legs[1].rotation.x = moving ? -s * 0.6 : 0; }
+    P.body.position.y = moving ? Math.abs(s) * 0.05 : 0;
+    if (P.mode !== 'sniff') P.body.rotation.x = moving ? Math.cos(P.gait) * 0.05 : 0;
+    P.body.scale.y = P.body.scale.x * (moving ? 1 : 1 + Math.sin(P.t * 2.2) * 0.02); }
   // Pas vers une cible ; si c’est bloqué (eau, clôture, villageois), on essaie de contourner en tournant un peu
   function stepTo(P, tx, tz, sp, dt, walkable) {
     const dx = tx - P.pos.x, dz = tz - P.pos.z, d = Math.hypot(dx, dz); if (d < 0.05) return 0;
@@ -184,7 +196,7 @@ export function makePets(scene, world, G) {
             if (ch.point <= 0) { ch.point = 4; api.on.bark?.(); } }
           else turn(ch, Math.atan2(p.x - ch.pos.x, p.z - ch.pos.z), dt); }
         ch.speed += (sp - ch.speed) * Math.min(1, dt * 8); const run = ch.speed > 0.3;
-        ch.body.position.y = run ? Math.abs(Math.sin(ch.t * 15)) * 0.06 : 0; if (ch.mode !== 'sniff') ch.body.rotation.x = run ? Math.sin(ch.t * 15) * 0.06 : 0;
+        gait(ch, dt, 15, run);
         ch.tail.rotation.z = Math.sin(ch.t * (ch.pet || player.moving || ch.mode ? 22 : 8)) * (ch.pet || ch.mode === 'back' ? 0.7 : 0.4); }
       if (island !== 1) return;
       // ---- Indice sonore : le chat caché miaule quand on approche
@@ -204,7 +216,7 @@ export function makePets(scene, world, G) {
         else { ol.wait -= dt;
           if (ol.goal) { sp = stepTo(ol, ol.goal[0], ol.goal[1], dh > 6 ? 2.2 : 1.1, dt, walkable); if (!sp) { ol.goal = null; ol.wait = 3 + Math.random() * 5; } }
           else if (ol.wait <= 0) ol.goal = dh > 4 ? [...ol.home] : [ol.home[0] + (Math.random() - 0.5) * 5, ol.home[1] + (Math.random() - 0.5) * 3]; }
-        ol.body.position.y = sp > 0.2 ? Math.abs(Math.sin(ol.t * 9)) * 0.025 : 0;
+        gait(ol, dt, 9, sp > 0.2);
         ol.tail.rotation.x = -0.2 + Math.sin(ol.t * 1.3) * 0.25; ol.tail.rotation.z = Math.sin(ol.t * 0.9) * 0.3; }
     },
   };

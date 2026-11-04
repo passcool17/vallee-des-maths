@@ -179,6 +179,17 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 - **Caméra** un peu plus proche (champ 38°) et légère vignette.
 - **Qualité adaptative** : la densité de pixels est plafonnée à 2 (un écran DPR 3 comme le Galaxy S20 rendrait 2,25× plus de pixels). Si l’image reste sous ~40 i/s pendant 4 s, le jeu descend d’un seul palier à la fois, avec 4 s de répit : DPR 1,5 → 1,25 → carte d’ombre ÷2 → sans ombres → DPR 1. Il ne remonte pas pendant la partie.
 
+- **Vie** (`js/vie.js`, seulement avec « joli ») :
+  - **Nuit** : clair de lune bleu froid, assez clair pour lire le sentier et les personnages. Étoiles qui scintillent et lune, visibles surtout dans le reflet de l’eau puisque la caméra regarde vers le bas.
+  - **Lucioles** : 1 appel de dessin, allumées au crépuscule et la nuit.
+  - **Lanternes du sentier** : 5 sur l’île 1, 4 sur l’île 2, plus la lanterne achetée et le phare réparé. Verre qui s’allume, flaques de lumière au sol et halos, en 4 appels de dessin en tout. Au plus 2 vraies lumières suivent les lanternes les plus proches.
+  - **Eau** : écume au bord des îles, reflet du ciel, reflet du soleil et miroitement.
+  - **Ciel** : dégradé avec lueur autour du soleil.
+  - **Feuilles** : feuilles d’automne qui tombent des arbres proches (instanciées, 44 au plus).
+  - **Marche animée** : Camille balance le torse et respire au repos. Les villageois se dandinent. Charlie et Olga bougent les pattes par paires.
+  - **Enseigne du magasin** : plaque plate sur le devant de l’auvent, inclinée vers la caméra. Elle n’est plus coupée par le toit.
+  - **Paliers de qualité** : chaque palier réduit ces effets. Les lucioles et les feuilles passent de 100 % à 30 %, les vraies lumières de 2 à 0 et les reflets s’arrêtent dès le palier 3. Sur téléphone, les particules sont à 60 %.
+
 `?joli=0` redonne le rendu d’avant ; voir le README pour les interrupteurs de test.
 
 ## État et sauvegarde

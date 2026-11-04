@@ -4,6 +4,7 @@ import { buildWorld, curve, curveDrop, phaseOf, TIME_NOMS, PLACES, DOCK, FERRY, 
 import { buildIsland2 } from './island2.js';
 import * as J from './joli.js';
 import { makePlayer } from './player.js';
+import { makeVie } from './vie.js';
 import { makePets, heart } from './pets.js';
 import { makeCompagnons } from './compagnons.js';
 import { makeVillagers } from './villagers.js';
@@ -53,6 +54,7 @@ showIsland();
 const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.island === 2 ? { x: FERRY.arrive[0], z: FERRY.arrive[1] } : { x: 2, z: 6 };
 const player = makePlayer(scene, start); G.player = player;
 const pets = makePets(scene, world, G); G.pets = pets; pets.regroup(player); J.dress(scene);
+const vie = J.ON ? makeVie(scene, world, G, W) : null; G.vie = vie; // nuit, eau vivante, lucioles, lanternes, feuilles (seulement avec « joli »)
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
 
@@ -130,7 +132,8 @@ function nearest() {
   for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
   for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
-  for (const o of comp.targets()) consider(o, Math.hypot(p.x - o.pos.x, p.z - o.pos.z), o.r);
+  // la cachette de quête / la trouvaille gagnent sur l’érable voisin quand elles sont à portée
+  for (const o of comp.targets()) { const d = Math.hypot(p.x - o.pos.x, p.z - o.pos.z); if (d < o.r && d * 0.3 < bd) { bd = d * 0.3; best = o; } }
   // les animaux passent en dernier : Charlie est toujours tout près, il ne doit pas voler la place d’un villageois ou d’une action
   if (!best) for (const a of pets.visible(state.island)) { const dx = a.pos.x - p.x, dz = a.pos.z - p.z, d = Math.hypot(dx, dz) || 1; if ((Math.sin(player.facing) * dx + Math.cos(player.facing) * dz) / d > 0.35) consider({ kind: 'pet', p: a, label: `Flatter ${a.nom}`, pos: a.pos }, d, 1.9); } // seulement s’il est devant Camille (sinon « Flatter Charlie » serait affiché tout le temps)
   return best;
@@ -261,7 +264,7 @@ function frame(now) {
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
-  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase);
+  curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase); if (vie) vie.update(dt, player, camera, renderer);
   const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
   camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
   if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? (fishing.rare ? 'Ça mord fort! Ferre!' : 'Ça mord! Ferre!') : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
@@ -300,7 +303,8 @@ window.__mv = {
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
-  fps: () => fps, quality: J.quality,
+  fps: () => fps, quality: J.quality, vie: () => vie && vie.stats(), calls: () => renderer.info.render.calls,
+  walk: () => ({ player: player.moving, phase: player.walkPhase, villagers: allVillagers.filter(v => v.walking).map(v => v.id), pets: pets.pets.filter(a => a.walking).map(a => a.id) }),
   camK: k => { J.CAM.k = k; }, // test : rapprocher la caméra pour les captures
   pets: () => pets.visible(state.island).map(a => ({ id: a.id, x: +a.pos.x.toFixed(2), z: +a.pos.z.toFixed(2) })), pet: id => { const a = pets.pets.find(q => q.id === id); return a && pets.pat(a); },
   animaux: () => ({ ...state.animaux, drop: comp.drop, fetching: pets.fetching, hide: pets.hide.id }), comp,

@@ -34,6 +34,13 @@ export function mesh(geo, color, opts) { const m = new THREE.Mesh(geo, mat(color
 export function at(obj, x, y, z, ry = 0) { obj.position.set(x, y, z); obj.rotation.y = ry; return obj; }
 
 // Étiquette texte en sprite (panneaux, noms)
+// texte peint sur un panneau plat (mesh, pas sprite) : h = hauteur en m, maxW = largeur max
+export function plaque(text, h, maxW, opts) {
+  const sp = label(text, { ...opts, size: (opts.size || 36) * 2 }); LABELS.splice(LABELS.indexOf(sp), 1);
+  const map = sp.material.map, a = map.image.width / map.image.height, w = Math.min(maxW, h * a);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w / a), curved(new THREE.MeshBasicMaterial({ map, transparent: true, toneMapped: false })));
+  m.userData.joli = 1; m.renderOrder = 3; return m;
+}
 export function label(text, { size = 36, color = '#3b2a1a', bg = 'rgba(255,248,235,0.92)', scale = 1 } = {}) {
   const c = document.createElement('canvas'), g = c.getContext('2d');
   g.font = `700 ${size}px Nunito, "Trebuchet MS", sans-serif`;
@@ -119,10 +126,11 @@ export function buildWorld(scene, G) {
   const interactables = [], obstacles = [], anims = [];
 
   // Ciel (dégradé) et brouillard
-  const skyU = { top: { value: new THREE.Color() }, bot: { value: new THREE.Color() } };
+  const skyU = { top: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, glow: { value: new THREE.Color(0, 0, 0) }, sdir: { value: new THREE.Vector3(0, 1, 0) } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 24, 12), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: skyU,
-    vertexShader: 'varying float h; void main(){ h = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'uniform vec3 top; uniform vec3 bot; varying float h; void main(){ gl_FragColor = vec4(mix(bot, top, smoothstep(-0.05, 0.6, h)), 1.0); }' }));
+    vertexShader: 'varying float h; varying vec3 d; void main(){ d = normalize(position); h = d.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    // dégradé haut/horizon + lueur autour du soleil et bande chaude à l’horizon (glow reste noir sans « joli »)
+    fragmentShader: 'uniform vec3 top; uniform vec3 bot; uniform vec3 glow; uniform vec3 sdir; varying float h; varying vec3 d; void main(){ vec3 c = mix(bot, top, smoothstep(-0.05, 0.6, h)); float s = max(dot(d, normalize(sdir)), 0.0); c += glow * (pow(s, 12.0) * 0.7 + exp(-abs(h) * 9.0) * 0.25); gl_FragColor = vec4(c, 1.0); }' }));
   sky.renderOrder = -1; scene.add(sky);
   scene.fog = new THREE.Fog(0xffffff, 60, 170);
   const hemi = new THREE.HemisphereLight(0xffffff, 0x887766, 1.2); scene.add(hemi);
@@ -202,7 +210,7 @@ export function buildWorld(scene, G) {
     g.add(at(mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 4), '#5c4033'), -1, 1.8, -0.6)); g.add(at(mesh(new THREE.BoxGeometry(0.5, 0.3, 0.2), '#7c8a96'), -1, 2.5, -0.6));
     g.add(at(mesh(new THREE.TorusGeometry(0.3, 0.06, 5, 10), '#c9a227'), 0.6, 2.3, -0.62)); g.add(at(mesh(new THREE.BoxGeometry(0.5, 0.35, 0.4), '#4d8fbf'), 1.1, 1.35, 0.1));
     g.add(at(mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.7, 7), '#8a5a36'), 2.5, 0.35, 0.6));
-    const sg = label('Établi de Gaston', { size: 30 }); sg.position.set(0, 4.1, 0); g.add(sg); g.add(blob(2.6));
+    const sg = label('Établi de Gaston', { size: 30 }); sg.position.set(0, 4.6, 0); g.add(sg); g.add(blob(2.6));
     root.add(at(g, x, 0, z)); obstacles.push({ x: x - 1, z, r: 1.1 }, { x: x + 1, z, r: 1.1 });
     interactables.push({ id: 'etabli', kind: 'etabli', pos: new THREE.Vector3(x, 0, z + 1.2), r: 2.6, label: 'Utiliser l’établi', obj: g }); }
 
@@ -216,7 +224,8 @@ export function buildWorld(scene, G) {
     g.add(at(mesh(new THREE.BoxGeometry(1.2, 2, 0.1), '#3f7a5a'), 0, 1, 2.22));
     for (const wx of [-1.9, 1.9]) g.add(at(mesh(new THREE.BoxGeometry(1.1, 0.9, 0.1), '#bfe3f2'), wx, 1.7, 2.22));
     for (let i = 0; i < 3; i++) g.add(at(mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), i % 2 ? '#d99a4e' : '#c1803f'), -2.4 + i * 0.6, 0.5, 3.2, i));
-    const sg = label('MAGASIN GÉNÉRAL', { size: 34, bg: 'rgba(63,122,90,0.95)', color: '#fff6e0' }); sg.position.set(0, 3.3, 2.5); g.add(sg); g.add(blob(4.5));
+    // enseigne : plaque posée sur le devant de l’auvent, inclinée vers la caméra, devant le toit (plus coupée par la pyramide)
+    const sg = plaque('MAGASIN GÉNÉRAL', 0.62, 5.4, { size: 34, bg: 'rgba(63,122,90,0.95)', color: '#fff6e0' }); sg.position.set(0, 3.08, 3.98); sg.rotation.x = -0.42; g.add(sg); g.userData.sign = sg; g.add(blob(4.5));
     root.add(at(g, x, 0, z)); obstacles.push({ x: x - 1.6, z, r: 2.3 }, { x: x + 1.6, z, r: 2.3 });
     interactables.push({ id: 'magasin', kind: 'magasin', pos: new THREE.Vector3(x, 0, z + 3.6), r: 2.4, label: 'Entrer au magasin', obj: g }); }
 
@@ -306,7 +315,7 @@ export function buildWorld(scene, G) {
     sun.position.set(...P0.sunPos.map((v, k) => v + (P1.sunPos[k] - v) * t));
     hemi.color.set(P0.hemi[0]).lerp(cB.set(P1.hemi[0]), t); hemi.groundColor.set(P0.hemi[1]).lerp(cB.set(P1.hemi[1]), t); hemi.intensity = P0.hemiI + (P1.hemiI - P0.hemiI) * t;
     water.material.color.set(P0.water).lerp(cB.set(P1.water), t); water.material.emissive.set(P0.waterE).lerp(cB.set(P1.waterE), t);
-    const night = (i0 === 3 ? 1 - t : 0) + (i1 === 3 ? t : 0); stars.material.opacity = night; stars.visible = night > 0.02;
+    const night = (i0 === 3 ? 1 - t : 0) + (i1 === 3 ? t : 0); stars.material.opacity = night; stars.visible = night > 0.02 && !stars.userData.off;
     for (const d of Object.values(decor)) if (d.userData.light) d.userData.light.intensity = root.visible ? 0.4 + night * 14 : 0;
     return { phase: TIME_ORDER[t > 0.5 ? i1 : i0], night };
   }
@@ -329,5 +338,5 @@ export function buildWorld(scene, G) {
     for (const g of bleuets) g.rotation.y = Math.sin(wt * 0.5 + g.position.x) * 0.03;
   }
   const fishSpot = { x: 6, z: DOCK.z1 - 0.8, fx: 6, fz: DOCK.z1 + 3 };
-  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS, water, ferry, fishSpot, isle: 1, sky, sun, hemi };
+  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS, water, ferry, fishSpot, isle: 1, sky, sun, hemi, stars };
 }
