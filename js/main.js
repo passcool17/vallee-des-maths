@@ -250,7 +250,29 @@ document.getElementById('play').addEventListener('click', () => {
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 const camPos = new THREE.Vector3(), look = new THREE.Vector3();
-function camOffset() { const portrait = camera.aspect < 0.8; return (portrait ? [0, 22, 22] : [0, 15.5, 18.5]).map(v => v * J.CAM.k); }
+// Caméra proche, un peu plus basse (~31°), comme un diorama : Camille occupe ~20 % de la hauteur de l’écran.
+// zoom = molette / pincer / + − (0,7 à 1,6) ; occ = rapprochement quand un bâtiment ou un arbre cache Camille.
+const CAMV = { land: [0, 7.6, 10.6], port: [0, 10.8, 14], look: [0.9, -0.6] }, cam = { zoom: 1, occ: 1 };
+const setZoom = z => { cam.zoom = Math.min(1.6, Math.max(0.7, z)); };
+function camOffset() { const k = J.CAM.k * cam.zoom * cam.occ; return (camera.aspect < 0.8 ? CAMV.port : CAMV.land).map(v => v * k); }
+// Segment Camille → caméra (en plan) : le premier obstacle haut qui le coupe fixe la distance max (on s’arrête devant).
+function occlusion() {
+  const k = J.CAM.k * cam.zoom, o = camera.aspect < 0.8 ? CAMV.port : CAMV.land, dx = o[0] * k, dz = o[2] * k, dy = o[1] * k, L2 = dx * dx + dz * dz;
+  const lx = player.pos.x, lz = player.pos.z + CAMV.look[1]; let f = 1;
+  for (const ob of W().obstacles) {
+    if (ob.r < 0.42) continue; // lampadaires, souches, piquets : trop minces pour cacher Camille
+    const ox = ob.x - lx, oz = ob.z - lz, t = (ox * dx + oz * dz) / L2; if (t <= 0.08 || t >= f) continue;
+    const h = 0.9 + t * dy, rr = ob.r + 0.5; if (h > (ob.r >= 0.9 ? 4.6 : 5.4)) continue; // la caméra passe déjà au-dessus
+    if ((ox - t * dx) ** 2 + (oz - t * dz) ** 2 < rr * rr) f = t;
+  }
+  return f < 1 ? Math.max(0.42, f - 0.1) : 1;
+}
+addEventListener('wheel', e => { if (!ui.isOpen && e.target === renderer.domElement) setZoom(cam.zoom * (e.deltaY > 0 ? 1.08 : 1 / 1.08)); }, { passive: true });
+{ let d0 = 0, z0 = 1; const T = renderer.domElement, D = e => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  T.addEventListener('touchstart', e => { if (e.touches.length === 2) { d0 = D(e); z0 = cam.zoom; } }, { passive: true });
+  T.addEventListener('touchmove', e => { if (e.touches.length === 2 && d0 && !ui.isOpen) setZoom(z0 * d0 / D(e)); }, { passive: true });
+  T.addEventListener('touchend', e => { if (e.touches.length < 2) d0 = 0; }, { passive: true }); }
+addEventListener('keydown', e => { if (ui.isOpen || !started) return; if (e.key === '+' || e.key === '=') setZoom(cam.zoom / 1.12); else if (e.key === '-' || e.key === '_') setZoom(cam.zoom * 1.12); });
 { const o = camOffset(); camPos.set(player.pos.x + o[0], o[1], player.pos.z + o[2]); }
 let last = performance.now(), saveT = 0, frames = 0, fpsT = 0, fps = 60;
 const waiters = [];
@@ -270,8 +292,9 @@ function frame(now) {
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); if (started) sons.update(dt, player, W()); updateFx(dt); flows.tick(dt);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase); if (vie) vie.update(dt, player, camera, renderer);
-  const o = camOffset(); look.set(player.pos.x, 0.8, player.pos.z - 1.5);
-  camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 4)); camera.position.copy(camPos); camera.lookAt(look);
+  { const f = occlusion(); cam.occ += (f - cam.occ) * Math.min(1, dt * (f < cam.occ ? 9 : 2.5)); } // vite devant un mur, doucement en ressortant
+  const o = camOffset(); look.set(player.pos.x, CAMV.look[0], player.pos.z + CAMV.look[1]);
+  camPos.lerp(tmp.set(player.pos.x + o[0], o[1], player.pos.z + o[2]), Math.min(1, dt * 6)); camera.position.copy(camPos); camera.lookAt(look);
   if (started && !ui.isOpen) { const n = fishing.state ? { label: fishing.state === 'bite' ? (fishing.rare ? 'Ça mord fort! Ferre!' : 'Ça mord! Ferre!') : 'Remonter la ligne' } : nearest(); ui.prompt(n && n.label); } else ui.prompt(null);
   ui.hud(state, { phase: G.phase, phaseNom: TIME_NOMS[G.phase], bagCap: bagCap() });
   saveT += dt; if (saveT > 5) { saveT = 0; G.save(); }
@@ -308,7 +331,7 @@ window.__mv = {
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
-  fps: () => fps, sons: () => sons, audio, quality: J.quality, vie: () => vie && vie.stats(), calls: () => renderer.info.render.calls,
+  fps: () => fps, camera, cam: () => ({ ...cam, pos: camera.position.toArray(), fov: camera.fov, setZoom }), sons: () => sons, audio, quality: J.quality, vie: () => vie && vie.stats(), calls: () => renderer.info.render.calls,
   walk: () => ({ player: player.moving, phase: player.walkPhase, villagers: allVillagers.filter(v => v.walking).map(v => v.id), pets: pets.pets.filter(a => a.walking).map(a => a.id) }),
   camK: k => { J.CAM.k = k; }, // test : rapprocher la caméra pour les captures
   pets: () => pets.visible(state.island).map(a => ({ id: a.id, x: +a.pos.x.toFixed(2), z: +a.pos.z.toFixed(2) })), pet: id => { const a = pets.pets.find(q => q.id === id); return a && pets.pat(a); },

@@ -16,7 +16,9 @@ export function makeInput({ canvas, onInteract, onKey, onTap }) {
 
   // Clic / tap pour marcher (on distingue un tap d’un glissement)
   let pd = null;
-  canvas.addEventListener('pointerdown', e => { pd = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  const fingers = new Set(); // deux doigts = pincer pour zoomer, pas un tap
+  canvas.addEventListener('pointerdown', e => { fingers.add(e.pointerId); pd = fingers.size > 1 ? null : { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) canvas.addEventListener(ev, e => fingers.delete(e.pointerId));
   canvas.addEventListener('pointerup', e => { if (!pd || !enabled) return; if (Math.hypot(e.clientX - pd.x, e.clientY - pd.y) < 12 && performance.now() - pd.t < 600) onTap(e.clientX, e.clientY); pd = null; });
 
   // Joystick tactile

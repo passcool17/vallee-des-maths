@@ -184,7 +184,7 @@ export function makeVie(scene, world, G, getWorld) {
     flies.visible = glow > 0.05; flyM.uniforms.uT.value = t; flyM.uniforms.uA.value = glow; flyM.uniforms.uPx.value = px; flies.position.set(0, 0, 0);
     // lanternes
     glassMat.color.copy(GLASS_OFF).lerp(GLASS_ON, Math.min(1, glow * 1.4));
-    poolMat.opacity = Math.min(1, glow * 1.1) * 0.45; haloM.uniforms.uA.value = Math.min(1, glow * 1.2); haloM.uniforms.uT.value = t; haloM.uniforms.uPx.value = px;
+    poolMat.opacity = Math.min(1, glow * 1.1) * 0.36; // caméra proche : la flaque couvre plus d’écran, on la garde discrète haloM.uniforms.uA.value = Math.min(1, glow * 1.2); haloM.uniforms.uT.value = t; haloM.uniforms.uPx.value = px;
     pools.visible = halos.visible = glow > 0.03;
     lightT -= dt; if (lightT <= 0) { lightT = 0.25; lightCands = lanterns.slice().sort((a, b) => Math.hypot(a.x - player.pos.x, a.z - player.pos.z) - Math.hypot(b.x - player.pos.x, b.z - player.pos.z)); }
     let on = 0;

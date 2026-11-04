@@ -11,7 +11,7 @@ const off = k => params.get(k) === '0';
 // vignette, adapt (qualité adaptative), q=N (force un palier de qualité, 0 = plein)
 const SH = ON && !off('ombres'), HERBE = ON && !off('herbe') && !off('geo'), GEOX = ON && !off('geo'), PBR = ON && !off('pbr');
 const ADAPT = ON && !off('adapt');
-export const CAM = ON && !off('cam') ? { fov: 38, k: 0.88 } : { fov: 42, k: 1 };
+export const CAM = ON && !off('cam') ? { fov: 34, k: 1 } : { fov: 38, k: 1.08 };
 // Densité de pixels : un écran DPR 3 (Galaxy S20) rend 2,25× plus de pixels qu’à DPR 2 pour un gain à peine visible
 export const DPR = Math.min(devicePixelRatio || 1, ON ? 2 : (touch ? 1.75 : 2));
 
@@ -227,7 +227,7 @@ function adapt(dt, sun) {
 let lastPhase = '', frame = 0; const lastC = new THREE.Vector3(1e9, 0, 0), lastD = new THREE.Vector3();
 export function tick(dt, sun, player, hemi, cam, phase) {
   if (!ON) return;
-  if (!fogSet && scene0 && scene0.fog) { fogSet = true; scene0.fog.near = 34; scene0.fog.far = 125; }
+  if (!fogSet && scene0 && scene0.fog) { fogSet = true; scene0.fog.near = 26; scene0.fog.far = 105; }
   frame++; wind.value += dt; rim.value.copy(sun.color).lerp(WHITE, 0.4);
   if (PBR && hemi) hemi.intensity *= 0.8; // le ciel réfléchi (IBL) prend le relais d’une partie du remplissage
   if (PBR && scene0) { scene0.environmentIntensity = 0.25 + 0.2 * Math.min(1, sun.intensity / 2);

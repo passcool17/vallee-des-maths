@@ -183,7 +183,9 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 - **Ombres douces** (PCF soft) qui suivent le monde courbé. La zone d’ombre est ajustée à ce que la caméra voit, calée sur la grille des texels (pas de scintillement), et s’estompe doucement au bord au lieu de couper net. Carte 2048 au bureau, 1024 sur téléphone ; recalculée quand la vue ou le soleil bougent, sinon 30 fois par seconde.
 - **Matériaux** : normales lisses, matériaux physiques (rugueux, non métalliques) qui reflètent un petit ciel pré-filtré propre à chaque moment de la journée, plus un liseré de contre-jour couleur soleil. Les rochers restent facettés ; le sol, l’eau et les dalles restent mats.
 - **Formes** : couronnes d’arbres arrondies et légèrement bosselées, personnages et sapins avec plus de segments, herbe instanciée (1 appel de dessin par île) qui ondule au vent.
-- **Caméra** un peu plus proche (champ 38°) et légère vignette.
+- **Caméra proche** (cadrage « diorama ») et légère vignette. Paysage : 7,6 m de haut, 10,6 m derrière Camille (≈ 13 m, ~31° vers le bas, champ 34°). Portrait (téléphone) : ×1,08 de (10,8 ; 14) et champ 38°, pour garder les côtés. Camille occupe ~20 % de la hauteur de l’écran. Suivi amorti (lerp 6/s). Brume rapprochée (26 → 105 m).
+  - **Zoom** : molette, pincer à deux doigts (sans déclencher le « tap pour marcher »), touches + / −, entre 0,7 et 1,6. Bloqué pendant les questions.
+  - **Obstacles** : si un bâtiment ou un gros arbre coupe la ligne Camille → caméra (et que la caméra n’est pas déjà au-dessus), elle se rapproche devant lui (vite), puis revient doucement. Lampadaires et piquets ignorés. Test : `node tools/test-camera.cjs` ; captures : `node tools/shots-camera.cjs <dossier>`.
 - **Qualité adaptative** : la densité de pixels est plafonnée à 2 (un écran DPR 3 comme le Galaxy S20 rendrait 2,25× plus de pixels). Si l’image reste sous ~40 i/s pendant 4 s, le jeu descend d’un seul palier à la fois, avec 4 s de répit : DPR 1,5 → 1,25 → carte d’ombre ÷2 → sans ombres → DPR 1. Il ne remonte pas pendant la partie.
 
 - **Vie** (`js/vie.js`, seulement avec « joli ») :

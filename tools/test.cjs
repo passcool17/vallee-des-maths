@@ -40,9 +40,9 @@ async function run(kind) {
   else { await p.keyboard.down('KeyW'); await waitT(1); await p.keyboard.up('KeyW'); await p.keyboard.down('ArrowLeft'); await waitT(0.4); await p.keyboard.up('ArrowLeft'); }
   const p1 = await pos(); ok(`${px} déplacement ${mobile ? 'joystick' : 'clavier'}`, p1.z < p0.z - 2, `${p0.z.toFixed(1)} → ${p1.z.toFixed(1)}`);
   // Clic/tap pour marcher
-  const tgt = await ev(() => __mv.screen(__mv.player.pos.x + 3, __mv.player.pos.z + 3, 0));
+  const tgt = await ev(() => __mv.screen(__mv.player.pos.x + 2.5, __mv.player.pos.z - 2.5, 0)); // devant Camille : avec la caméra proche, (+3, +3) tombe sous le bouton ✋ sur téléphone
   if (mobile) await p.touchscreen.tap(tgt.x, tgt.y); else await p.mouse.click(tgt.x, tgt.y);
-  await waitT(1.5); const p2 = await pos(); ok(`${px} clic pour marcher`, Math.hypot(p2.x - p1.x - 3, p2.z - p1.z - 3) < 1.2, `(${(p2.x - p1.x).toFixed(1)}, ${(p2.z - p1.z).toFixed(1)})`);
+  await waitT(1.5); const p2 = await pos(); ok(`${px} clic pour marcher`, Math.hypot(p2.x - p1.x - 2.5, p2.z - p1.z + 2.5) < 1.2, `(${(p2.x - p1.x).toFixed(1)}, ${(p2.z - p1.z).toFixed(1)})`);
 
   // 2) Vue d’ensemble
   await near(mobile ? 3 : 1, mobile ? 4 : 10); await shot('01-ile');
