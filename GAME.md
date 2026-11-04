@@ -16,6 +16,13 @@ On joue **Camille** : longs cheveux blonds, petites lunettes rondes or rose, gra
 
 Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronron ou un petit « ouaf », et une phrase (« Gisèle ronronne. », « Olga te fixe de ses yeux verts. », « Charlie remue la queue! »). Les animaux passent après les villageois et les actions : ils ne prennent jamais la place d’une autre action, et l’invite « Flatter » n’apparaît que si l’animal est devant Camille. Ils ne bloquent pas le chemin.
 
+### Charlie rapporte, quêtes des animaux
+
+- **Va chercher!** Quand on flatte Charlie, il part renifler un peu plus loin, puis revient avec une trouvaille dans la gueule et la dépose près de Camille : petit « ouaf », émote au-dessus de sa tête et toast « Charlie te rapporte… ». Il le fait aussi de lui-même de temps en temps quand Camille ne fait rien (jamais pendant une quête). **E** sur la trouvaille la ramasse : une pièce (25 à 100 ¢), une cocotte de pin, un coquillage, un bouton, une pépite ou, très rarement, un trilobite. On peut en revendre au magasin. Au plus **3 rapports par journée**, avec une pause de 40 s entre deux.
+- **Quêtes.** Ginette (« 🐾 Quêtes des animaux ») propose 3 quêtes qui tournent chaque jour : *Trouve Olga*, *Trouve Gisèle* et *La balle de Charlie*. Une à la fois, chacune une fois par jour. La cachette (10 possibles sur l’île 1, loin des villageois, des actions et du coin des chattes) a toujours un indice : une touffe d’arbuste, des traces de pattes, la queue qui dépasse, un miaou quand on s’approche à moins de 9 m (pour la balle, Charlie se tourne vers elle et jappe). La ligne en haut à droite dit si ça chauffe (Froid, Tiède, Ça chauffe…, Tout près!).
+- **Récompenses.** Des sous (2 à 3 $) et, la première fois, un collier neuf pour Charlie (rose, vert, rouge, en plus du bleu). Le carnet a une section 🐾 : rapports du jour, quêtes du jour, et les colliers à choisir d’un tap.
+- Charlie contourne les obstacles et garde ses distances avec les villageois (0,9 m).
+
 ### Villageois (personnages fictifs)
 
 - **Gaston le castor** tient l’établi. Il améliore les outils.
@@ -176,7 +183,7 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 
 ## État et sauvegarde
 
-L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 4` depuis le carnet de progrès) toutes les 5 s et après chaque réponse. Il contient :
+L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 5` depuis les quêtes des animaux) toutes les 5 s et après chaque réponse. Il contient :
 
 - `money` en cents, `clock` (0–1), `seed`, `bag[]`
 - `tools{outil: niveau}` et `upg{outil: progrès}`
@@ -187,8 +194,9 @@ L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1
 - `met{villageois: nb}` et `exCount`
 - Secondaire 2 : `island` (1 ou 2), `ferry`, `phare{step, done, redo}`, `appats`, `kiosk{day}`
 - v4 : `stats{compétence: {n, ok, h, sec}}` (essais, réussites, 10 dernières réponses « 1 »/« 0 », temps moyen) et `recentQ[]` (4 dernières questions en action)
+- v5 : `animaux{day, fetchN, fetchT, quete, spot, faites{quête: jour}, total, colliers[], collier, olga}` (rapports du jour, quête en cours et sa cachette, colliers gagnés et porté, position d’Olga)
 
-Une sauvegarde v1, v2 ou v3 se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v4 sous la même clé. Les `stats` d’une vieille sauvegarde partent de `mastery` (essais et réussites, sans historique récent). Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
+Une sauvegarde v1 à v4 se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v5 sous la même clé. Les `stats` d’une vieille sauvegarde partent de `mastery` (essais et réussites, sans historique récent). Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
 
 ## Prochaines idées
 

@@ -5,6 +5,7 @@ import { buildIsland2 } from './island2.js';
 import * as J from './joli.js';
 import { makePlayer } from './player.js';
 import { makePets, heart } from './pets.js';
+import { makeCompagnons } from './compagnons.js';
 import { makeVillagers } from './villagers.js';
 import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
@@ -79,6 +80,9 @@ const bagCap = () => stats('sac', state.tools.sac).cap;
 const bagAdd = key => { if (state.bag.length >= bagCap()) { ui.toast('🎒 Ton sac est plein! Va vendre chez Ginette (magasin général).'); return false; } state.bag.push(key); return true; };
 const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cents; burst(x, z, Math.min(8, 2 + Math.round(cents / 50))); audio.sfx('coin'); };
 // Butin d’une question en action : dans le sac, ou payé tout de suite si le sac est plein
+// Animaux : Charlie qui rapporte, quêtes « Trouve Olga »… (petit cœur = émote)
+const emote = (a, y = 0.9) => hearts.push({ m: heart(scene, a.pos.x, y, a.pos.z), t: 1.3 });
+const comp = makeCompagnons({ G, state, scene, pets, rng, ui, audio, earn, bagAdd, emote, W: () => W(), player }); G.animaux = comp;
 G.grant = key => { if (state.bag.length < bagCap()) { state.bag.push(key); return { bag: true }; } const c = SELL[key] || 0; earn(c, player.pos.x, player.pos.z); return { coins: c }; };
 // Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, q: { skill, d, stretch } }
 const force = {};
@@ -126,6 +130,7 @@ function nearest() {
   for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
   for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
+  for (const o of comp.targets()) consider(o, Math.hypot(p.x - o.pos.x, p.z - o.pos.z), o.r);
   // les animaux passent en dernier : Charlie est toujours tout près, il ne doit pas voler la place d’un villageois ou d’une action
   if (!best) for (const a of pets.visible(state.island)) { const dx = a.pos.x - p.x, dz = a.pos.z - p.z, d = Math.hypot(dx, dz) || 1; if ((Math.sin(player.facing) * dx + Math.cos(player.facing) * dz) / d > 0.35) consider({ kind: 'pet', p: a, label: `Flatter ${a.nom}`, pos: a.pos }, d, 1.9); } // seulement s’il est devant Camille (sinon « Flatter Charlie » serait affiché tout le temps)
   return best;
@@ -137,7 +142,9 @@ function interact(target = nearest()) {
   const it = target; player.face(it.pos.x, it.pos.z); player.cancelWalk();
   switch (it.kind) {
     case 'npc': flows.talk(it.v); break;
-    case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
+    case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); if (a.id === 'charlie') waitT(0.6).then(() => comp.fetch(true)); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
+    case 'fetch': comp.pickup(); break;
+    case 'quete': comp.trouver(); break;
     case 'etabli': flows.workbench(); break;
     case 'magasin': flows.shop(); break;
     case 'ferry': flows.ferry(); break;
@@ -186,7 +193,7 @@ function onTap(cx, cy) {
   if (fishing.state) { reel(); return; }
   const r = canvas.getBoundingClientRect();
   // 1) Un objet interactif près du doigt (en coordonnées écran, pour tenir compte de la courbure)
-  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position }))];
+  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position })), ...comp.targets()];
   let best = null, bd = 46;
   for (const c of cands) { tmp.set(c.pos.x, (c.kind === 'npc' ? 1.2 : 0.6) - curveDrop(c.pos.x, c.pos.z), c.pos.z).project(camera); const sx = (tmp.x + 1) / 2 * r.width + r.left, sy = (1 - tmp.y) / 2 * r.height + r.top; const d = Math.hypot(sx - cx, sy - cy); if (tmp.z < 1 && d < bd) { bd = d; best = c; } }
   if (!best) { let pd = 30; for (const a of pets.visible(state.island)) { tmp.set(a.pos.x, 0.4 - curveDrop(a.pos.x, a.pos.z), a.pos.z).project(camera); const d = Math.hypot((tmp.x + 1) / 2 * r.width + r.left - cx, (1 - tmp.y) / 2 * r.height + r.top - cy); if (tmp.z < 1 && d < pd) { pd = d; best = { kind: 'pet', p: a, pos: a.pos, r: 1.6 }; } } }
@@ -249,7 +256,8 @@ function frame(now) {
   const t = world.setTime(state.clock); G.night = t.night; if (t.phase !== G.phase) G.phase = t.phase;
   const mv = ui.isOpen || !started ? { x: 0, z: 0, run: false } : input.move();
   if ((mv.x || mv.z) && fishing.state) stopFishing();
-  player.update(dt, mv, walkableFn); pets.update(dt, player, (x, z) => W().walkable(x, z, state), state.island);
+  player.update(dt, mv, walkableFn); pets.update(dt, player, (x, z) => W().walkable(x, z, state), state.island, villagers.map(v => v.pos));
+  comp.tick(dt, started && !ui.isOpen && !fishing.state);
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
   { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); updateFx(dt); flows.tick(dt);
@@ -295,6 +303,7 @@ window.__mv = {
   fps: () => fps, quality: J.quality,
   camK: k => { J.CAM.k = k; }, // test : rapprocher la caméra pour les captures
   pets: () => pets.visible(state.island).map(a => ({ id: a.id, x: +a.pos.x.toFixed(2), z: +a.pos.z.toFixed(2) })), pet: id => { const a = pets.pets.find(q => q.id === id); return a && pets.pat(a); },
+  animaux: () => ({ ...state.animaux, drop: comp.drop, fetching: pets.fetching, hide: pets.hide.id }), comp,
   unlockFerry: () => { state.ferry = true; return true; },
   travel: (n, instant = true) => G.travel(n, { instant }),
   island: () => state.island, isle2: () => isle2, W, nearest: () => { const n = nearest(); return n && (n.kind === 'npc' ? n.v.id : n.id || n.kind); },

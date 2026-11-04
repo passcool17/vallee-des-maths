@@ -17,6 +17,12 @@ kbd { display: inline-block; min-width: 1.6em; padding: 0 .35em; border-radius: 
 #hud .btns { display: flex; gap: 6px; pointer-events: auto; }
 .round { width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 248, 235, .92); font-size: 20px; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
 #prompt { position: fixed; left: 50%; bottom: calc(28px + var(--safe-b)); transform: translateX(-50%); background: rgba(59, 42, 26, .82); color: #fff; padding: 9px 16px; border-radius: 999px; font-weight: 800; z-index: 5; pointer-events: none; white-space: nowrap; }
+#quete { position: fixed; top: calc(58px + var(--safe-t)); right: 10px; max-width: 58vw; background: rgba(255, 248, 235, .92); color: var(--ink); border: 2px solid #c9a97a; border-radius: 999px; padding: 4px 12px; font-weight: 800; font-size: 14px; z-index: 5; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.modal #quete { display: none; }
+.animaux .qrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #e2cfae; }
+.animaux .qrow p { margin: 2px 0 0; font-size: .85em; opacity: .8; }
+.chip.collier { cursor: pointer; pointer-events: auto; border: 2px solid transparent; }
+.chip.collier.on { border-color: var(--gold); }
 #prompt kbd { color: var(--ink); }
 #toasts { position: fixed; top: calc(62px + var(--safe-t)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 8; pointer-events: none; width: max-content; max-width: 92vw; }
 .toast { background: var(--cream); padding: 8px 14px; border-radius: 14px; font-weight: 700; box-shadow: 0 3px 10px rgba(0,0,0,.15); transition: opacity .4s, transform .4s; text-align: center; }

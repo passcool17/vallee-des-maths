@@ -10,6 +10,7 @@ import { CATALOG, SELL, quoteFor, forgetQuote, checkTotal } from './shop.js';
 import { NOMS, EMOJI } from './villagers.js';
 import { logAnswer, weakList, successRate } from './adapt.js';
 import { leconOf } from './lecons.js';
+import { FETCH_MAX, COLLIERS } from './animaux.js';
 import { NIVEAUX, loot, timeFor, makeTimer, canKiosk, kioskExercise, kioskDone } from './actionq.js';
 
 export const ITEMS = {
@@ -19,6 +20,7 @@ export const ITEMS = {
   monarque: ['🦋', 'Monarque'], amiral: ['🦋', 'Amiral'], lune: ['🦋', 'Papillon lune'],
   gros_dore: ['🐟', 'Gros doré'], saumon: ['🐟', 'Saumon atlantique'], bar: ['🐟', 'Bar rayé'],
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
+  cocotte: ['🌰', 'Cocotte de pin'], coquillage: ['🐚', 'Coquillage'],
 };
 const SHOP_SKILL = 'qc_s1_ari_08'; // magasin : rabais en pourcentage + taxes
 const dots = (n, max = MASTERY) => h('span', { class: 'dots', 'aria-label': `${Math.min(n, max)} sur ${max}` }, Array.from({ length: max }, (_, i) => h('i', { class: i < n ? 'on' : '' })));
@@ -102,7 +104,7 @@ export function makeFlows(G) {
     const line = v.nextLine(st.met[v.id] - 1);
     const opts = [];
     if (v.id === 'gaston') opts.push(['🔨 Voir l’établi', () => F.workbench()]);
-    if (v.id === 'ginette') { opts.push(['🛒 Acheter', () => F.shop()]); opts.push([`💰 Vendre le sac (${st.bag.length})`, () => F.sell()]); }
+    if (v.id === 'ginette') { opts.push(['🛒 Acheter', () => F.shop()]); opts.push([st.animaux?.quete ? '🐾 Ma quête d’animaux' : '🐾 Quêtes des animaux', () => F.quetes()]); opts.push([`💰 Vendre le sac (${st.bag.length})`, () => F.sell()]); }
     if (v.id === 'flocon') { opts.push(['⭐ Un défi!', () => F.defi()]); opts.push(['📒 Mon carnet', () => F.carnet()]); }
     if (v.id === 'hortense') opts.push(['📖 Une leçon', () => F.lecons(1)]);
     if (v.id === 'rosalie') { opts.push(['🔧 Mon atelier (niveau 4)', () => F.workbench(2)]); opts.push([st.phare.done ? '🗼 Voir le phare' : '🗼 Réparer le phare', () => F.phare()]); opts.push(['⭐ Défi de secondaire 2', () => F.defi(undefined, 2)]); opts.push(['📖 Les notes d’Hortense', () => F.lecons(2)]); }
@@ -383,6 +385,20 @@ export function makeFlows(G) {
   F.tick = dt => { if (F.cur?.kind === 'action' && !ovl()) F.cur.tick(dt); }; // fiche de théorie ouverte : le chrono attend
 
   // ---------- Carnet
+  // ---------- Quêtes des animaux (chez Ginette) : 3 par jour, dans un ordre qui tourne
+  F.quetes = () => {
+    const st = S(), C = G.animaux, list = C.jour();
+    const row = q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? q.indice : q.etat === 'faite' ? 'Faite aujourd’hui! Reviens demain.' : `${q.intro} Récompense : ${fmtMoney(q.cents)}${st.animaux.colliers.includes(q.collier) ? '' : ' + un collier pour Charlie'}.`)),
+      q.etat === 'libre' && !st.animaux.quete ? h('button', { class: 'btn small primary', onclick: () => { click(); if (C.start(q.id)) ui.close(); } }, 'J’y vais!')
+        : q.etat === 'active' ? h('button', { class: 'btn small', onclick: () => { click(); C.abandon(); F.quetes(); } }, 'Laisser tomber') : h('span', { class: 'lv m' }, q.etat === 'faite' ? '✅' : '⏳'));
+    open(h('div', { class: 'animaux' }, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, 'Les animaux de l’île'), h('p', { class: 'line' }, st.animaux.quete ? 'Une quête à la fois! Suis les indices.' : 'Mes chattes pis ton chien me font des misères… Tu m’aides?'))),
+      list.map(row), h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Fermer'))), { cls: 'talk' });
+  };
+  const animauxCarnet = st => { const a = st.animaux, C = G.animaux; if (!a || !C) return null; const list = C.jour();
+    return h('section', { class: 'animaux' }, h('h4', {}, '🐾 Animaux'),
+      h('p', { class: 'journal' }, `🐶 Charlie a rapporté ${Math.min(a.fetchN, FETCH_MAX)}/${FETCH_MAX} trouvailles aujourd’hui · 🏅 ${a.total} quête${a.total > 1 ? 's' : ''} réussie${a.total > 1 ? 's' : ''}`),
+      list.map(q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? `En cours — ${q.indice}` : q.etat === 'faite' ? 'Réussie aujourd’hui' : 'Demande à Ginette')), h('span', { class: `lv ${q.etat === 'faite' ? 'm' : q.etat === 'active' ? 'a' : 'd'}` }, q.etat === 'faite' ? 'Faite' : q.etat === 'active' ? 'En cours' : 'Libre'))),
+      h('div', { class: 'ctools' }, a.colliers.map(c => h('span', { class: `chip collier${a.collier === c ? ' on' : ''}`, 'data-c': c, title: 'Mettre ce collier à Charlie', onclick: () => { click(); C.wear(c); F.carnet(F.carnetTab); } }, h('i', { style: `display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${COLLIERS[c][0]};margin-right:4px` }), COLLIERS[c][1])))); };
   F.carnet = (tab) => {
     const st = S(); const j = st.journal;
     const max = canFerry(st) ? 4 : 3;
@@ -421,7 +437,7 @@ export function makeFlows(G) {
       body.replaceChildren(...(id === 's2' ? [s2extra] : []), pratiquer(list, id === 's2' ? 2 : 1), ...doms(list));
       F.carnetTab = id;
     }
-    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face(st.island === 2 ? 'rosalie' : 'flocon'), h('div', {}, h('b', {}, 'Mon carnet'), line)), h('div', { class: 'tabs', role: 'tablist' }, tabs), tools, journal, rares, body), { cls: 'carnet' });
+    open(h('div', { class: 'carnet' }, h('div', { class: 'who' }, face(st.island === 2 ? 'rosalie' : 'flocon'), h('div', {}, h('b', {}, 'Mon carnet'), line)), h('div', { class: 'tabs', role: 'tablist' }, tabs), tools, journal, animauxCarnet(st), rares, body), { cls: 'carnet' });
     show(tab || (st.island === 2 ? 's2' : 's1'));
   };
 

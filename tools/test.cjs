@@ -271,11 +271,11 @@ async function run(kind) {
     ok('d sauvegarde v1 : bouton « Continuer »', (await p2.textContent('#play')) === 'Continuer');
     await p2.click('#play'); await p2.evaluate(() => __mv.waitT(0.5));
     const st = await p2.evaluate(() => ({ v: __mv.state.v, money: __mv.state.money, canne: __mv.state.tools.canne, bag: __mv.state.bag.length, rare: __mv.state.journal.rare, rares: __mv.state.rares, nichoir: __mv.state.decor.includes('nichoir') }));
-    ok('d sauvegarde v1 chargée et normalisée (v4)', st.v === 4 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
+    ok('d sauvegarde v1 chargée et normalisée (v5)', st.v === 5 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
     await p2.keyboard.press('KeyC'); await p2.waitForSelector('#panel .carnet .rares');
     ok('d sauvegarde v1 : carnet ouvert sans erreur', await p2.evaluate(() => document.querySelector('#panel .rares').textContent.includes('Rien encore')));
     ok('d sauvegarde v1 : essais migrés affichés dans le carnet', await p2.evaluate(() => /4\sessais · 75\s% réussi/.test(document.querySelector('#panel [data-skill="qc_s1_ari_01"] .essais')?.textContent || '') && !!document.querySelector('#panel .pratiquer')));
-    await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v4 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 4));
+    await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v5 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 5));
     await c2.close();
   }
   ok(`${px} 0 erreur JS`, errs.length === 0, errs.slice(0, 5).join(' | '));

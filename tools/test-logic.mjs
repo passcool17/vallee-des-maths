@@ -9,6 +9,7 @@ import { newState, load, save, reset, KEY } from '../js/save.js';
 import { SKILLS, EDGES } from '../js/math/skills.js';
 import { makeRng } from '../js/math/rng.js';
 import { quoteFor, forgetQuote, SELL } from '../js/shop.js';
+import * as AN from '../js/animaux.js';
 import { pickQuestion, rareBiteChance, loot, timeFor, makeTimer, FRACTION_SKILLS, RARE_FISH, SIROP } from '../js/actionq.js';
 import { makeExercise } from '../js/math/gen.js';
 import { missRate, weakList } from '../js/adapt.js';
@@ -63,12 +64,12 @@ export function run(ok) {
     pos: { x: 3, z: 7 }, clock: 0.4, exCount: 12, muted: true, met: { intro: 1, gaston: 2 }, journal: { fish: 5, bugs: 1, finds: 2, coins: 900, flowers: 3 } };
   mem[KEY] = JSON.stringify(v1); const l3 = load();
   ok('sauvegarde v1 chargée sans perte', l3.money === 4321 && l3.tools.canne === 2 && l3.bag.length === 2 && l3.decor[0] === 'nichoir' && l3.bridges.erables && l3.mastery.qc_s1_ari_01.ok === 3 && l3.journal.fish === 5 && l3.exCount === 12 && l3.muted);
-  ok('sauvegarde v1 normalisée (→ v4)', l3.v === 4 && l3.island === 1 && l3.ferry === false && l3.phare.step === 0 && l3.appats === 0 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
+  ok('sauvegarde v1 normalisée (→ v5)', l3.v === 5 && l3.island === 1 && l3.ferry === false && l3.phare.step === 0 && l3.appats === 0 && l3.journal.rare === 0 && l3.journal.sirop === 0 && JSON.stringify(l3.rares) === '{}' && JSON.stringify(l3.quotes) === '{}' && l3.day === 0);
   mem[KEY] = JSON.stringify({ ...v1, rares: null, quotes: [], bag: 'x' }); const l4 = load(); ok('champs abîmés réparés', JSON.stringify(l4.rares) === '{}' && JSON.stringify(l4.quotes) === '{}' && Array.isArray(l4.bag));
-  save(l3); ok('v4 relue', load().v === 4 && load().money === 4321);
+  save(l3); ok('v5 relue', load().v === 5 && load().money === 4321);
   { const v2 = { ...v1, v: 2, rares: { omble: 2 }, quotes: { nichoir: { rabais: 10 } }, day: 4, journal: { ...v1.journal, rare: 2, sirop: 1 } };
     mem[KEY] = JSON.stringify(v2); const l5 = load();
-    ok('sauvegarde v2 chargée sans perte', l5.v === 4 && l5.rares.omble === 2 && l5.quotes.nichoir.rabais === 10 && l5.day === 4 && l5.journal.rare === 2 && l5.money === 4321 && l5.tools.canne === 2 && l5.island === 1 && l5.kiosk.day === -1);
+    ok('sauvegarde v2 chargée sans perte', l5.v === 5 && l5.rares.omble === 2 && l5.quotes.nichoir.rabais === 10 && l5.day === 4 && l5.journal.rare === 2 && l5.money === 4321 && l5.tools.canne === 2 && l5.island === 1 && l5.kiosk.day === -1);
     mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 2, ferry: true, phare: { step: 2, done: false }, appats: 3, tools: { ...v1.tools, canne: 4 } }); const l6 = load();
     ok('sauvegarde v3 (île 2, niveau 4)', l6.island === 2 && l6.ferry && l6.phare.step === 2 && l6.appats === 3 && l6.tools.canne === 4);
     mem[KEY] = JSON.stringify({ ...v2, v: 3, island: 7, phare: 'x', appats: -2, kiosk: null }); const l7 = load();
@@ -76,7 +77,7 @@ export function run(ok) {
   // v4 : statistiques par compétence, migrées depuis la maîtrise des vieilles sauvegardes
   ok('v1 → v4 : statistiques reconstruites depuis la maîtrise', l3.stats.qc_s1_ari_01?.n === 4 && l3.stats.qc_s1_ari_01.ok === 3 && l3.stats.qc_s1_ari_01.h === '' && Array.isArray(l3.recentQ));
   { mem[KEY] = JSON.stringify({ ...v1, v: 3, mastery: { qc_s1_ari_04: { ok: 1, tries: 6, miss: 5 }, qc_s1_geo_01: { ok: 0, tries: 0, miss: 0 } } }); const m3 = load();
-    ok('v3 → v4 : essais et réussites conservés', m3.v === 4 && m3.stats.qc_s1_ari_04.n === 6 && m3.stats.qc_s1_ari_04.ok === 1 && !m3.stats.qc_s1_geo_01 && m3.money === 4321);
+    ok('v3 → v4 : essais et réussites conservés', m3.v === 5 && m3.stats.qc_s1_ari_04.n === 6 && m3.stats.qc_s1_ari_04.ok === 1 && !m3.stats.qc_s1_geo_01 && m3.money === 4321);
     mem[KEY] = JSON.stringify({ ...v1, v: 4, stats: { qc_s1_ari_05: { n: 4, ok: 1, h: '0100', sec: 22 }, bad: { n: 'x' }, qc_s1_alg_01: { n: 2, ok: 9, h: 'a1' } }, recentQ: ['qc_s1_ari_05', 3] }); const m4 = load();
     ok('v4 relue, stats abîmées réparées', m4.stats.qc_s1_ari_05.h === '0100' && m4.stats.qc_s1_ari_05.sec === 22 && !m4.stats.bad && m4.stats.qc_s1_alg_01.ok === 2 && m4.stats.qc_s1_alg_01.h === '1' && m4.recentQ.join() === 'qc_s1_ari_05');
     mem[KEY] = JSON.stringify({ ...v1, v: 4, stats: [1, 2], recentQ: 'x' }); const m5 = load(); ok('v4 : stats illisibles → vides', JSON.stringify(m5.stats) === JSON.stringify({ qc_s1_ari_01: { n: 4, ok: 3, h: '' } }) && m5.recentQ.length === 0); }
@@ -192,4 +193,25 @@ export function run(ok) {
     const bad = ids.filter(id => { const L = LECONS[id]; return !L || L.idee.length < 2 || L.idee.length > 4 || !L.regle || L.ex.etapes.length < 2 || !L.ex.q || !L.ex.rep; });
     ok('leçons : idée (2 à 4 phrases), règle, exemple en étapes', !bad.length, bad.join(','));
     for (const id of ids) { const [a, b] = LECONS[id].chk(); ok(`leçon ${id} : exemple recalculé`, Number.isFinite(a) && Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`); } }
+
+  // Animaux : rapports de Charlie limités, 3 quêtes qui tournent, récompenses, sauvegarde v5
+  { const a = AN.animauxDefaut(), rng = makeRng(3);
+    ok('animaux : Charlie rapporte au plus 3 fois par jour, avec une pause', AN.canFetch(a, 0, 100) && (AN.noteFetch(a, 100), !AN.canFetch(a, 0, 120)) && AN.canFetch(a, 0, 141) && (AN.noteFetch(a, 141), AN.noteFetch(a, 300), !AN.canFetch(a, 0, 999)) && AN.canFetch(a, 1, 999) && a.fetchN === 0);
+    const seen = new Set(); for (let i = 0; i < 2000; i++) seen.add(AN.pickLoot(rng));
+    ok('animaux : trouvailles variées, toutes vendables ou en sous', seen.size === AN.FETCH_LOOT.length && [...seen].every(k => k === 'piece' || SELL[k] > 0));
+    const p = new Set(); for (let i = 0; i < 200; i++) p.add(AN.pieceCents(rng)); ok('animaux : pièce de 0,25 $ à 1,00 $', [...p].sort((x, y) => x - y).join() === '25,50,75,100');
+    const d0 = AN.questsDuJour(a, 0).map(q => q.id), d1 = AN.questsDuJour(a, 1).map(q => q.id);
+    ok('quêtes : au moins 3, ordre qui tourne chaque jour', d0.length >= 3 && d0.join() !== d1.join() && new Set(d1).size === d0.length);
+    for (const id of AN.QUETE_IDS) { const b = AN.animauxDefaut();
+      ok(`quête ${id} : départ, une seule à la fois`, AN.startQuest(b, id, 5, [1, 2]) && b.quete === id && !AN.startQuest(b, AN.QUETE_IDS.find(x => x !== id), 5, [1, 2]) && AN.questsDuJour(b, 5).find(q => q.id === id).etat === 'active');
+      const r = AN.finishQuest(b, 5);
+      ok(`quête ${id} : récompense (sous + collier neuf la 1re fois)`, r.cents > 0 && r.collier === AN.QUETES[id].collier && b.collier === r.collier && b.colliers.includes(r.collier) && b.total === 1 && !b.quete);
+      ok(`quête ${id} : pas deux fois le même jour, possible le lendemain`, !AN.startQuest(b, id, 5, [1, 2]) && AN.startQuest(b, id, 6, [1, 2]) && AN.finishQuest(b, 6).collier === null); }
+    ok('quêtes : cachette déterministe parmi les valides', JSON.stringify(AN.pickSpot([[1, 1], [2, 2], [3, 3]], 4, 'olga', 7)) === JSON.stringify(AN.pickSpot([[1, 1], [2, 2], [3, 3]], 4, 'olga', 7)) && AN.pickSpot([], 1, 'olga') === null);
+    const n = AN.normAnimaux({ fetchN: 'x', quete: 'olga', spot: null, colliers: ['rose', 'bidon'], collier: 'bidon', faites: { olga: 3, zz: 1 }, olga: { x: 1, z: 'a' } });
+    ok('animaux : données abîmées réparées', n.fetchN === 0 && n.quete === null && n.colliers.join() === 'bleu,rose' && n.collier === 'bleu' && n.faites.olga === 3 && !('zz' in n.faites) && n.olga === null);
+    const mem = {}; globalThis.localStorage = { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+    for (const v of [1, 2, 3, 4]) { const base = newState(9); delete base.animaux; mem[KEY] = JSON.stringify({ ...base, v }); const l = load(); ok(`v${v} → v5 : animaux par défaut`, l.v === 5 && l.animaux.collier === 'bleu' && l.animaux.quete === null && l.animaux.fetchN === 0); }
+    const s5 = newState(9); s5.animaux = { ...AN.animauxDefaut(), quete: 'balle', spot: [3, 4], colliers: ['bleu', 'vert'], collier: 'vert', total: 2, faites: { gisele: 7 } }; save(s5);
+    const l5 = load(); ok('v5 relue : quête en cours, colliers, réussites', l5.v === 5 && l5.animaux.quete === 'balle' && l5.animaux.spot.join() === '3,4' && l5.animaux.collier === 'vert' && l5.animaux.total === 2 && l5.animaux.faites.gisele === 7); }
 }

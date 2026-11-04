@@ -165,8 +165,8 @@ async function run(kind) {
     await p2.goto(URL); await p2.waitForSelector('#play'); await p2.click('#play'); await p2.evaluate(() => __mv.waitT(0.5));
     const st = await p2.evaluate(() => __mv.state);
     const kept = st.money === V.money && JSON.stringify(st.tools) === JSON.stringify({ ...st.tools, ...V.tools }) && st.bag.join() === V.bag.join() && st.decor.join() === V.decor.join() && st.journal.fish === V.journal.fish && Object.entries(V.mastery).every(([k, m]) => st.mastery[k].ok === m.ok) && (!V.rares || JSON.stringify(st.rares) === JSON.stringify(V.rares));
-    ok(`d sauvegarde ${tag} chargée sans perte (v4, île 1, phare à 0)`, st.v === 4 && kept && st.island === 1 && st.phare.step === 0 && !st.phare.done && st.appats === 0, JSON.stringify({ v: st.v, money: st.money, island: st.island }));
-    await p2.evaluate(() => __mv.G.save()); ok(`d sauvegarde ${tag} réécrite en v4 sous la même clé`, await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 4));
+    ok(`d sauvegarde ${tag} chargée sans perte (v5, île 1, phare à 0)`, st.v === 5 && kept && st.island === 1 && st.phare.step === 0 && !st.phare.done && st.appats === 0, JSON.stringify({ v: st.v, money: st.money, island: st.island }));
+    await p2.evaluate(() => __mv.G.save()); ok(`d sauvegarde ${tag} réécrite en v5 sous la même clé`, await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 5));
     await c2.close();
   }
   // Une partie sauvegardée sur l’île 2 y recommence
