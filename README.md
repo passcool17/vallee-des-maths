@@ -4,6 +4,8 @@ Un petit jeu 3D douillet pour pratiquer les maths de **Secondaire 1** (programme
 
 Nouveau : **l’île de Secondaire 2**. Quand tes 5 outils sont au niveau 2, le traversier t’amène chez Rosalie la loutre et Bernard le huard : 12 compétences de Secondaire 2, un phare à réparer en 3 étapes, des érables rouges, des poissons rares et le niveau 4 des outils.
 
+Aussi : un **carnet de progrès par compétence** (essais, % réussi, à pratiquer), des **questions qui s’adaptent** à ce que tu rates le plus, et **Hortense la tortue**, la bibliothécaire, qui explique la théorie de chaque compétence (📖 Théorie, même au milieu d’une question).
+
 **Jouer :** https://passcool17.github.io/vallee-des-maths/ (après publication)
 
 ## Lancer en local
@@ -32,7 +34,7 @@ Paramètres d’URL utiles :
 ## Tests
 
 ```bash
-node tools/test-math.mjs        # 139 743 vérifications : générateurs Sec 1 et Sec 2 (200 graines chacun, oracles indépendants), vérificateur (π compris), progression, niveau 4, traversier, phare, kiosque, sauvegardes v1/v2→v3
+node tools/test-math.mjs        # 139 795 vérifications : générateurs Sec 1 et Sec 2 (200 graines chacun, oracles indépendants), vérificateur (π compris), progression, niveau 4, traversier, phare, kiosque, sauvegardes v1/v2/v3→v4, statistiques et choix adaptatif (6 000 tirages), leçons (34 fiches, exemples recalculés)
 node tools/serve.js 8653 &
 node tools/test.cjs 8653        # parcours Playwright de l’île 1, bureau 1280×800 puis mobile 390×844 (ONLY=desktop|mobile pour un seul)
 node tools/test-s2.cjs          # parcours de l’île de Secondaire 2 (traversier, phare, kiosque, niveau 4, carnet, FPS)
@@ -55,8 +57,10 @@ js/phare.js        réparation du phare en 3 étapes (plan à l’échelle en SV
 js/player.js       Camille (modèle low-poly fusionné par couleur), déplacement, animation
 js/pets.js         Charlie le shih tzu (suit Camille, prend le traversier), Gisèle et Olga les chattes (île 1), flatter : cœur, ronron, phrase
 js/bake.js         fusionne les pièces d’un modèle par couleur (moins d’appels de dessin)
-js/villagers.js    Gaston le castor, Ginette l’orignale, Flocon le harfang, Rosalie la loutre, Bernard le huard
-js/flows.js        dialogues, établi, exercices + indices, réchauffements, questions en action, magasin, carnet
+js/villagers.js    Gaston le castor, Ginette l’orignale, Flocon le harfang, Hortense la tortue, Rosalie la loutre, Bernard le huard
+js/flows.js        dialogues, établi, exercices + indices, réchauffements, questions en action, magasin, carnet, leçons et 📖 Théorie
+js/adapt.js        statistiques par compétence (essais, % réussi, 10 dernières) et choix adaptatif des questions (pur, testé)
+js/lecons.js       leçons d’Hortense : idée, règle, exemple résolu pour les 34 compétences (exemples recalculés par les tests)
 js/actionq.js      étape 2 : chance de touche rare, choix de la question et du niveau, butin, chrono (pur, testé)
 js/ui.js           HUD, panneaux, pavé numérique
 js/input.js        clavier (event.code), clic/tap pour marcher, joystick tactile

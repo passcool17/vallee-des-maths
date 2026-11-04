@@ -179,6 +179,7 @@ body.modal #touch, body.modal #prompt { display: none; }
 .prat { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px dashed #f0c9b3; }
 .prat:first-of-type { border-top: 0; } .prat b { font-size: 14px; } .prat .pre { margin: 2px 0 0; }
 .prat .btn { flex: none; min-height: 40px; }
+.prat > div:first-child { flex: 1; min-width: 0; } .row.pratbtns { flex-wrap: nowrap; gap: 6px; flex: none; }
 .ctools { display: flex; flex-wrap: wrap; gap: 6px; }
 .ctools .chip { box-shadow: none; background: #fff; border: 2px solid var(--line); font-size: 14px; }
 .journal { color: var(--soft); font-weight: 700; }
@@ -221,3 +222,28 @@ body.modal #touch, body.modal #prompt { display: none; }
 .max.isle2 { color: #2c6e8f; }
 .exercise .figure { max-width: 260px; } .exercise .figure svg { max-height: 20vh; }
 @media (max-width: 480px) { .exercise .figure svg { max-height: 17vh; } .vtable { font-size: 14px; } .vtable th, .vtable td { padding: 4px 8px; } }
+
+/* Leçons d’Hortense la tortue */
+.face.hortense { background: #e3f0d2; }
+.lecons .leclist { display: flex; flex-wrap: wrap; gap: 8px; }
+.lecons .btn.lec { font-size: 15px; padding: 8px 12px; }
+.lecons .btn.lec.m { background: #e7f3df; }
+.lecons > .row { margin-top: 12px; justify-content: space-between; }
+.lecon .pda { margin: 2px 0 0; font-size: 13px; color: var(--soft); }
+.lecon section { background: #fffaf0; border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-top: 10px; }
+.lecon h4 { margin: 0 0 6px; }
+.lecon section p { margin: 4px 0; line-height: 1.45; }
+.lecon .regle { background: #eef6ff; border-color: #c9dcf2; }
+.lecon .regle p { font-weight: 700; color: #234a73; }
+.lecon .exemple .q { font-weight: 700; }
+.lecon ol { margin: 6px 0; padding-left: 22px; } .lecon li { margin: 4px 0; line-height: 1.4; }
+.lecon .rep { background: #e7f3df; border-radius: 10px; padding: 6px 10px; display: inline-block; }
+.sheet.has-over { overflow: hidden; }
+.lecon-over { position: absolute; inset: 0; z-index: 5; overflow: auto; background: var(--cream); border-radius: 24px; padding: 20px 20px 18px; }
+.lecon-over > .x { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #f1e3cb; font-size: 16px; }
+.lecon-over .paused { margin: 0 44px 6px 0; font-size: 13px; color: var(--soft); }
+.lecon-over > .row { margin-top: 12px; justify-content: center; }
+.btn.theo { background: #e3f0d2; }
+.hintline.hortense { background: #eef7e4; border-radius: 12px; padding: 8px 10px; }
+.btn.lecbtn { padding: 4px 8px; font-size: 13px; }
+.sk .niv .lecbtn { margin-top: 4px; }

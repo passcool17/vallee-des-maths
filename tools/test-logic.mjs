@@ -12,6 +12,7 @@ import { quoteFor, forgetQuote, SELL } from '../js/shop.js';
 import { pickQuestion, rareBiteChance, loot, timeFor, makeTimer, FRACTION_SKILLS, RARE_FISH, SIROP } from '../js/actionq.js';
 import { makeExercise } from '../js/math/gen.js';
 import { missRate, weakList } from '../js/adapt.js';
+import { LECONS } from '../js/lecons.js';
 
 export function run(ok) {
   // Graphe sans cycle, toutes les compétences atteignables en maîtrisant dans l’ordre
@@ -184,4 +185,11 @@ export function run(ok) {
         if (!checkField(typed, f).ok || checkField(String(v + 1), f).ok || !ex.figure || ex.hints.length !== 3 || !isS2(ex.skill)) allOk = false;
         if (f.pi && !checkField(`${f.value.n}π${f.value.d > 1 ? '/' + f.value.d : ''}`, f).ok) allOk = false; }); }
     ok('phare : 200 graines, 3 étapes cohérentes', allOk && ks.size === 3); }
+
+  // Leçons d’Hortense : une fiche par compétence, exemples recalculés
+  { const ids = [...SKILLS, ...SKILLS2].map(s => s.id), miss = ids.filter(id => !LECONS[id]);
+    ok('leçons : une fiche pour chacune des 34 compétences', ids.length === 34 && !miss.length && Object.keys(LECONS).length === 34, miss.join(','));
+    const bad = ids.filter(id => { const L = LECONS[id]; return !L || L.idee.length < 2 || L.idee.length > 4 || !L.regle || L.ex.etapes.length < 2 || !L.ex.q || !L.ex.rep; });
+    ok('leçons : idée (2 à 4 phrases), règle, exemple en étapes', !bad.length, bad.join(','));
+    for (const id of ids) { const [a, b] = LECONS[id].chk(); ok(`leçon ${id} : exemple recalculé`, Number.isFinite(a) && Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`); } }
 }

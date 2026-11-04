@@ -52,7 +52,12 @@ async function run(kind) {
   const m0 = await ev(() => __mv.state.money);
   const tree = await ev(() => { const t = __mv.world.interactables.find(i => i.kind === 'tree' && Math.hypot(i.pos.x, i.pos.z) < 20); return { x: t.pos.x, z: t.pos.z, r: t.r }; });
   await ev(() => { __mv.force.maple = false; }); // le coup de sirop est testé plus loin
-  await near(tree.x, tree.z + tree.r - 0.3); await act(); await waitT(0.5);
+  await near(tree.x, tree.z + tree.r - 0.3);
+  await p.waitForFunction(() => document.querySelector('#act').classList.contains('ready') || !document.body.classList.contains('touch'), null, { timeout: 3000 }).catch(() => {});
+  await act();
+  // le gain arrive par setTimeout (temps réel) et la pastille vit 1,4 s : on attend le gain lui-même plutôt qu’un délai de jeu.
+  // Sous SwiftShader, un toucher tombé pendant une image lente est parfois perdu : on retouche une fois, comme le ferait un enfant.
+  if (!(await p.waitForFunction(m => __mv.state.money > m, m0, { timeout: 2500 }).then(() => 1, () => 0))) { await act(); await p.waitForFunction(m => __mv.state.money > m, m0, { timeout: 2500 }).catch(() => {}); }
   ok(`${px} secouer un érable donne des sous`, (await ev(() => __mv.state.money)) > m0);
   ok(`${px} gain affiché en pastille sous l’argent, pas sur la scène`, await ev(() => !!document.querySelector('#hud .gainpill') && !document.querySelector('#toasts .toast')));
   hud = await ev(OVERLAP, [...HUD.filter(x => x !== '#money'), '.gainpill']); ok(`${px} pastille de gain sans chevauchement`, hud.length === 0, hud.join(' | '));
@@ -101,6 +106,14 @@ async function run(kind) {
   await near(bed.x - 0.2, bed.z + 1.5); await act(); await waitT(1);
   ok(`${px} arrosoir niv. 1 : 2 plates-bandes = +1,50 $`, (await ev(() => __mv.state.money)) - mb === 150, `${(await ev(() => __mv.state.money)) - mb} ¢`);
 
+  // Hortense la tortue : coin lecture, « 📖 Une leçon » → liste → fiche
+  await toVillager('hortense'); await act(); await p.waitForSelector('#panel .dialog');
+  ok(`${px} Hortense : « 📖 Une leçon »`, await ev(() => document.querySelector('#panel .choices .btn.primary').textContent.includes('Une leçon')));
+  await press('#panel .choices .btn.primary'); await p.waitForSelector('#panel .lecons .btn.lec');
+  ok(`${px} leçons : 22 notions en secondaire 1`, (await ev(() => new Set([...document.querySelectorAll('#panel .lecons .btn.lec')].map(b => b.dataset.lecon)).size)) === 22);
+  await press('#panel .lecons .btn.lec[data-lecon="qc_s1_alg_04"]'); await p.waitForSelector('#panel .lecon');
+  ok(`${px} leçon : idée, règle, exemple pas à pas`, await ev(() => ['.idee', '.regle', '.exemple ol'].every(c => document.querySelector(`#panel .lecon ${c}`))));
+  if (mobile) await press('#panel .sheet > .x'); else await p.keyboard.press('Escape');
   // 6) Réchauffement après 2 erreurs (défi de Flocon)
   await toVillager('flocon'); await act(); await p.waitForSelector('#panel .dialog');
   await press('#panel .choices .btn.primary'); await p.waitForSelector('#panel .skills');
@@ -109,6 +122,7 @@ async function run(kind) {
     if (kind === 'choice') { const c = await ev(() => __mv.flows.cur.ex.answer.correct); await p.locator('#panel .btn.choice').nth(c === 0 ? 1 : 0).click(); await press('#panel .validate'); }
     else { await press('#panel .field[data-f="0"]'); for (const ch of '9999') await press(`#panel .numpad [data-k="${ch}"]`); await press('#panel .numpad [data-k="✓"]'); } }
   ok(`${px} 2 erreurs → Flocon propose un réchauffement`, await ev(() => !!document.querySelector('#panel .warmup')));
+  ok(`${px} 2 erreurs → Hortense suggère la théorie`, await ev(() => !!document.querySelector('#panel .hintline.hortense button')));
   if (!mobile) await shot('10-rechauffement');
   await press('#panel .warm-yes'); await p.waitForSelector('#panel .prog.warm');
   ok(`${px} réchauffement lancé`, await ev(() => __mv.flows.cur.session.kind === 'warmup'));
@@ -194,6 +208,15 @@ async function run(kind) {
   ok(`${px} chrono figé en pause`, (await ev(() => __mv.flows.cur.timer.left)) === lp && lp <= left0, `${left0} → ${lp}`);
   await press('#resume'); await waitT(1);
   const left1 = await ev(() => __mv.flows.cur.timer.left); ok(`${px} chrono repart après « Reprendre »`, left1 < left0 - 0.5, `${left0.toFixed(2)} → ${left1.toFixed(2)}`);
+  // Théorie d’Hortense pendant la question : la fiche s’ouvre par-dessus, le chrono attend, la question reste intacte
+  const qTxt = await ev(() => document.querySelector('#panel .exercise .q').textContent);
+  await press('#panel .btn.theo'); await p.waitForSelector('#panel .lecon-over .lecon');
+  ok(`${px} 📖 Théorie : fiche de la compétence par-dessus la question`, await ev(() => document.querySelector('#panel .lecon-over .lecon').dataset.skill === 'qc_s1_ari_01' && document.querySelectorAll('#panel .lecon-over .exemple li').length >= 2 && __mv.flows.cur.kind === 'action'));
+  const lt0 = await ev(() => __mv.flows.cur.timer.left); await waitT(1.5); const lt1 = await ev(() => __mv.flows.cur.timer.left);
+  ok(`${px} 📖 Théorie : chrono arrêté pendant la lecture`, lt0 === lt1, `${lt0} → ${lt1}`);
+  if (mobile) await press('#panel .lecon-over .back-q'); else await p.keyboard.press('Escape');
+  await waitT(1); const lt2 = await ev(() => __mv.flows.cur.timer.left);
+  ok(`${px} 📖 Théorie : retour à la même question, chrono reparti`, await ev(q => !document.querySelector('#panel .lecon-over') && !document.getElementById('panel').classList.contains('hidden') && __mv.flows.cur.kind === 'action' && document.querySelector('#panel .exercise .q').textContent === q, qTxt) && lt2 < lt1 - 0.5, `${lt1} → ${lt2}`);
   await ev(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   const lh0 = await ev(() => __mv.flows.cur.timer.left); await p.waitForTimeout(1500); const lh1 = await ev(() => __mv.flows.cur.timer.left);
   ok(`${px} onglet caché → pause auto, chrono figé`, (await ev(() => __mv.G.paused)) && lh0 === lh1, `${lh0} → ${lh1}`);
@@ -251,7 +274,7 @@ async function run(kind) {
     ok('d sauvegarde v1 chargée et normalisée (v4)', st.v === 4 && st.money === 4321 && st.canne === 2 && st.bag === 2 && st.rare === 0 && JSON.stringify(st.rares) === '{}' && st.nichoir, JSON.stringify(st));
     await p2.keyboard.press('KeyC'); await p2.waitForSelector('#panel .carnet .rares');
     ok('d sauvegarde v1 : carnet ouvert sans erreur', await p2.evaluate(() => document.querySelector('#panel .rares').textContent.includes('Rien encore')));
-    ok('d sauvegarde v1 : essais migrés affichés dans le carnet', await p2.evaluate(() => /4 essais · 75 % réussi/.test(document.querySelector('#panel [data-skill="qc_s1_ari_01"] .essais')?.textContent || '') && !!document.querySelector('#panel .pratiquer')));
+    ok('d sauvegarde v1 : essais migrés affichés dans le carnet', await p2.evaluate(() => /4\sessais · 75\s% réussi/.test(document.querySelector('#panel [data-skill="qc_s1_ari_01"] .essais')?.textContent || '') && !!document.querySelector('#panel .pratiquer')));
     await p2.evaluate(() => __mv.G.save()); ok('d sauvegarde réécrite en v4 sous la même clé', await p2.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')).v === 4));
     await c2.close();
   }

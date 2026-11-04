@@ -109,7 +109,7 @@ export function makeFerry(parent, lockable) {
   api.setLocked(!!lockable); return api;
 }
 export const PLACES = {
-  etabli: [-12, -3], magasin: [12, -9], erable: [-2, -16], quai: [6, 37.2], plates: [17, 7],
+  etabli: [-12, -3], magasin: [12, -9], erable: [-2, -16], quai: [6, 37.2], plates: [17, 7], lecture: [-7, -10.2],
 };
 const DECOR_SPOTS = { nichoir: [-6, 5], lupins: [3, 11], lanterne: [8.8, 27], banc: [0, 3], feu: [-14, 12], adirondack: [-11, 14.5] };
 
@@ -157,6 +157,18 @@ export function buildWorld(scene, G) {
 
   // Sentier
   for (let i = 0; i < 26; i++) { const t = i / 25; const x = 6 * t * t - 0.5 + Math.sin(t * 5) * 1.2, z = -10 + t * 36; const st = at(mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.12, 7), '#e7d3a9'), x + (i % 2) * 0.4, 0.02, z, i); st.scale.set(1, 1, 0.8); root.add(st); }
+
+  // ---------- Coin lecture d’Hortense la tortue : banc, pile de livres, lutrin, petit panneau
+  {
+    const [x, z] = PLACES.lecture, g = new THREE.Group();
+    g.add(at(mesh(new THREE.BoxGeometry(1.8, 0.14, 0.55), '#b07b4f'), 0, 0.5, 0)); g.add(at(mesh(new THREE.BoxGeometry(1.8, 0.45, 0.1), '#b07b4f'), 0, 0.85, -0.25));
+    for (const lx of [-0.75, 0.75]) g.add(at(mesh(new THREE.BoxGeometry(0.1, 0.5, 0.45), '#6b4a30'), lx, 0.25, 0));
+    ['#c94f3d', '#3f7fb5', '#e2c044', '#5a9a5a', '#8a5aa8'].forEach((c, i) => g.add(at(mesh(new THREE.BoxGeometry(0.5 - i * 0.04, 0.12, 0.38), c), 1.35, 0.06 + i * 0.12, 0.15, i * 0.25)));
+    g.add(at(mesh(new THREE.BoxGeometry(0.42, 0.06, 0.3), '#f7f0dc'), -0.3, 0.6, 0.05, 0.3)); // livre ouvert sur le banc
+    g.add(at(mesh(new THREE.CylinderGeometry(0.05, 0.07, 1, 6), '#6b4a30'), -1.4, 0.5, 0.6)); const lut = at(mesh(new THREE.BoxGeometry(0.6, 0.05, 0.45), '#8a5a36'), -1.4, 1.02, 0.6); lut.rotation.x = -0.5; g.add(lut);
+    const sign = label('Coin lecture', { size: 26, scale: 0.75 }); sign.position.set(0, 1.75, -0.3); g.add(sign);
+    root.add(at(g, x, 0, z, 0.35)); obstacles.push({ x, z, r: 1.1 }, { x: x + 1.2, z: z + 0.6, r: 0.4 });
+  }
 
   // ---------- Érables (secouables)
   const LEAF = ['#e2572e', '#f08a24', '#f4b63f', '#d9432f', '#ef9a3a'];

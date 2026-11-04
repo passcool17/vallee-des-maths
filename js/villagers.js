@@ -1,4 +1,5 @@
 // Villageois (tous fictifs) — île 1 : Gaston le castor (établi), Ginette l’orignale (magasin), Flocon le harfang (défis et carnet).
+// Hortense la tortue (bibliothécaire : leçons de théorie, coin lecture près du village).
 // Île 2 : Rosalie la loutre (gardienne du phare, atelier niveau 4), Bernard le huard (kiosque de pêche).
 import * as THREE from '../vendor/three.module.min.js';
 import { mesh, at, blob, label } from './world.js';
@@ -22,6 +23,12 @@ export const LINES = {
     'Quand ça bloque, on revient à une notion plus simple, pis on remonte.',
     'Le soir, j’aime compter les étoiles. J’en suis à… je recommence.',
   ],
+  hortense: [
+    'Bonjour, ma belle! Hortense, la bibliothécaire de l’île. Une petite leçon, ça te tente?',
+    'Lentement, mais sûrement : une étape à la fois, pis le problème le plus compliqué devient simple.',
+    'Quand ça accroche, on relit la règle, on regarde un exemple, pis on réessaie.',
+    'J’ai rangé mes livres par compétence. Celles qui te donnent du fil à retordre sont en avant.',
+  ],
   rosalie: [
     'Allô! Rosalie, gardienne du phare. Bienvenue sur l’île de secondaire 2!',
     'Mon phare est brisé depuis la dernière tempête. Tu m’aides à le réparer? Faut juste bien calculer.',
@@ -35,10 +42,10 @@ export const LINES = {
     'Le bar rayé, c’est le plus rare. Moi je l’ai vu juste deux fois… pis je rêvais peut-être.',
   ],
 };
-export const NOMS = { gaston: 'Gaston le castor', ginette: 'Ginette l’orignale', flocon: 'Flocon le harfang', rosalie: 'Rosalie la loutre', bernard: 'Bernard le huard' };
-export const EMOJI = { gaston: '🦫', ginette: '🫎', flocon: '🦉', rosalie: '🦦', bernard: '🐦' };
-export const ISLE_OF = { gaston: 1, ginette: 1, flocon: 1, rosalie: 2, bernard: 2 };
-const HOMES = { gaston: [-9.2, -1.2], ginette: [15.6, -4.6], flocon: [0.4, -13.2], rosalie: [13.4, -12.2], bernard: [8.8, 21.4] };
+export const NOMS = { gaston: 'Gaston le castor', ginette: 'Ginette l’orignale', flocon: 'Flocon le harfang', hortense: 'Hortense la tortue', rosalie: 'Rosalie la loutre', bernard: 'Bernard le huard' };
+export const EMOJI = { gaston: '🦫', ginette: '🫎', flocon: '🦉', hortense: '🐢', rosalie: '🦦', bernard: '🐦' };
+export const ISLE_OF = { gaston: 1, ginette: 1, flocon: 1, hortense: 1, rosalie: 2, bernard: 2 };
+const HOMES = { gaston: [-9.2, -1.2], ginette: [15.6, -4.6], flocon: [0.4, -13.2], hortense: [-5.4, -8.7], rosalie: [13.4, -12.2], bernard: [8.8, 21.4] };
 
 function gaston() {
   const g = new THREE.Group();
@@ -107,19 +114,36 @@ function bernard() {
   return g;
 }
 
-const MAKERS = { gaston, ginette, flocon, rosalie, bernard };
-export function makeVillagers(parent, ids = ['gaston', 'ginette', 'flocon']) {
+function hortense() {
+  const g = new THREE.Group();
+  const shell = at(mesh(new THREE.SphereGeometry(0.62, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), '#4f7f4a'), 0, 0.42, -0.12); shell.scale.set(1, 1.05, 1.1); g.add(shell); // carapace
+  g.add(at(mesh(new THREE.CylinderGeometry(0.64, 0.66, 0.1, 8), '#c9b47a'), 0, 0.42, -0.12)); // rebord
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.add(at(mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.05, 6), '#3d6439'), Math.cos(a) * 0.36, 0.78, -0.12 + Math.sin(a) * 0.38, a)).children.at(-1).rotation.x = Math.sin(a) * 0.5; }
+  g.add(at(mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.05, 6), '#3d6439'), 0, 1.04, -0.12));
+  for (const [lx, lz] of [[-0.4, 0.25], [0.4, 0.25], [-0.4, -0.45], [0.4, -0.45]]) g.add(at(mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.42, 6), '#9bbf7a'), lx, 0.21, lz));
+  const neck = at(mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.5, 7), '#9bbf7a'), 0, 0.85, 0.45); neck.rotation.x = 0.35; g.add(neck);
+  g.add(at(mesh(new THREE.SphereGeometry(0.27, 10, 8), '#a6c784'), 0, 1.18, 0.58));
+  for (const ex of [-0.11, 0.11]) { g.add(at(mesh(new THREE.SphereGeometry(0.035, 6, 4), '#1a1a1a'), ex, 1.24, 0.83)); g.add(at(mesh(new THREE.TorusGeometry(0.075, 0.015, 4, 12), '#7a5236'), ex, 1.24, 0.85)); } // lunettes rondes
+  g.add(at(mesh(new THREE.BoxGeometry(0.06, 0.015, 0.015), '#7a5236'), 0, 1.24, 0.85));
+  const scarf = at(mesh(new THREE.TorusGeometry(0.19, 0.06, 6, 12), '#c96a8a'), 0, 0.98, 0.5); scarf.rotation.x = Math.PI / 2 - 0.35; g.add(scarf); // foulard tricoté
+  const book = at(mesh(new THREE.BoxGeometry(0.34, 0.44, 0.1), '#3f7fb5'), 0.48, 0.6, 0.35, -0.4); g.add(book);
+  g.add(at(mesh(new THREE.BoxGeometry(0.3, 0.4, 0.11), '#f7f0dc'), 0.47, 0.6, 0.36, -0.4));
+  return g;
+}
+
+const MAKERS = { gaston, ginette, flocon, hortense, rosalie, bernard };
+export function makeVillagers(parent, ids = ['gaston', 'ginette', 'flocon', 'hortense']) {
   return ids.map(id => {
     const makers = MAKERS;
     const obj = new THREE.Group(), body = makers[id](); obj.add(body); obj.add(blob(id === 'ginette' ? 1.2 : 0.8));
-    const tag = label(NOMS[id].split(' ')[0], { size: 30, scale: 0.9 }); tag.position.y = id === 'ginette' ? 3.3 : 2.4; obj.add(tag);
+    const tag = label(NOMS[id].split(' ')[0], { size: 30, scale: 0.9 }); tag.position.y = id === 'ginette' ? 3.3 : id === 'hortense' ? 1.85 : 2.4; obj.add(tag);
     const [hx, hz] = HOMES[id]; obj.position.set(hx, 0, hz); parent.add(obj);
     let t = Math.random() * 5, wanderT = 2, goal = null, talk = 0;
     const V = { id, isle: ISLE_OF[id], nom: NOMS[id], obj, home: HOMES[id], pos: obj.position, tag, lines: LINES[id],
       talkTo() { talk = 4; }, nextLine(n) { return LINES[id][n % LINES[id].length]; },
       update(dt, player) {
         t += dt; talk = Math.max(0, talk - dt); const d = player.pos.distanceTo(obj.position);
-        if (id !== 'flocon' && id !== 'bernard' && d > 4 && !talk) { wanderT -= dt; if (wanderT <= 0) { wanderT = 3 + Math.random() * 4; goal = goal ? null : [hx + (Math.random() - 0.5) * 3, hz + (Math.random() - 0.5) * 2]; } }
+        if (id !== 'flocon' && id !== 'bernard' && id !== 'hortense' && d > 4 && !talk) { wanderT -= dt; if (wanderT <= 0) { wanderT = 3 + Math.random() * 4; goal = goal ? null : [hx + (Math.random() - 0.5) * 3, hz + (Math.random() - 0.5) * 2]; } }
         else goal = null;
         const tx = goal ? goal[0] : hx, tz = goal ? goal[1] : hz; const dx = tx - obj.position.x, dz = tz - obj.position.z, dd = Math.hypot(dx, dz);
         let want = obj.rotation.y;

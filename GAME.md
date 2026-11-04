@@ -21,6 +21,7 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 - **Gaston le castor** tient l’établi. Il améliore les outils.
 - **Ginette l’orignale** tient le Magasin général. Elle achète ce que tu as dans ton sac et vend du décor et des ponts.
 - **Flocon le harfang** propose les défis (1,00 $ par bonne réponse), tient le carnet et anime les réchauffements.
+- **Hortense la tortue** est la bibliothécaire de l’île 1. Elle lit dans son coin lecture (banc, pile de livres, lutrin), entre l’établi et Flocon. « 📖 Une leçon » ouvre sa bibliothèque : une fiche de théorie par compétence (voir *Les leçons d’Hortense*).
 - **Rosalie la loutre** (île 2) garde le phare, tient l’atelier du niveau 4 et propose les défis de Secondaire 2.
 - **Bernard le huard** (île 2) tient le kiosque de pêche et donne les appâts rares.
 
@@ -75,6 +76,30 @@ Chaque achat affiche un ticket avec le prix, un rabais du jour éventuel (10 à 
 ### Le carnet
 
 Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, proportionnalité, algèbre, probabilités, statistique, géométrie). Pour chacune, il montre la référence PDA du MEQ, la maîtrise (●●●), les préalables et le cadenas. On y trouve aussi les étoiles des outils et le journal : poissons (dont les prises rares), sirop, papillons, trouvailles, fleurs et sous gagnés. La section **✨ Prises rares et sirop** compte chaque prise rare et chaque cruchon.
+
+Ajouts « progrès par compétence » : chaque compétence affiche ses **essais**, son **% de réussite** (barre), son **temps moyen** et un **niveau** (à découvrir, en apprentissage, maîtrisé). En haut, **🎯 À pratiquer** liste les 2 ou 3 compétences les plus ratées récemment, avec un bouton **Pratiquer** (défi sur cette compétence) et un **📖** vers la leçon d’Hortense. Chaque compétence a aussi son bouton **📖 Leçon**.
+
+### Questions qui s’adaptent
+
+Le jeu note chaque réponse (bonne ou non, temps) par compétence, avec un historique des 10 dernières. Une compétence est « faible » quand plus du tiers de ses réponses récentes sont ratées.
+
+- Environ **55 %** des questions (touche rare, coup de sirop, kiosque exclu) vont aux compétences faibles. Plus une compétence est ratée, plus elle revient (poids = taux d’erreur au carré).
+- Le reste suit le choix normal de l’activité, qui favorise ce qui n’est pas encore maîtrisé. Les compétences jamais vues gardent donc leur chance.
+- Jamais **3 fois de suite** la même compétence.
+- Les contraintes de l’activité tiennent : l’érable pose toujours des fractions, l’île 2 du Secondaire 2.
+- Une compétence faible revient au niveau basique ou standard, jamais plus difficile.
+- Les défis de Flocon et de Rosalie proposent les compétences faibles en premier.
+- Un « presque » ne compte pas comme une erreur. Un temps écoulé compte comme une erreur dans les statistiques, sans toucher à la maîtrise.
+
+### Les leçons d’Hortense
+
+Une fiche par compétence (34) dans `js/lecons.js` : **💡 l’idée** (2 à 4 phrases simples), **📐 la règle** (ou la formule) et **✏️ un exemple résolu pas à pas**. Les exemples sont recalculés par les tests.
+
+- **Chez Hortense** : « 📖 Une leçon » ouvre la liste, avec **🎯 À revoir en premier** (compétences faibles), puis toutes les compétences par domaine, onglets Secondaire 1 et 2. Chaque fiche a un bouton **⭐ Pratiquer**.
+- **Sur l’île 2** : Rosalie a « 📖 Les notes d’Hortense » (mêmes fiches, onglet Secondaire 2).
+- **Pendant une question** (exercice, défi, touche rare, coup de sirop) : le bouton **📖 Théorie** ouvre la fiche de la compétence par-dessus la question. La question reste là, le chrono s’arrête, et « ↩ Retour à la question » (ou Échap) referme la fiche.
+- **Après 2 erreurs** sur la même question, Hortense suggère la théorie. Si une touche rare est ratée deux fois de suite sur la même compétence, l’écran de fin propose la leçon.
+- **Dans le carnet** : un bouton 📖 par compétence et dans **🎯 À pratiquer**.
 
 ## L’île de Secondaire 2
 
@@ -151,7 +176,7 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 
 ## État et sauvegarde
 
-L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 3` depuis l’île de Secondaire 2) toutes les 5 s et après chaque réponse. Il contient :
+L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 4` depuis le carnet de progrès) toutes les 5 s et après chaque réponse. Il contient :
 
 - `money` en cents, `clock` (0–1), `seed`, `bag[]`
 - `tools{outil: niveau}` et `upg{outil: progrès}`
@@ -161,8 +186,9 @@ L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1
 - `rares{objet: nb}` (prises rares et sirop), `quotes{article: {day, n}}` (devis mémorisés), `day` (jour du jeu)
 - `met{villageois: nb}` et `exCount`
 - Secondaire 2 : `island` (1 ou 2), `ferry`, `phare{step, done, redo}`, `appats`, `kiosk{day}`
+- v4 : `stats{compétence: {n, ok, h, sec}}` (essais, réussites, 10 dernières réponses « 1 »/« 0 », temps moyen) et `recentQ[]` (4 dernières questions en action)
 
-Une sauvegarde de l’étape 1 (v1) ou de l’étape 2 (v2) se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v3 sous la même clé. Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
+Une sauvegarde v1, v2 ou v3 se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v4 sous la même clé. Les `stats` d’une vieille sauvegarde partent de `mastery` (essais et réussites, sans historique récent). Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
 
 ## Prochaines idées
 
