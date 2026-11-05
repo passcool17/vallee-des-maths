@@ -8,13 +8,15 @@ import { PLACES2 } from './island2.js';
 const R = 22;               // au-delà, une créature ne s’entend plus
 const CAP = 8, CAP_LOW = 5; // voix ponctuelles simultanées (palier 3+ : 5)
 // voix des villageois : hauteur de base (Hz), timbre, débit — petits « blablas » à la Animal Crossing
-const VOIX = {
+export const VOIX = {
   gaston: { f: 230, type: 'triangle', gap: 0.075, n: 7 },  // castor : voix ronde, moyenne
   ginette: { f: 150, type: 'triangle', gap: 0.09, n: 6 },  // orignale : grave et posée
   flocon: { f: 520, type: 'sine', gap: 0.07, n: 6 },       // harfang : aigu, doux
   hortense: { f: 125, type: 'sine', gap: 0.14, n: 5 },     // tortue : lente et basse
   rosalie: { f: 640, type: 'square', gap: 0.06, n: 8 },    // loutre : vive, couinante
   bernard: { f: 300, type: 'triangle', gap: 0.08, n: 6 },  // huard : + son cri
+  lionel: { f: 105, type: 'triangle', gap: 0.13, n: 5 },   // orignal : grave et lent (papie)
+  lise: { f: 310, type: 'sine', gap: 0.068, n: 7 },        // renarde : medium-high, chaleureuse
 };
 
 export function makeSons(audio, G) {
@@ -91,7 +93,7 @@ export function makeSons(audio, G) {
     gull(x, z) { const v = voice(x, z, 1, 1.2); if (!v) return; for (let i = 0; i < 2; i++) osc(v, v.t + i * 0.32, 1300, 0.26, { type: 'sawtooth', vol: 0.025, glide: 800, cut: 2500, attack: 0.03 }); log('gull'); },
     frog(x, z) { const v = voice(x, z, 0.4, 1); if (!v) return; osc(v, v.t, 190, 0.09, { type: 'sawtooth', vol: 0.05, glide: 140, cut: 900 }); osc(v, v.t + 0.13, 200, 0.12, { type: 'sawtooth', vol: 0.05, glide: 130, cut: 900 }); log('frog'); },
   };
-  const IDLE = { gaston: 'castor', ginette: 'orignal', flocon: 'hoot', hortense: 'tortue', rosalie: 'otter', bernard: 'loon' };
+  const IDLE = { gaston: 'castor', ginette: 'orignal', flocon: 'hoot', hortense: 'tortue', rosalie: 'otter', bernard: 'loon', lionel: 'orignal' };
 
   // ---------- pas de Camille
   function surface(x, z) {

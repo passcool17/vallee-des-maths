@@ -7,7 +7,7 @@ import { makePlayer } from './player.js';
 import { makeVie } from './vie.js';
 import { makePets, heart } from './pets.js';
 import { makeCompagnons } from './compagnons.js';
-import { makeVillagers } from './villagers.js';
+import { makeVillagers, NOMS } from './villagers.js';
 import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
 import { makeFlows, ITEMS } from './flows.js';
@@ -44,7 +44,7 @@ J.addGrass(world.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6cb946
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
-const allVillagers = makeVillagers(world.root); G.allVillagers = allVillagers;
+const allVillagers = makeVillagers(world.root, ['gaston', 'ginette', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
 let isle2 = null;
 function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); J.addGrass(isle2.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6fae58', count: 2400, ok: (x, z) => isle2.walkable(x, z, state) }); J.dress(isle2.root); return isle2; }
 if (state.island === 2) ensureIsle2();
@@ -327,7 +327,7 @@ G.travel = async (to, { instant = false } = {}) => {
 
 // Crochet de test (lecture seule pour l’essentiel)
 window.__mv = {
-  G, state, world, player, flows, renderer, scene,
+  G, state, world, player, flows, renderer, scene, NOMS,
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),
