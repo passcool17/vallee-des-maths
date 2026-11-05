@@ -75,7 +75,7 @@ body.modal #touch, body.modal #prompt { display: none; }
 .who b { font-size: 19px; }
 .who .line { margin: 4px 0 0; color: var(--soft); line-height: 1.4; }
 .face { flex: none; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; background: #ffe6bf; }
-.face.ginette { background: #e6d9ff; } .face.flocon { background: #dff1ff; }
+.face.therese { background: #e6d9ff; } .face.flocon { background: #dff1ff; }
 .dialog .line { font-size: 17px; color: var(--ink); }
 .choices { display: flex; flex-direction: column; gap: 8px; }
 .choices.grid { display: grid; grid-template-columns: 1fr 1fr; }

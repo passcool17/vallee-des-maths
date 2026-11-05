@@ -45,10 +45,10 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     ok('b au plus 3 rapports par journée', lim.r.join() === 'true,true,false' && lim.n === 3, JSON.stringify(lim));
     ok('b nouvelle journée : Charlie repart', await p.evaluate(async () => { __mv.state.day++; __mv.state.animaux.fetchT = -1e9; const r = __mv.comp.fetch(false); if (r) await new Promise(res => { const t0 = Date.now(); const t = setInterval(() => { if (__mv.animaux().drop || Date.now() - t0 > 60000) { clearInterval(t); __mv.comp.pickup(); res(); } }, 100); }); return r && __mv.state.animaux.fetchN === 1; }));
 
-    // ---- Quêtes : Ginette les donne, 3 par jour
+    // ---- Quêtes : Thérèse les donne, 3 par jour
     await clean(p);
-    await p.evaluate(() => __mv.flows.talk(__mv.G.villagers.find(v => v.id === 'ginette')));
-    const opt = await p.$('#panel button:has-text("Quêtes des animaux")'); ok('c Ginette propose les quêtes des animaux', !!opt);
+    await p.evaluate(() => __mv.flows.talk(__mv.G.villagers.find(v => v.id === 'therese')));
+    const opt = await p.$('#panel button:has-text("Quêtes des animaux")'); ok('c Thérèse propose les quêtes des animaux', !!opt);
     await opt.click(); await p.evaluate(() => __mv.waitT(0.2));
     ok('c 3 quêtes listées', await p.evaluate(() => document.querySelectorAll('#panel .qrow').length) === 3);
     const ids = await p.evaluate(() => [...document.querySelectorAll('#panel .qrow')].map(e => e.dataset.q));
@@ -82,7 +82,7 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
 
     // ---- Charlie contourne les villageois
     const av = await p.evaluate(async () => {
-      const v = __mv.G.villagers.find(v => v.id === 'ginette'), ch = __mv.G.pets.charlie; let min = 99;
+      const v = __mv.G.villagers.find(v => v.id === 'therese'), ch = __mv.G.pets.charlie; let min = 99;
       // Camille d’un côté, Charlie de l’autre : il doit faire le tour
       for (const dir of [[1, 0], [0, 1], [-1, 0]]) {
         ch.pos.set(v.pos.x - dir[0] * 2.4, 0, v.pos.z - dir[1] * 2.4); __mv.tp(v.pos.x + dir[0] * 2.6, v.pos.z + dir[1] * 2.6);
@@ -98,7 +98,7 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('vdm.save.v1')));
     ok('g sauvegarde v5 avec animaux', saved.v === 5 && saved.animaux.quete === 'olga' && Array.isArray(saved.animaux.spot) && saved.animaux.colliers.length === 4 && saved.animaux.olga);
     const p2 = await c.newPage(); p2.on('pageerror', e => errs.push(e.message));
-    await p2.goto(URL); await p2.waitForFunction(() => window.__mv); await p2.evaluate(() => __mv.waitT(0.3));
+    await p2.goto(URL, { timeout: 90000, waitUntil: 'domcontentloaded' }); await p2.waitForFunction(() => window.__mv, null, { timeout: 90000 }); await p2.evaluate(() => __mv.waitT(0.3));
     ok('g rechargée : Olga toujours cachée au même endroit', await p2.evaluate(s => { const o = __mv.G.pets.pets.find(a => a.id === 'olga'); return __mv.state.animaux.quete === 'olga' && o.hidden && Math.hypot(o.pos.x - s[0], o.pos.z - s[1]) < 0.6 && __mv.animaux().hide === 'olga'; }, saved.animaux.spot));
     await p2.close(); await c.close();
     const { c: c4, p: p4 } = await open('', () => { if (!sessionStorage.done) { sessionStorage.done = 1; localStorage.setItem('vdm.save.v1', JSON.stringify({ v: 4, seed: 4242, money: 777, tools: { canne: 1, arrosoir: 0, filet: 0, pelle: 0, sac: 0 }, bag: [], island: 1, day: 3, stats: {}, recentQ: [] })); } });

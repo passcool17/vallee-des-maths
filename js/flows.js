@@ -105,7 +105,7 @@ export function makeFlows(G) {
     const line = v.nextLine(st.met[v.id] - 1);
     const opts = [];
     if (v.id === 'gaston') opts.push(['🔨 Voir l’établi', () => F.workbench()]);
-    if (v.id === 'ginette') { opts.push(['🛒 Acheter', () => F.shop()]); opts.push([st.animaux?.quete ? '🐾 Ma quête d’animaux' : '🐾 Quêtes des animaux', () => F.quetes()]); opts.push([`💰 Vendre le sac (${st.bag.length})`, () => F.sell()]); }
+    if (v.id === 'therese') { opts.push(['🛒 Acheter', () => F.shop()]); opts.push([st.animaux?.quete ? '🐾 Ma quête d’animaux' : '🐾 Quêtes des animaux', () => F.quetes()]); opts.push([`💰 Vendre le sac (${st.bag.length})`, () => F.sell()]); }
     if (v.id === 'flocon') { opts.push(['⭐ Un défi!', () => F.defi()]); opts.push(['📒 Mon carnet', () => F.carnet()]); }
     if (v.id === 'hortense') opts.push(['📖 Une leçon', () => F.lecons(1)]);
     if (v.id === 'rosalie') { opts.push(['🔧 Mon atelier (niveau 4)', () => F.workbench(2)]); opts.push([st.phare.done ? '🗼 Voir le phare' : '🗼 Réparer le phare', () => F.phare()]); opts.push(['⭐ Défi de secondaire 2', () => F.defi(undefined, 2)]); opts.push(['📖 Les notes d’Hortense', () => F.lecons(2)]); }
@@ -275,7 +275,7 @@ export function makeFlows(G) {
     const owned = it => it.kind === 'bridge' ? st.bridges[it.zone] : st.decor.includes(it.id);
     const rows = CATALOG.map(it => h('div', { class: `item ${owned(it) ? 'owned' : ''}` }, h('div', {}, h('b', {}, it.nom), h('p', {}, it.desc)), h('span', { class: 'price' }, fmtMoney(it.prixCents)),
       owned(it) ? h('span', { class: 'ok' }, '✓') : h('button', { class: 'btn primary small', 'data-item': it.id, onclick: () => { click(); F.checkout(it); } }, 'Acheter')));
-    open(h('div', {}, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, 'Magasin général'), h('p', { class: 'line' }, `Tu as ${fmtMoney(st.money)}. Les prix sont avant taxes, comme partout au Québec!`))), h('div', { class: 'items' }, rows),
+    open(h('div', {}, h('div', { class: 'who' }, face('therese'), h('div', {}, h('b', {}, 'Magasin général'), h('p', { class: 'line' }, `Tu as ${fmtMoney(st.money)}. Les prix sont avant taxes, comme partout au Québec!`))), h('div', { class: 'items' }, rows),
       h('button', { class: 'btn', onclick: () => { click(); F.sell(); } }, `💰 Vendre le sac (${st.bag.length})`)), { cls: 'shop' });
   };
   F.checkout = (it) => {
@@ -304,15 +304,15 @@ export function makeFlows(G) {
       if (misses >= 3 && !fb.nextSibling?.classList?.contains('detail')) fb.after(h('div', { class: 'detail' }, `Détail : prix ${q.rabais ? 'après rabais ' : ''}${fmtMoney(q.baseCents)} + TPS ${fmtMoney(q.tpsCents)} + TVQ ${fmtMoney(q.tvqCents)}. À toi d’additionner!`));
     };
     const fakeEx = { answer: { kind: 'num', fields: [{ label: 'Total ($)' }] } };
-    const content = h('div', { class: 'checkout' }, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, it.nom), h('p', { class: 'line' }, 'Calcule le total à payer, taxes incluses. Arrondis au cent près.'))), ticket, fb, hintsEl, h('div', { class: 'row tools' }, hintBtn, back));
+    const content = h('div', { class: 'checkout' }, h('div', { class: 'who' }, face('therese'), h('div', {}, h('b', {}, it.nom), h('p', { class: 'line' }, 'Calcule le total à payer, taxes incluses. Arrondis au cent près.'))), ticket, fb, hintsEl, h('div', { class: 'row tools' }, hintBtn, back));
     open(content, { cls: 'ex' }); box = answerBox(fakeEx, submit); content.append(box.el);
     F.cur = { kind: 'checkout', q, answer: () => (q.totalCents / 100).toFixed(2).replace('.', ',') };
   };
   F.sell = () => {
-    const st = S(); if (!st.bag.length) { open(h('div', { class: 'dialog' }, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, 'Ginette'), h('p', { class: 'line' }, 'Ton sac est vide! Va pêcher, creuser ou attraper des papillons.'))), h('button', { class: 'btn primary', onclick: () => ui.close() }, 'D’accord'))); return; }
+    const st = S(); if (!st.bag.length) { open(h('div', { class: 'dialog' }, h('div', { class: 'who' }, face('therese'), h('div', {}, h('b', {}, 'Thérèse'), h('p', { class: 'line' }, 'Ton sac est vide! Va pêcher, creuser ou attraper des papillons.'))), h('button', { class: 'btn primary', onclick: () => ui.close() }, 'D’accord'))); return; }
     const counts = {}; for (const k of st.bag) counts[k] = (counts[k] || 0) + 1;
     const total = st.bag.reduce((a, k) => a + (SELL[k] || 0), 0);
-    open(h('div', {}, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, 'Je rachète tout ça'), h('p', { class: 'line' }, 'Les papillons, je les relâche dans mon jardin. Promis!'))),
+    open(h('div', {}, h('div', { class: 'who' }, face('therese'), h('div', {}, h('b', {}, 'Je rachète tout ça'), h('p', { class: 'line' }, 'Les papillons, je les relâche dans mon jardin. Promis!'))),
       h('div', { class: 'items' }, Object.entries(counts).map(([k, n]) => h('div', { class: 'item' }, h('span', {}, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${n}`), h('span', { class: 'price' }, fmtMoney(SELL[k] * n))))),
       h('button', { class: 'btn primary', onclick: () => { st.money += total; st.journal.coins += total; st.bag = []; G.save(); audio.sfx('coin'); ui.toast(`💰 +${fmtMoney(total)}`, 'gold'); ui.close(); } }, `Vendre pour ${fmtMoney(total)}`)), { cls: 'shop' });
   };
@@ -354,7 +354,7 @@ export function makeFlows(G) {
         st.rares[key] = (st.rares[key] || 0) + 1; const jkey = q.kind === 'fish' ? 'rare' : q.kind === 'berry' ? 'bleuets' : 'sirop'; st.journal[jkey] = (st.journal[jkey] || 0) + 1; if (q.kind === 'fish') st.journal.fish++;
         audio.sfx('up');
         body = h('div', { class: 'celebrate actionwin' }, h('div', { class: 'big' }, ITEMS[key][0]), h('h3', {}, cfg.win(key)),
-          h('p', { class: 'benefit' }, got.coins ? `Ton sac est plein : Ginette te l’achète tout de suite, ${fmtMoney(got.coins)}.` : `Dans ton sac · vaut ${fmtMoney(SELL[key])} chez Ginette`),
+          h('p', { class: 'benefit' }, got.coins ? `Ton sac est plein : Thérèse te l’achète tout de suite, ${fmtMoney(got.coins)}.` : `Dans ton sac · vaut ${fmtMoney(SELL[key])} chez Thérèse`),
           h('p', { class: 'lvl' }, `Niveau ${NIVEAUX[q.d]}${q.stretch ? ' · ⭐ défi surprise réussi!' : ''}`));
       } else {
         audio.sfx(result === 'skip' ? 'click' : 'near');
@@ -391,19 +391,19 @@ export function makeFlows(G) {
   F.tick = dt => { if (F.cur?.kind === 'action' && !ovl()) F.cur.tick(dt); }; // fiche de théorie ouverte : le chrono attend
 
   // ---------- Carnet
-  // ---------- Quêtes des animaux (chez Ginette) : 3 par jour, dans un ordre qui tourne
+  // ---------- Quêtes des animaux (chez Thérèse) : 3 par jour, dans un ordre qui tourne
   F.quetes = () => {
     const st = S(), C = G.animaux, list = C.jour();
     const row = q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? q.indice : q.etat === 'faite' ? 'Faite aujourd’hui! Reviens demain.' : `${q.intro} Récompense : ${fmtMoney(q.cents)}${st.animaux.colliers.includes(q.collier) ? '' : ' + un collier pour Charlie'}.`)),
       q.etat === 'libre' && !st.animaux.quete ? h('button', { class: 'btn small primary', onclick: () => { click(); if (C.start(q.id)) ui.close(); } }, 'J’y vais!')
         : q.etat === 'active' ? h('button', { class: 'btn small', onclick: () => { click(); C.abandon(); F.quetes(); } }, 'Laisser tomber') : h('span', { class: 'lv m' }, q.etat === 'faite' ? '✅' : '⏳'));
-    open(h('div', { class: 'animaux' }, h('div', { class: 'who' }, face('ginette'), h('div', {}, h('b', {}, 'Les animaux de l’île'), h('p', { class: 'line' }, st.animaux.quete ? 'Une quête à la fois! Suis les indices.' : 'Mes chattes pis ton chien me font des misères… Tu m’aides?'))),
+    open(h('div', { class: 'animaux' }, h('div', { class: 'who' }, face('therese'), h('div', {}, h('b', {}, 'Les animaux de l’île'), h('p', { class: 'line' }, st.animaux.quete ? 'Une quête à la fois! Suis les indices.' : 'Mes chattes pis ton chien me font des misères… Tu m’aides?'))),
       list.map(row), h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { click(); ui.close(); } }, 'Fermer'))), { cls: 'talk' });
   };
   const animauxCarnet = st => { const a = st.animaux, C = G.animaux; if (!a || !C) return null; const list = C.jour();
     return h('section', { class: 'animaux' }, h('h4', {}, '🐾 Animaux'),
       h('p', { class: 'journal' }, `🐶 Charlie a rapporté ${Math.min(a.fetchN, FETCH_MAX)}/${FETCH_MAX} trouvailles aujourd’hui · 🏅 ${a.total} quête${a.total > 1 ? 's' : ''} réussie${a.total > 1 ? 's' : ''}`),
-      list.map(q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? `En cours — ${q.indice}` : q.etat === 'faite' ? 'Réussie aujourd’hui' : 'Demande à Ginette')), h('span', { class: `lv ${q.etat === 'faite' ? 'm' : q.etat === 'active' ? 'a' : 'd'}` }, q.etat === 'faite' ? 'Faite' : q.etat === 'active' ? 'En cours' : 'Libre'))),
+      list.map(q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? `En cours — ${q.indice}` : q.etat === 'faite' ? 'Réussie aujourd’hui' : 'Demande à Thérèse')), h('span', { class: `lv ${q.etat === 'faite' ? 'm' : q.etat === 'active' ? 'a' : 'd'}` }, q.etat === 'faite' ? 'Faite' : q.etat === 'active' ? 'En cours' : 'Libre'))),
       h('div', { class: 'ctools' }, a.colliers.map(c => h('span', { class: `chip collier${a.collier === c ? ' on' : ''}`, 'data-c': c, title: 'Mettre ce collier à Charlie', onclick: () => { click(); C.wear(c); F.carnet(F.carnetTab); } }, h('i', { style: `display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${COLLIERS[c][0]};margin-right:4px` }), COLLIERS[c][1])))); };
   F.carnet = (tab) => {
     const st = S(); const j = st.journal;

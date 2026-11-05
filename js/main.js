@@ -44,7 +44,7 @@ J.addGrass(world.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6cb946
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
-const allVillagers = makeVillagers(world.root, ['gaston', 'ginette', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
+const allVillagers = makeVillagers(world.root, ['gaston', 'therese', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
 function zoneFolkOk(v) { return (v.id !== 'lionel' || state.bridges.erables) && (v.id !== 'lise' || state.bridges.bleuets); }
 function zoneItOk(it) { return !((it.kind === 'sap' && !state.bridges.erables) || (it.kind === 'berry' && !state.bridges.bleuets)); }
 function syncZoneFolk() {
@@ -91,7 +91,7 @@ function updateFx(dt) {
   for (let i = hearts.length - 1; i >= 0; i--) { const h = hearts[i]; h.t -= dt; h.m.position.y += dt * 0.7; h.m.quaternion.copy(camera.quaternion); h.m.scale.setScalar(Math.min(1, (1.3 - h.t) * 6) * Math.min(1, h.t * 3) + 0.001); if (h.t <= 0) { scene.remove(h.m); hearts.splice(i, 1); } } for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t -= dt; f.vy -= 12 * dt; f.m.position.x += f.vx * dt; f.m.position.y += f.vy * dt; f.m.position.z += f.vz * dt; f.m.rotation.z += dt * 10; if (f.t <= 0 || f.m.position.y < -0.2) { scene.remove(f.m); fx.splice(i, 1); } } }
 
 const bagCap = () => stats('sac', state.tools.sac).cap;
-const bagAdd = key => { if (state.bag.length >= bagCap()) { ui.toast('🎒 Ton sac est plein! Va vendre chez Ginette (magasin général).'); return false; } state.bag.push(key); return true; };
+const bagAdd = key => { if (state.bag.length >= bagCap()) { ui.toast('🎒 Ton sac est plein! Va vendre chez Thérèse (magasin général).'); return false; } state.bag.push(key); return true; };
 const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cents; burst(x, z, Math.min(8, 2 + Math.round(cents / 50))); audio.sfx('coin'); };
 // Butin d’une question en action : dans le sac, ou payé tout de suite si le sac est plein
 // Animaux : Charlie qui rapporte, quêtes « Trouve Olga »… (petit cœur = émote)

@@ -19,14 +19,14 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 ### Charlie rapporte, quêtes des animaux
 
 - **Va chercher!** Quand on flatte Charlie, il part renifler un peu plus loin, puis revient avec une trouvaille dans la gueule et la dépose près de Camille : petit « ouaf », émote au-dessus de sa tête et toast « Charlie te rapporte… ». Il le fait aussi de lui-même de temps en temps quand Camille ne fait rien (jamais pendant une quête). **E** sur la trouvaille la ramasse : une pièce (25 à 100 ¢), une cocotte de pin, un coquillage, un bouton, une pépite ou, très rarement, un trilobite. On peut en revendre au magasin. Au plus **3 rapports par journée**, avec une pause de 40 s entre deux.
-- **Quêtes.** Ginette (« 🐾 Quêtes des animaux ») propose 3 quêtes qui tournent chaque jour : *Trouve Olga*, *Trouve Gisèle* et *La balle de Charlie*. Une à la fois, chacune une fois par jour. La cachette (10 possibles sur l’île 1, loin des villageois, des actions et du coin des chattes) a toujours un indice : une touffe d’arbuste, des traces de pattes, la queue qui dépasse, un miaou quand on s’approche à moins de 9 m (pour la balle, Charlie se tourne vers elle et jappe). La ligne en haut à droite dit si ça chauffe (Froid, Tiède, Ça chauffe…, Tout près!).
+- **Quêtes.** Thérèse (« 🐾 Quêtes des animaux ») propose 3 quêtes qui tournent chaque jour : *Trouve Olga*, *Trouve Gisèle* et *La balle de Charlie*. Une à la fois, chacune une fois par jour. La cachette (10 possibles sur l’île 1, loin des villageois, des actions et du coin des chattes) a toujours un indice : une touffe d’arbuste, des traces de pattes, la queue qui dépasse, un miaou quand on s’approche à moins de 9 m (pour la balle, Charlie se tourne vers elle et jappe). La ligne en haut à droite dit si ça chauffe (Froid, Tiède, Ça chauffe…, Tout près!).
 - **Récompenses.** Des sous (2 à 3 $) et, la première fois, un collier neuf pour Charlie (rose, vert, rouge, en plus du bleu). Le carnet a une section 🐾 : rapports du jour, quêtes du jour, et les colliers à choisir d’un tap.
 - Charlie contourne les obstacles et garde ses distances avec les villageois (0,9 m).
 
 ### Villageois (personnages fictifs)
 
 - **Gaston le castor** tient l’établi. Il améliore les outils.
-- **Ginette l’orignale** tient le Magasin général. Elle achète ce que tu as dans ton sac et vend du décor et des ponts.
+- **Thérèse l’orignale** tient le Magasin général. Elle achète ce que tu as dans ton sac et vend du décor et des ponts.
 - **Flocon le harfang** propose les défis (1,00 $ par bonne réponse), tient le carnet et anime les réchauffements.
 - **Hortense la tortue** est la bibliothécaire de l’île 1. Elle lit dans son coin lecture (banc, pile de livres, lutrin), entre l’établi et Flocon. « 📖 Une leçon » ouvre sa bibliothèque : une fiche de théorie par compétence (voir *Les leçons d’Hortense*).
 - **Rosalie la loutre** (île 2) garde le phare, tient l’atelier du niveau 4 et propose les défis de Secondaire 2.
@@ -46,7 +46,7 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 | Récolter la sève | chaudières de la cabane (après le pont des érables) | 0,50 $ à 1,50 $ par chaudière (recharge 45 s). Environ une fois sur trois, une question en bonus |
 | Cueillir les bleuets | plants de la bleuetière (après le pont des bleuets) | 0,50 $ à 1,50 $ par plant (recharge 40 s). Environ une fois sur trois, une question en bonus |
 
-Le contenu du sac se vend chez Ginette. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île : le **Pont de la Pointe-aux-Bleuets** (60,00 $) mène à Lise et à la bleuetière, à l’est ; le **Pont de la Colline des Érables** (90,00 $) mène à Lionel et à la cabane à sucre, au nord. Tant que le pont est fermé, on voit l’îlot de l’autre côté de l’eau, mais Lionel, Lise, la cabane, l’évaporateur et les plants à cueillir restent cachés.
+Le contenu du sac se vend chez Thérèse. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île : le **Pont de la Pointe-aux-Bleuets** (60,00 $) mène à Lise et à la bleuetière, à l’est ; le **Pont de la Colline des Érables** (90,00 $) mène à Lionel et à la cabane à sucre, au nord. Tant que le pont est fermé, on voit l’îlot de l’autre côté de l’eau, mais Lionel, Lise, la cabane, l’évaporateur et les plants à cueillir restent cachés.
 
 ### Questions en action (étape 2)
 
@@ -57,7 +57,7 @@ Les maths arrivent aussi pendant les gestes, mais jamais de force : chaque quest
   - Mauvaise réponse ou temps écoulé : le poisson se sauve avec un message gentil, la bonne réponse est montrée, et il n’y a aucune pénalité.
 - **Coup de sirop à l’érable.** Secouer un érable donne toujours ses sous (une pastille « +x $ » apparaît sous le HUD). Environ une fois sur trois, l’érable coule et propose une question de **fractions** (Sec 1). Bonne réponse : tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
 - **La sève coule!** Récolter une chaudière à la cabane de Lionel donne toujours ses sous. Environ une fois sur trois, Lionel passe une chaudière pleine et propose une question de **taux unitaire**, de **proportion directe**, de **périmètre et unités** ou d’**aires** (Sec 1). Bonne réponse : le même sirop que l’érable — tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
-- **Cueillette!** Cueillir un plant chez Lise donne toujours ses sous. Environ une fois sur trois, Lise tend un panier et propose une question de **dénombrement** ou de **moyenne et étendue**. Bonne réponse : barquette de bleuets (basique, 4 $), confiture de bleuets (standard, 8 $) ou confiture de grand-mère (avancé, 14 $). Ginette rachète tout ça au magasin.
+- **Cueillette!** Cueillir un plant chez Lise donne toujours ses sous. Environ une fois sur trois, Lise tend un panier et propose une question de **dénombrement** ou de **moyenne et étendue**. Bonne réponse : barquette de bleuets (basique, 4 $), confiture de bleuets (standard, 8 $) ou confiture de grand-mère (avancé, 14 $). Thérèse rachète tout ça au magasin.
 - **Niveaux.** Basique, standard ou avancé selon la maîtrise de la compétence, avec parfois un cran de plus. Plus c’est difficile, plus le butin est rare. La question porte surtout sur des compétences débloquées. Environ 15 % des fois, c’est un **⭐ défi surprise** sur une notion pas encore débloquée : niveau basique, 5 s de plus, et ça ne compte pas dans la maîtrise.
 - **Chrono généreux.** 20 s (basique), 25 s (standard), 30 s (avancé), plus 5 s pour les réponses à plusieurs champs ou en fraction. Les réponses « presque » donnent un coup de pouce au lieu d’un échec. Les indices 💡 restent offerts.
 - **Pause.** P ou le bouton ⏸ met le jeu en pause et fige le chrono. Si l’onglet est caché, la pause se met toute seule et attend « Reprendre ».
@@ -178,7 +178,7 @@ Chaque île a sa musique, en boucle : « Une petite île 1 » sur l’île de Se
 Tout est synthétisé en WebAudio (aucun fichier). Bus « vie » (0,8) sous la musique, baissé pendant les questions, coupé par 🔊/M (tout) ou 🐦/N (sons de vie seulement, `state.sons`). Rien ne joue avant le geste « Jouer ».
 - **Nappes** : vagues (bruit filtré 420 Hz, selon la distance à l’eau, hors bâtiments/arbres), vent dans les feuilles (selon les arbres à 9 m, coupé aux paliers bas), grillons la nuit (4,4 kHz hachés en rafales).
 - **Pas de Camille** au rythme de `walkPhase` : herbe, pierre (sentier), bois (quais), sable (rive).
-- **Créatures** (positionnées : volume (1−d/22)², panoramique gauche/droite) : Charlie jappe/halète (flatté, rapporte), Gisèle/Olga miaou + ronron (Olga plus aiguë), villageois « blablas » à hauteur propre (Lionel très grave et lent, Ginette grave, Hortense lente, Gaston moyen, Lise un peu plus aiguë, Bernard + cri du huard, Rosalie couinante, Flocon aiguë + hululement), oiseaux le jour, grenouilles la nuit près de l’eau, goélands près du phare/quai (île 2), lucioles muettes.
+- **Créatures** (positionnées : volume (1−d/22)², panoramique gauche/droite) : Charlie jappe/halète (flatté, rapporte), Gisèle/Olga miaou + ronron (Olga plus aiguë), villageois « blablas » à hauteur propre (Lionel très grave et lent, Thérèse grave, Hortense lente, Gaston moyen, Lise un peu plus aiguë, Bernard + cri du huard, Rosalie couinante, Flocon aiguë + hululement), oiseaux le jour, grenouilles la nuit près de l’eau, goélands près du phare/quai (île 2), lucioles muettes.
 - **Perf** : max 8 voix (5 aux paliers fxQ ≥ 3), un seul tampon de bruit partagé. Test : `node tools/test-sons.cjs`.
 
 ## Rendu (« joli »)

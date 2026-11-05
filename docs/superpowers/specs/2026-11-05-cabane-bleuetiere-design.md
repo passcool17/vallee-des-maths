@@ -20,7 +20,7 @@ Les maths restent **pendant l’action**, comme la pêche et les érables. Pas d
 | **Lionel** (papie) | orignal | nord / cabane | Accueil, explique la cabane, dialoguettes cozy |
 | **Lise** (mamie) | renarde | est / bleuetière | Accueil, explique la cueillette, dialoguettes cozy |
 
-Style low-poly comme Gaston / Ginette / Hortense. Fictifs. Voix « Animal Crossing » via `js/sons.js` (pitch distinct).
+Style low-poly comme Gaston / Thérèse / Hortense. Fictifs. Voix « Animal Crossing » via `js/sons.js` (pitch distinct).
 
 ## Colline des Érables — cabane
 
@@ -47,14 +47,14 @@ Interagir avec un plant prêt (recharge comparable aux plates-bandes).
 
 - Toujours quelques bleuets / sous.
 - Environ 1 fois sur 3 : question de **dénombrement** ou **moyenne**.
-- Butin : barquette (4 $), confiture (8 $), confiture de grand-mère (14 $) → sac → vente chez Ginette.
+- Butin : barquette (4 $), confiture (8 $), confiture de grand-mère (14 $) → sac → vente chez Thérèse.
 - Même règles de douceur (Laisser filer, indices, théorie, pas de pénalité).
 
 Les papillons et trous déjà présents à l’est **restent**.
 
 ## Accès
 
-Les ponts restent **payants** comme aujourd’hui (`pont_bleuets` 60 $, `pont_erables` 90 $ chez Ginette, ticket TPS/TVQ). Lionel et Lise ne sont accessibles qu’après l’ouverture du pont de leur zone. Les personnages / interactables de zone sont absents ou inactifs tant que le pont est fermé (même pattern que les papillons est).
+Les ponts restent **payants** comme aujourd’hui (`pont_bleuets` 60 $, `pont_erables` 90 $ chez Thérèse, ticket TPS/TVQ). Lionel et Lise ne sont accessibles qu’après l’ouverture du pont de leur zone. Les personnages / interactables de zone sont absents ou inactifs tant que le pont est fermé (même pattern que les papillons est).
 
 ## Technique
 

@@ -179,7 +179,7 @@ lionel: 'Lionel l’orignal', lise: 'Lise la renarde'
 ISLE_OF.lionel = 1; ISLE_OF.lise = 1;
 ```
 
-Mesh: clone/adapt `ginette` proportions for Lionel (taller moose), fox-like for Lise (smaller, orange/white). Keep low-poly.
+Mesh: clone/adapt `therese` proportions for Lionel (taller moose), fox-like for Lise (smaller, orange/white). Keep low-poly.
 
 `LINES.lionel` / `LINES.lise`: 4–6 short cozy lines (accueil cabane / bleuetière).
 
@@ -291,7 +291,7 @@ case 'berry': {
 
 On ACTION win, push loot id into `st.bag` / `st.rares` / journal (extend existing win switch on `q.kind`).
 
-- [ ] **Step 3: Ginette sell already uses bag item prices — verify barquette etc. sell**
+- [ ] **Step 3: Thérèse sell already uses bag item prices — verify barquette etc. sell**
 
 - [ ] **Step 4: Run full related suites**
 

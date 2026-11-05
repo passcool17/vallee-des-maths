@@ -1,4 +1,4 @@
-// Magasin général de Ginette : catalogue, devis avec rabais et taxes, vérification du total.
+// Magasin général de Thérèse : catalogue, devis avec rabais et taxes, vérification du total.
 import { parseAnswer } from './math/check.js';
 import { toNumber, fmtDec } from './math/frac.js';
 import { makeRng, hashSeed } from './math/rng.js';
@@ -15,7 +15,7 @@ export const CATALOG = [
   { id: 'pont_bleuets', nom: 'Pont de la Pointe-aux-Bleuets', prixCents: 6000, kind: 'bridge', zone: 'bleuets', desc: 'Ouvre l’îlot de l’est.' },
   { id: 'pont_erables', nom: 'Pont de la Colline des Érables', prixCents: 9000, kind: 'bridge', zone: 'erables', desc: 'Ouvre la colline du nord.' },
 ];
-// Ce que Ginette rachète (en cents)
+// Ce que Thérèse rachète (en cents)
 export const SELL = {
   perchaude: 150, achigan: 250, dore: 400, truite: 500, omble: 700, maskinonge: 1000, esturgeon: 1500,
   gros_dore: 900, saumon: 1400, bar: 2000,

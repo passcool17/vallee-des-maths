@@ -30,7 +30,15 @@ export function normalize(raw, seed) {
   return { ...base, ...raw, v: 5, animaux: normAnimaux(raw.animaux), stats: statsFrom(raw), recentQ: Array.isArray(raw.recentQ) ? raw.recentQ.filter(x => typeof x === 'string').slice(-4) : [], island: raw.island === 2 ? 2 : 1, ferry: !!raw.ferry, appats: Number.isFinite(raw.appats) ? Math.max(0, raw.appats) : 0,
     phare: { step: Math.max(0, Math.min(3, Number.isFinite(ph.step) ? ph.step : 0)), done: !!ph.done, redo: Number.isFinite(ph.redo) ? ph.redo : 0 }, kiosk: { day: Number.isFinite(obj(raw.kiosk).day) ? raw.kiosk.day : -1 }, tools: { ...base.tools, ...obj(raw.tools) }, upg: obj(raw.upg), mastery: obj(raw.mastery), bridges: { ...base.bridges, ...obj(raw.bridges) },
     journal: { ...base.journal, ...obj(raw.journal) }, rares: obj(raw.rares), quotes: obj(raw.quotes), day: Number.isFinite(raw.day) ? raw.day : 0,
-    bag: Array.isArray(raw.bag) ? raw.bag : [], decor: Array.isArray(raw.decor) ? raw.decor : [], met: obj(raw.met) };
+    bag: Array.isArray(raw.bag) ? raw.bag : [], decor: Array.isArray(raw.decor) ? raw.decor : [], met: migrateMet(obj(raw.met)) };
+}
+// Ancien id « ginette » → « therese » (compteur de dialogues) ; ne casse pas les parties en cours.
+function migrateMet(met) {
+  if (Object.prototype.hasOwnProperty.call(met, 'ginette')) {
+    if (!Object.prototype.hasOwnProperty.call(met, 'therese')) met.therese = met.ginette;
+    delete met.ginette;
+  }
+  return met;
 }
 function statsFrom(raw) {
   const out = {}, st = raw.stats && typeof raw.stats === 'object' && !Array.isArray(raw.stats) ? raw.stats : {};

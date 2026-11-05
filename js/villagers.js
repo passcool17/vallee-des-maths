@@ -1,4 +1,4 @@
-// Villageois (tous fictifs) — île 1 : Gaston le castor (établi), Ginette l’orignale (magasin), Flocon le harfang (défis et carnet).
+// Villageois (tous fictifs) — île 1 : Gaston le castor (établi), Thérèse l’orignale (magasin), Flocon le harfang (défis et carnet).
 // Hortense la tortue (bibliothécaire : leçons de théorie, coin lecture près du village).
 // Lionel l’orignal (cabane à sucre, nord) et Lise la renarde (bleuetière, est).
 // Île 2 : Rosalie la loutre (gardienne du phare, atelier niveau 4), Bernard le huard (kiosque de pêche).
@@ -12,8 +12,8 @@ export const LINES = {
     'Une digue, une canne à pêche, c’est pareil : faut que les calculs tiennent debout.',
     'Prends ton temps. Un castor pressé, ça fait des barrages tout croches.',
   ],
-  ginette: [
-    'Bienvenue au magasin général! Ginette, pour vous servir.',
+  therese: [
+    'Bienvenue au magasin général! Thérèse, pour vous servir.',
     'Pas de panache pour moi, mais j’ai le plus beau foulard de l’île!',
     'TPS 5 %, TVQ 9,975 %... je les sais par cœur, moi!',
     'Si ton sac déborde, je t’achète tes poissons pis tes trouvailles.',
@@ -57,10 +57,10 @@ export const LINES = {
     'Prends ton temps. Une renarde pressée, ça écrase les bleuets.',
   ],
 };
-export const NOMS = { gaston: 'Gaston le castor', ginette: 'Ginette l’orignale', flocon: 'Flocon le harfang', hortense: 'Hortense la tortue', rosalie: 'Rosalie la loutre', bernard: 'Bernard le huard', lionel: 'Lionel l’orignal', lise: 'Lise la renarde' };
-export const EMOJI = { gaston: '🦫', ginette: '🫎', flocon: '🦉', hortense: '🐢', rosalie: '🦦', bernard: '🐦', lionel: '🫎', lise: '🦊' };
-export const ISLE_OF = { gaston: 1, ginette: 1, flocon: 1, hortense: 1, rosalie: 2, bernard: 2, lionel: 1, lise: 1 };
-const HOMES = { gaston: [-9.2, -1.2], ginette: [15.6, -4.6], flocon: [0.4, -13.2], hortense: [-5.4, -8.7], rosalie: [13.4, -12.2], bernard: [8.8, 21.4], lionel: [-1.4, -43.6], lise: [43.2, 6.4] };
+export const NOMS = { gaston: 'Gaston le castor', therese: 'Thérèse l’orignale', flocon: 'Flocon le harfang', hortense: 'Hortense la tortue', rosalie: 'Rosalie la loutre', bernard: 'Bernard le huard', lionel: 'Lionel l’orignal', lise: 'Lise la renarde' };
+export const EMOJI = { gaston: '🦫', therese: '🫎', flocon: '🦉', hortense: '🐢', rosalie: '🦦', bernard: '🐦', lionel: '🫎', lise: '🦊' };
+export const ISLE_OF = { gaston: 1, therese: 1, flocon: 1, hortense: 1, rosalie: 2, bernard: 2, lionel: 1, lise: 1 };
+const HOMES = { gaston: [-9.2, -1.2], therese: [15.6, -4.6], flocon: [0.4, -13.2], hortense: [-5.4, -8.7], rosalie: [13.4, -12.2], bernard: [8.8, 21.4], lionel: [-1.4, -43.6], lise: [43.2, 6.4] };
 
 function gaston() {
   const g = new THREE.Group();
@@ -75,7 +75,7 @@ function gaston() {
   g.add(at(mesh(new THREE.BoxGeometry(0.5, 0.55, 0.08), '#5c7f99'), 0, 0.8, 0.52)); // tablier
   return g;
 }
-function ginette() {
+function therese() {
   const g = new THREE.Group();
   g.add(at(mesh(new THREE.BoxGeometry(0.9, 0.8, 1.4), '#6b4a30'), 0, 1.35, 0));
   for (const [lx, lz] of [[-0.3, -0.5], [0.3, -0.5], [-0.3, 0.5], [0.3, 0.5]]) g.add(at(mesh(new THREE.CylinderGeometry(0.08, 0.07, 1, 5), '#4d3424'), lx, 0.5, lz));
@@ -180,12 +180,12 @@ function lise() {
   return g;
 }
 
-const MAKERS = { gaston, ginette, flocon, hortense, rosalie, bernard, lionel, lise };
-export function makeVillagers(parent, ids = ['gaston', 'ginette', 'flocon', 'hortense', 'lionel', 'lise']) {
+const MAKERS = { gaston, therese, flocon, hortense, rosalie, bernard, lionel, lise };
+export function makeVillagers(parent, ids = ['gaston', 'therese', 'flocon', 'hortense', 'lionel', 'lise']) {
   return ids.map(id => {
     const makers = MAKERS;
-    const obj = new THREE.Group(), body = makers[id](); obj.add(body); obj.add(blob(id === 'lionel' ? 1.35 : id === 'ginette' ? 1.2 : id === 'lise' ? 0.65 : 0.8));
-    const tag = label(NOMS[id].split(' ')[0], { size: 30, scale: 0.9 }); tag.position.y = id === 'lionel' ? 3.7 : id === 'ginette' ? 3.3 : id === 'hortense' ? 1.85 : id === 'lise' ? 1.95 : 2.4; obj.add(tag);
+    const obj = new THREE.Group(), body = makers[id](); obj.add(body); obj.add(blob(id === 'lionel' ? 1.35 : id === 'therese' ? 1.2 : id === 'lise' ? 0.65 : 0.8));
+    const tag = label(NOMS[id].split(' ')[0], { size: 30, scale: 0.9 }); tag.position.y = id === 'lionel' ? 3.7 : id === 'therese' ? 3.3 : id === 'hortense' ? 1.85 : id === 'lise' ? 1.95 : 2.4; obj.add(tag);
     const [hx, hz] = HOMES[id]; obj.position.set(hx, 0, hz); parent.add(obj);
     let t = Math.random() * 5, wanderT = 2, goal = null, talk = 0;
     const V = { id, isle: ISLE_OF[id], nom: NOMS[id], obj, home: HOMES[id], pos: obj.position, tag, lines: LINES[id],

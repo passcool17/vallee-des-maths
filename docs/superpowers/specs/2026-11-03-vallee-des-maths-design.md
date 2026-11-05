@@ -12,18 +12,18 @@ Jeu navigateur « cozy » en français québécois : on se promène sur une peti
 - Ne rien pousser. Commits fréquents sur `feat/etape1`.
 
 ## Monde
-- Île principale ronde (r ≈ 30) avec : lac et quai (pêche), érables (secouer → sous), établi de Gaston, magasin général de Ginette, plates-bandes (arrosoir), taches à creuser (pelle), papillons (filet).
+- Île principale ronde (r ≈ 30) avec : lac et quai (pêche), érables (secouer → sous), établi de Gaston, magasin général de Thérèse, plates-bandes (arrosoir), taches à creuser (pelle), papillons (filet).
 - Deux îlots accessibles seulement après achat d'un pont : **Pointe-aux-Bleuets** (est, papillons rares) et **Colline des Érables** (nord, taches à creuser payantes, érables).
 - 4 moments de la journée (matin, midi, heure dorée, nuit) qui défilent (1 journée ≈ 8 min) avec palette pastel chaude, lumière douce, ombres douces, brouillard léger, lanternes la nuit. Monde courbé par un petit décalage du vertex shader (peu coûteux).
 
 ## Villageois (fictifs)
 - **Gaston le castor** — bricoleur de l'établi (améliorations).
-- **Ginette l'orignale** — tient le magasin général (achat, vente du sac).
+- **Thérèse l'orignale** — tient le magasin général (achat, vente du sac).
 - **Flocon le harfang** — prof sympathique : défis libres, carnet, échauffements et indices.
 Chacun a 4 répliques québécoises.
 
 ## Boucle
-Marcher → action contextuelle (E / bouton) : secouer un érable (sous directement dans le portefeuille), pêcher au bout du quai (attendre « Ça mord ! » puis réagir), attraper un papillon, creuser, arroser. Poissons, papillons et trouvailles vont dans le **sac** et se vendent chez Ginette. L'argent est en dollars (« piastres »), au cent près.
+Marcher → action contextuelle (E / bouton) : secouer un érable (sous directement dans le portefeuille), pêcher au bout du quai (attendre « Ça mord ! » puis réagir), attraper un papillon, creuser, arroser. Poissons, papillons et trouvailles vont dans le **sac** et se vendent chez Thérèse. L'argent est en dollars (« piastres »), au cent près.
 
 ## Outils (5 × 3 niveaux)
 Chaque outil commence au niveau 0 (de base) et monte à 3. Monter d'un niveau = **3 bonnes réponses** à la compétence liée. Une amélioration n'est offerte que si les prérequis « durs » de sa compétence sont maîtrisés.
@@ -42,7 +42,7 @@ Les 7 autres compétences (ari_05, ari_07, ari_08, pro_02, alg_04, geo_04, geo_0
 Après 2 erreurs de suite dans un exercice, Flocon propose : (a) un **échauffement** sur la compétence prérequise (dure, sinon molle ; sinon la même compétence en difficulté « base »), (b) des **indices gradués** (3 niveaux ; le dernier montre la démarche). Aucune perte d'argent ni de progression. Une réponse « équivalente mais pas réduite » quand on demande de réduire ne compte pas comme une erreur.
 
 ## Magasin général
-Ginette affiche un prix, parfois un rabais (10, 15, 20, 25, 30 ou 50 %), puis TPS 5 % + TVQ 9,975 %. Le joueur calcule le total au cent près (on accepte l'arrondi taxe par taxe ou global). Bonne réponse et assez d'argent → achat. Catalogue : nichoir, lanterne, massif de lupins, banc, feu de camp, chaise Adirondack, pont de la Pointe-aux-Bleuets, pont de la Colline des Érables. Le décor acheté apparaît dans le monde ; un pont ouvre son îlot. On démarre avec 25,00 $ pour pouvoir faire un premier achat tout de suite.
+Thérèse affiche un prix, parfois un rabais (10, 15, 20, 25, 30 ou 50 %), puis TPS 5 % + TVQ 9,975 %. Le joueur calcule le total au cent près (on accepte l'arrondi taxe par taxe ou global). Bonne réponse et assez d'argent → achat. Catalogue : nichoir, lanterne, massif de lupins, banc, feu de camp, chaise Adirondack, pont de la Pointe-aux-Bleuets, pont de la Colline des Érables. Le décor acheté apparaît dans le monde ; un pont ouvre son îlot. On démarre avec 25,00 $ pour pouvoir faire un premier achat tout de suite.
 
 ## Maths
 22 compétences de sec 1 (ids `qc_s1_<domaine>_<nn>`), forme inspirée de cn-math-taxonomy (nœud : id, nom, domaine, type, description, critères de maîtrise, références PDA ; arêtes : prérequis dur/mou) sans copier son contenu (CC BY-NC).
