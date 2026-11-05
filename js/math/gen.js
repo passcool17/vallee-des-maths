@@ -71,7 +71,7 @@ export const GEN = {
     if (d === 1) { const b1 = r.int(2, 10), b2 = r.int(2, 10); a = F(r.int(1, b1 - 1), b1); b = F(r.int(1, b2 - 1), b2); op = r.pick(['+', '−']); if (op === '−' && toNumber(a) < toNumber(b)) [a, b] = [b, a]; }
     else { const b1 = r.pick([2, 3, 4, 5, 6, 8]), b2 = r.pick([3, 4, 5, 6, 8, 10]); a = F(1, b1); b = F(r.int(1, Math.max(1, Math.floor(b2 / 3))), b2); if (toNumber(a) + toNumber(b) >= 1) b = F(1, b2 * 2); ctx = true; }
     const v = ctx ? sub(F(1), add(a, b)) : op === '+' ? add(a, b) : sub(a, b);
-    const prompt = ctx ? `Gaston a mangé ${fr(a)} de la tarte aux bleuets et Ginette ${fr(b)}. Quelle fraction de la tarte reste-t-il ?` : `Calcule : ${fr(a)} ${op} ${fr(b)}`;
+    const prompt = ctx ? `Gaston a mangé ${fr(a)} de la tarte aux bleuets et Thérèse ${fr(b)}. Quelle fraction de la tarte reste-t-il ?` : `Calcule : ${fr(a)} ${op} ${fr(b)}`;
     const m = lcm(a.d, b.d);
     return { prompt, answer: num(v), data: { a, b, op, ctx: !!ctx },
       hints: ['On ne peut additionner que des fractions qui ont le même dénominateur.', `Dénominateur commun : ${m}.`, ctx ? `La tarte entière vaut ${m}/${m}. Enlève ${a.n * m / a.d}/${m} et ${b.n * m / b.d}/${m}.` : `${fr(a)} = ${a.n * m / a.d}/${m} et ${fr(b)} = ${b.n * m / b.d}/${m}.`] };
@@ -114,7 +114,7 @@ export const GEN = {
     if (r.chance(0.5) && a !== b) return { prompt: `Le traversier jaune part toutes les ${a} minutes et le vert toutes les ${b} minutes. Ils partent ensemble à 8 h. Dans combien de minutes repartent-ils ensemble ?`, answer: num(lcm(a, b)), data: { mode: 'ppcm', a, b },
       hints: ['On cherche le plus petit multiple commun (PPCM).', `Multiples de ${a} : ${[1, 2, 3, 4, 5].map(x => x * a).join(', ')}…`, `Multiples de ${b} : ${[1, 2, 3, 4, 5].map(x => x * b).join(', ')}…`] };
     const A = a * r.int(2, 5), B = b * r.int(2, 5);
-    return { prompt: `Ginette a ${A} pommes et ${B} poires. Elle fait des paniers identiques, sans reste. Combien de paniers peut-elle faire, au maximum ?`, answer: num(gcd(A, B)), data: { mode: 'pgcd', A, B },
+    return { prompt: `Thérèse a ${A} pommes et ${B} poires. Elle fait des paniers identiques, sans reste. Combien de paniers peut-elle faire, au maximum ?`, answer: num(gcd(A, B)), data: { mode: 'pgcd', A, B },
       hints: ['On cherche le plus grand diviseur commun (PGCD).', `Diviseurs de ${A} : ${divisors(A).join(', ')}.`, `Diviseurs de ${B} : ${divisors(B).join(', ')}.`] };
   },
   qc_s1_ari_08(r, d) {

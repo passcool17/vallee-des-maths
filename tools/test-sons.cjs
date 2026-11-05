@@ -28,8 +28,8 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     ok('b plafond : jamais plus de 8 voix à la fois', capT.max <= 8 && capT.v <= 8 && capT.cap === 8, JSON.stringify(capT));
     await p.evaluate(() => __mv.waitT(1.5));
     // voix des créatures
-    await p.evaluate(() => { const v = __mv.G.villagers.find(q => q.id === 'ginette'); __mv.sons().talk(v); }); await p.evaluate(() => __mv.waitT(0.8));
-    ok('c Ginette parle en petits « blablas »', await has(p, 'blabla:ginette'));
+    await p.evaluate(() => { const v = __mv.G.villagers.find(q => q.id === 'therese'); __mv.sons().talk(v); }); await p.evaluate(() => __mv.waitT(0.8));
+    ok('c Thérèse parle en petits « blablas »', await has(p, 'blabla:therese'));
     await p.evaluate(() => { const ch = __mv.G.pets.charlie; __mv.tp(ch.pos.x + 0.5, ch.pos.z - 1); __mv.G.sons.pet(ch); }); await p.evaluate(() => __mv.waitT(0.6));
     ok('c flatter Charlie : jappement + halètement', await has(p, 'yip') && await has(p, 'pant'));
     await p.evaluate(() => __mv.waitT(1.2));

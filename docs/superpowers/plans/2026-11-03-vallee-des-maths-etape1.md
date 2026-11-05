@@ -10,7 +10,7 @@
 
 ## Global Constraints
 - Aucun build, aucune dépendance runtime autre que `vendor/three.module.min.js` ; chemins relatifs ; `.nojekyll`.
-- Textes en français québécois ; personnages fictifs (Gaston le castor, Ginette l'orignale, Flocon le harfang) ; aucun contenu d'Argon Valley.
+- Textes en français québécois ; personnages fictifs (Gaston le castor, Thérèse l'orignale, Flocon le harfang) ; aucun contenu d'Argon Valley.
 - Ids de compétences `qc_s1_<ari|pro|alg|prb|sta|geo>_<nn>` ; 22 compétences.
 - Amélioration = 3 bonnes réponses ; échauffement après 2 erreurs de suite ; aucune pénalité.
 - TPS 5 %, TVQ 9,975 % ; argent stocké en cents entiers.

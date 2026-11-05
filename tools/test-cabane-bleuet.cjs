@@ -126,14 +126,14 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
         emoji: { lionel: v.EMOJI.lionel, lise: v.EMOJI.lise },
         isle: { lionel: v.ISLE_OF.lionel, lise: v.ISLE_OF.lise },
         lines: { lionel: v.LINES.lionel && v.LINES.lionel.length, lise: v.LINES.lise && v.LINES.lise.length },
-        voix: s.VOIX && { lionel: s.VOIX.lionel, lise: s.VOIX.lise, ginette: s.VOIX.ginette, gaston: s.VOIX.gaston, flocon: s.VOIX.flocon },
+        voix: s.VOIX && { lionel: s.VOIX.lionel, lise: s.VOIX.lise, therese: s.VOIX.therese, gaston: s.VOIX.gaston, flocon: s.VOIX.flocon },
         spawned: all.map(x => x.id),
       };
     });
     ok('i NOMS exposés sur __mv : Lionel l’orignal, Lise la renarde', !!(vil.nomsMv && vil.nomsMv.lionel === 'Lionel l’orignal' && vil.nomsMv.lise === 'Lise la renarde'), JSON.stringify(vil.nomsMv));
     ok('i NOMS / EMOJI / ISLE_OF', !!(vil.noms.lionel === 'Lionel l’orignal' && vil.noms.lise === 'Lise la renarde' && vil.emoji.lionel === '🫎' && vil.emoji.lise === '🦊' && vil.isle.lionel === 1 && vil.isle.lise === 1), JSON.stringify({ noms: vil.noms, emoji: vil.emoji, isle: vil.isle }));
     ok('i LINES lionel et lise : 4 à 6 répliques', !!(vil.lines.lionel >= 4 && vil.lines.lionel <= 6 && vil.lines.lise >= 4 && vil.lines.lise <= 6), JSON.stringify(vil.lines));
-    ok('i VOIX : Lionel grave et lent, Lise medium-high', !!(vil.voix && vil.voix.lionel && vil.voix.lise && vil.voix.lionel.f < vil.voix.ginette.f && vil.voix.lionel.gap > vil.voix.ginette.gap && vil.voix.lise.f > vil.voix.gaston.f && vil.voix.lise.f < vil.voix.flocon.f), JSON.stringify(vil.voix));
+    ok('i VOIX : Lionel grave et lent, Lise medium-high', !!(vil.voix && vil.voix.lionel && vil.voix.lise && vil.voix.lionel.f < vil.voix.therese.f && vil.voix.lionel.gap > vil.voix.therese.gap && vil.voix.lise.f > vil.voix.gaston.f && vil.voix.lise.f < vil.voix.flocon.f), JSON.stringify(vil.voix));
     ok('i makeVillagers produit lionel et lise', !!(vil.spawned.includes('lionel') && vil.spawned.includes('lise')), JSON.stringify(vil.spawned));
 
     const gated = await p.evaluate(() => {
@@ -293,7 +293,7 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
       const rows = [...document.querySelectorAll('#panel .item')].map(el => el.textContent);
       return { btn, rows, prev };
     });
-    ok('k Ginette rachète barquette, confiture et confiture de grand-mère (4 $ + 8 $ + 14 $)',
+    ok('k Thérèse rachète barquette, confiture et confiture de grand-mère (4 $ + 8 $ + 14 $)',
       sell.btn.includes('26,00') && sell.rows.some(r => /Barquette de bleuets/.test(r) && /4,00/.test(r))
       && sell.rows.some(r => /Confiture de bleuets/.test(r) && /8,00/.test(r))
       && sell.rows.some(r => /Confiture de grand-mère/.test(r) && /14,00/.test(r)), JSON.stringify(sell));

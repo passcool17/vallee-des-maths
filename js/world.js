@@ -302,7 +302,7 @@ export function buildWorld(scene, G) {
     root.add(at(g, x, 0, z)); obstacles.push({ x: x - 1, z, r: 1.1 }, { x: x + 1, z, r: 1.1 });
     interactables.push({ id: 'etabli', kind: 'etabli', pos: new THREE.Vector3(x, 0, z + 1.2), r: 2.6, label: 'Utiliser l’établi', obj: g }); }
 
-  // ---------- Magasin général de Ginette
+  // ---------- Magasin général de Thérèse
   { const [x, z] = PLACES.magasin; const g = new THREE.Group();
     g.add(at(mesh(new THREE.BoxGeometry(6, 3.2, 4.4), '#f3e3c3'), 0, 1.6, 0));
     const roof = mesh(new THREE.CylinderGeometry(0.01, 4.1, 2, 4, 1), '#b9473a'); roof.rotation.y = Math.PI / 4; roof.scale.set(1.15, 1, 0.85); roof.position.y = 4.2; g.add(roof);
