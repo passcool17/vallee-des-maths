@@ -20,6 +20,7 @@ export const SELL = {
   perchaude: 150, achigan: 250, dore: 400, truite: 500, omble: 700, maskinonge: 1000, esturgeon: 1500,
   gros_dore: 900, saumon: 1400, bar: 2000,
   tire: 300, sirop: 600, coulee: 1200,
+  barquette: 400, confiture: 800, confiture_mamie: 1400,
   monarque: 200, amiral: 250, lune: 600,
   capsule: 50, bouton: 100, cle: 300, pepite: 800, trilobite: 1500,
   cocotte: 75, coquillage: 125,

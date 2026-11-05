@@ -7,14 +7,14 @@ import { makePlayer } from './player.js';
 import { makeVie } from './vie.js';
 import { makePets, heart } from './pets.js';
 import { makeCompagnons } from './compagnons.js';
-import { makeVillagers } from './villagers.js';
+import { makeVillagers, NOMS } from './villagers.js';
 import { makeInput } from './input.js';
 import { makeUI, fmtMoney } from './ui.js';
 import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
 import { makeSons } from './sons.js';
 import { stats, canFerry } from './progression.js';
-import { rareBiteChance, pickQuestion, MAPLE_CHANCE, useBait } from './actionq.js';
+import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait } from './actionq.js';
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
@@ -44,7 +44,18 @@ J.addGrass(world.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6cb946
 for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
-const allVillagers = makeVillagers(world.root); G.allVillagers = allVillagers;
+const allVillagers = makeVillagers(world.root, ['gaston', 'ginette', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
+function zoneFolkOk(v) { return (v.id !== 'lionel' || state.bridges.erables) && (v.id !== 'lise' || state.bridges.bleuets); }
+function zoneItOk(it) { return !((it.kind === 'sap' && !state.bridges.erables) || (it.kind === 'berry' && !state.bridges.bleuets)); }
+function syncZoneFolk() {
+  for (const v of allVillagers) {
+    if (v.id === 'lionel') v.obj.visible = !!state.bridges.erables;
+    else if (v.id === 'lise') v.obj.visible = !!state.bridges.bleuets;
+  }
+}
+const _openBridge = world.openBridge;
+world.openBridge = zone => { _openBridge(zone); syncZoneFolk(); };
+syncZoneFolk();
 let isle2 = null;
 function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); J.addGrass(isle2.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6fae58', count: 2400, ok: (x, z) => isle2.walkable(x, z, state) }); J.dress(isle2.root); return isle2; }
 if (state.island === 2) ensureIsle2();
@@ -87,7 +98,7 @@ const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cen
 const emote = (a, y = 0.9) => hearts.push({ m: heart(scene, a.pos.x, y, a.pos.z), t: 1.3 });
 const comp = makeCompagnons({ G, state, scene, pets, rng, ui, audio, earn, bagAdd, emote, W: () => W(), player }); G.animaux = comp;
 G.grant = key => { if (state.bag.length < bagCap()) { state.bag.push(key); return { bag: true }; } const c = SELL[key] || 0; earn(c, player.pos.x, player.pos.z); return { coins: c }; };
-// Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, q: { skill, d, stretch } }
+// Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, sap: true|false, berry: true|false, q: { skill, d, stretch } }
 const force = {};
 const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng, state.island === 2 ? 2 : 1);
 
@@ -129,8 +140,8 @@ function reel() {
 function nearest() {
   const p = player.pos; let best = null, bd = Infinity;
   const consider = (o, d, r) => { if (d < r && d < bd) { bd = d; best = o; } };
-  for (const v of villagers) consider({ kind: 'npc', v, label: `Parler à ${v.nom.split(' ')[0]}`, pos: v.pos }, Math.hypot(p.x - v.pos.x, p.z - v.pos.z), 2.4);
-  for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
+  for (const v of villagers) if (zoneFolkOk(v)) consider({ kind: 'npc', v, label: `Parler à ${v.nom.split(' ')[0]}`, pos: v.pos }, Math.hypot(p.x - v.pos.x, p.z - v.pos.z), 2.4);
+  for (const it of W().interactables) if (zoneItOk(it)) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
   for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
   // la cachette de quête / la trouvaille gagnent sur l’érable voisin quand elles sont à portée
@@ -165,6 +176,24 @@ function interact(target = nearest()) {
       if (sirop) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'maple', ...question('maple') }); });
       break;
     }
+    case 'sap': {
+      if (state.island === 2 || !state.bridges.erables) break;
+      if (G.time < it.ready) { ui.toast('🪣 Cette chaudière se remplit. Reviens tantôt!'); break; }
+      it.ready = G.time + (it.cooldown || 45); audio.sfx('shake'); player.busyFor(0.5);
+      const cents = 50 + rng.int(0, 100); setTimeout(() => { earn(cents, it.pos.x, it.pos.z); ui.gain(cents); }, 350);
+      const hit = 'sap' in force ? force.sap : rng.chance(MAPLE_CHANCE); delete force.sap;
+      if (hit) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'sap', ...question('sap') }); });
+      break;
+    }
+    case 'berry': {
+      if (state.island === 2 || !state.bridges.bleuets) break;
+      if (G.time < it.ready) { ui.toast('🫐 Les bleuets poussent encore. Reviens tantôt!'); break; }
+      it.ready = G.time + (it.cooldown || 40); audio.sfx('catch'); player.busyFor(0.5);
+      const cents = 50 + rng.int(0, 100); setTimeout(() => { earn(cents, it.pos.x, it.pos.z); ui.gain(cents); }, 350);
+      const hit = 'berry' in force ? force.berry : rng.chance(BERRY_CHANCE); delete force.berry;
+      if (hit) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'berry', ...question('berry') }); });
+      break;
+    }
     case 'bed': {
       const s = stats('arrosoir', state.tools.arrosoir); const ready = W().beds.filter(b => G.time >= b.ready).sort((a, b) => a.pos.distanceTo(player.pos) - b.pos.distanceTo(player.pos)).slice(0, s.beds);
       if (!ready.length) { ui.toast('🌱 Les fleurs repoussent. Patience!'); break; }
@@ -197,7 +226,7 @@ function onTap(cx, cy) {
   if (fishing.state) { reel(); return; }
   const r = canvas.getBoundingClientRect();
   // 1) Un objet interactif près du doigt (en coordonnées écran, pour tenir compte de la courbure)
-  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position })), ...comp.targets()];
+  const cands = [...villagers.filter(zoneFolkOk).map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables.filter(zoneItOk), ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position })), ...comp.targets()];
   let best = null, bd = 46;
   for (const c of cands) { tmp.set(c.pos.x, (c.kind === 'npc' ? 1.2 : 0.6) - curveDrop(c.pos.x, c.pos.z), c.pos.z).project(camera); const sx = (tmp.x + 1) / 2 * r.width + r.left, sy = (1 - tmp.y) / 2 * r.height + r.top; const d = Math.hypot(sx - cx, sy - cy); if (tmp.z < 1 && d < bd) { bd = d; best = c; } }
   if (!best) { let pd = 30; for (const a of pets.visible(state.island)) { tmp.set(a.pos.x, 0.4 - curveDrop(a.pos.x, a.pos.z), a.pos.z).project(camera); const d = Math.hypot((tmp.x + 1) / 2 * r.width + r.left - cx, (1 - tmp.y) / 2 * r.height + r.top - cy); if (tmp.z < 1 && d < pd) { pd = d; best = { kind: 'pet', p: a, pos: a.pos, r: 1.6 }; } } }
@@ -327,7 +356,7 @@ G.travel = async (to, { instant = false } = {}) => {
 
 // Crochet de test (lecture seule pour l’essentiel)
 window.__mv = {
-  G, state, world, player, flows, renderer, scene,
+  G, state, world, player, flows, renderer, scene, NOMS,
   waitT, force,
   tp: (x, z) => player.teleport(x, z),
   answer: () => flows.cur && flows.cur.answer(),

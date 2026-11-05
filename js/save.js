@@ -5,7 +5,7 @@ export function newState(seed = (Math.random() * 1e9) | 0) {
   return {
     v: 5, seed, money: 2500, tools: { canne: 0, arrosoir: 0, filet: 0, pelle: 0, sac: 0 }, upg: {},
     mastery: {}, bag: [], decor: [], bridges: { bleuets: false, erables: false },
-    pos: { x: 2, z: 6 }, clock: 0.3, exCount: 0, muted: false, met: {}, journal: { fish: 0, bugs: 0, finds: 0, coins: 0, flowers: 0, rare: 0, sirop: 0 },
+    pos: { x: 2, z: 6 }, clock: 0.3, exCount: 0, muted: false, met: {}, journal: { fish: 0, bugs: 0, finds: 0, coins: 0, flowers: 0, rare: 0, sirop: 0, bleuets: 0 },
     // Étape 2 : prises rares par type, devis gardés jusqu’à l’achat ou au jour suivant, compteur de jours
     rares: {}, quotes: {}, day: 0,
     // Secondaire 2 : île courante, traversier, phare, appâts rares, kiosque de Bernard

@@ -6,7 +6,12 @@ import { pickAdaptive, missRate } from './adapt.js';
 
 export const NIVEAUX = ['basique', 'standard', 'avancé'];
 export const FRACTION_SKILLS = ['qc_s1_ari_03', 'qc_s1_ari_04', 'qc_s1_ari_05', 'qc_s1_ari_06'];
+// Cabane : proportions (taux unitaire, proportion directe) + mesure la plus proche des volumes (unités SI, aires).
+export const SAP_SKILLS = ['qc_s1_pro_01', 'qc_s1_pro_02', 'qc_s1_geo_02', 'qc_s1_geo_03'];
+// Bleuetière : dénombrement + moyenne et étendue
+export const BERRY_SKILLS = ['qc_s1_prb_01', 'qc_s1_sta_01'];
 export const MAPLE_CHANCE = 0.33;
+export const BERRY_CHANCE = 0.33;
 export const STRETCH_CHANCE = 0.15, BUMP_CHANCE = 0.2;
 
 // Chance qu’une touche soit « rare » : 25 % de base, jusqu’à ~40 % avec la canne niveau 3.
@@ -15,14 +20,24 @@ export const rareBiteChance = canneLevel => 0.25 + stats('canne', canneLevel).ra
 // Butin selon la difficulté (clé d’objet du sac)
 export const RARE_FISH = ['omble', 'maskinonge', 'esturgeon'];
 export const SIROP = ['tire', 'sirop', 'coulee'];
+export const BLEUETS = ['barquette', 'confiture', 'confiture_mamie'];
 // Île de Secondaire 2 : gros doré (trophée), saumon atlantique, bar rayé
 export const RARE_FISH2 = ['gros_dore', 'saumon', 'bar'];
-export const loot = (kind, d, isle = 1) => (kind === 'fish' ? (isle === 2 ? RARE_FISH2 : RARE_FISH) : SIROP)[Math.max(0, Math.min(2, d))];
+export const loot = (kind, d, isle = 1) => {
+  const i = Math.max(0, Math.min(2, d));
+  if (kind === 'fish') return (isle === 2 ? RARE_FISH2 : RARE_FISH)[i];
+  if (kind === 'berry') return BLEUETS[i];
+  return SIROP[i]; // maple et sap
+};
 
 // Choisit la compétence et la difficulté. rng : { next(), chance(p), pick(list) }.
 // isle = 2 : questions de secondaire 2 (pêche au quai de Bernard, érables rouges).
 export function pickQuestion(state, kind, rng, isle = 1) {
-  const pool = isle === 2 ? SKILLS2.map(s => s.id) : kind === 'maple' ? FRACTION_SKILLS : SKILLS.map(s => s.id);
+  const pool = isle === 2 ? SKILLS2.map(s => s.id)
+    : kind === 'maple' ? FRACTION_SKILLS
+    : kind === 'sap' ? SAP_SKILLS
+    : kind === 'berry' ? BERRY_SKILLS
+    : SKILLS.map(s => s.id);
   const open = pool.filter(id => isUnlocked(state, id));
   const locked = pool.filter(id => !isUnlocked(state, id));
   if ((locked.length && rng.chance(STRETCH_CHANCE)) || !open.length) {

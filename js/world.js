@@ -195,11 +195,99 @@ export function buildWorld(scene, G) {
   maple(PLACES.erable[0], PLACES.erable[1] - 2.2, 1.6, true).label = 'Secouer le Grand Érable';
   // îlot des érables : érablière avec chaudières
   for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + 0.4, it = maple(-4 + Math.cos(a) * 6.5, -47 + Math.sin(a) * 6.5, 1.05); it.zone = 'erables'; it.obj.add(at(mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.3, 6), '#b8c2c8'), 0.36, 1.2, 0)); }
-  // cabane à sucre
-  { const g = new THREE.Group(); g.add(at(mesh(new THREE.BoxGeometry(4, 2.4, 3), '#9a6a45'), 0, 1.2, 0)); const roof = mesh(new THREE.ConeGeometry(3.4, 1.6, 4), '#7b3b2c'); roof.rotation.y = Math.PI / 4; roof.position.y = 3.2; roof.scale.set(1, 1, 0.8); g.add(roof); g.add(at(mesh(new THREE.BoxGeometry(0.5, 1.4, 0.5), '#6e6e6e'), 1, 4, 0)); g.add(at(mesh(new THREE.BoxGeometry(1, 1.6, 0.1), '#5b3a24'), 0, 0.8, 1.52)); g.add(blob(3)); const sg = label('Cabane à sucre', { size: 30 }); sg.position.set(0, 4.6, 0); g.add(sg); root.add(at(g, -4, 0, -47)); obstacles.push({ x: -4, z: -47, r: 2.4 }); }
-  // îlot des bleuets : buissons
+  // Cabane à sucre + chaudières (visible une fois le pont des érables ouvert)
+  const cabaneDecor = new THREE.Group(); root.add(cabaneDecor);
+  {
+    const g = new THREE.Group();
+    g.add(at(mesh(new THREE.BoxGeometry(4, 2.4, 3), '#9a6a45'), 0, 1.2, 0));
+    const roof = mesh(new THREE.ConeGeometry(3.4, 1.6, 4), '#7b3b2c'); roof.rotation.y = Math.PI / 4; roof.position.y = 3.2; roof.scale.set(1, 1, 0.8); g.add(roof);
+    g.add(at(mesh(new THREE.BoxGeometry(0.5, 1.4, 0.5), '#6e6e6e'), 1, 4, 0));
+    g.add(at(mesh(new THREE.BoxGeometry(1, 1.6, 0.1), '#5b3a24'), 0, 0.8, 1.52));
+    g.add(blob(3));
+    const sg = label('Cabane à sucre', { size: 30 }); sg.position.set(0, 4.6, 0); g.add(sg);
+    cabaneDecor.add(at(g, -4, 0, -47)); obstacles.push({ x: -4, z: -47, r: 2.4 });
+  }
+  {
+    const ev = new THREE.Group();
+    ev.add(at(mesh(new THREE.CylinderGeometry(0.58, 0.68, 1.35, 8), '#6e6e6e'), 0, 0.78, 0));
+    ev.add(at(mesh(new THREE.BoxGeometry(1.5, 0.22, 1.05), '#4a4a50'), 0, 0.12, 0));
+    ev.add(at(mesh(new THREE.BoxGeometry(1.15, 0.12, 0.72), '#3a3a40'), 0, 1.48, 0));
+    ev.add(at(mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.55, 6), '#5a5a60'), 0.35, 1.85, 0));
+    ev.add(blob(1.2));
+    cabaneDecor.add(at(ev, -6.5, 0, -48.4)); obstacles.push({ x: -6.5, z: -48.4, r: 0.85 });
+  }
+  {
+    const bn = new THREE.Group();
+    bn.add(at(mesh(new THREE.BoxGeometry(2.0, 0.14, 0.55), '#b07b4f'), 0, 0.52, 0));
+    bn.add(at(mesh(new THREE.BoxGeometry(2.0, 0.45, 0.12), '#b07b4f'), 0, 0.88, -0.24));
+    for (const lx of [-0.8, 0.8]) bn.add(at(mesh(new THREE.BoxGeometry(0.12, 0.5, 0.48), '#6b4a30'), lx, 0.25, 0));
+    cabaneDecor.add(at(bn, -6.6, 0, -44.8, 0.4)); obstacles.push({ x: -6.6, z: -44.8, r: 0.85 });
+  }
+  const SAP_POS = [[-7.2, -46.4], [-6.6, -49.2], [-2.2, -50.0], [-0.6, -47.4], [-5.8, -44.4]];
+  SAP_POS.forEach(([x, z], i) => {
+    const g = new THREE.Group();
+    g.add(at(mesh(new THREE.CylinderGeometry(0.18, 0.26, 1.7, 6), '#7a5236'), 0, 0.85, 0));
+    g.add(at(mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.3, 6), '#b8c2c8'), 0.36, 1.05, 0));
+    g.add(blob(0.7));
+    cabaneDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.4 });
+    interactables.push({ id: `sap_${i}`, kind: 'sap', zone: 'erables', pos: new THREE.Vector3(x, 0, z), r: 1.65, label: 'Récolter la sève', obj: g, ready: 0, cooldown: 45 });
+  });
+  const smoke = [];
+  const SMOKE_MAX = 5;
+  for (let i = 0; i < SMOKE_MAX; i++) {
+    const puff = mesh(new THREE.SphereGeometry(0.14, 6, 5), '#d8d4cc', { transparent: true, opacity: 0.42 });
+    puff.userData = { x: -6.5, z: -48.4, phase: i * 0.37 };
+    cabaneDecor.add(puff); smoke.push(puff);
+  }
+
+  // Bleuetière : rangées de plants + table de tri (visible une fois le pont des bleuets ouvert)
+  const bleuetDecor = new THREE.Group(); root.add(bleuetDecor);
   const bleuets = [];
-  for (let i = 0; i < 9; i++) { const a = rng.next() * 6.283, d = 2 + rng.next() * 6; const x = 46 + Math.cos(a) * d, z = 4 + Math.sin(a) * d; const g = new THREE.Group(); g.add(at(mesh(new THREE.IcosahedronGeometry(0.8, 0), '#4f8a4a'), 0, 0.6, 0)); for (let k = 0; k < 6; k++) g.add(at(mesh(new THREE.IcosahedronGeometry(0.13, 0), '#3d4f9e'), Math.cos(k) * 0.65, 0.5 + (k % 3) * 0.25, Math.sin(k) * 0.65)); root.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.7 }); bleuets.push(g); }
+  function bushMesh(scale = 1, berries = 6) {
+    const g = new THREE.Group();
+    g.add(at(mesh(new THREE.IcosahedronGeometry(0.55 * scale, 0), '#4f8a4a'), 0, 0.42 * scale, 0));
+    for (let k = 0; k < berries; k++) g.add(at(mesh(new THREE.IcosahedronGeometry(0.11 * scale, 0), '#3d4f9e'), Math.cos(k * 1.15) * 0.42 * scale, 0.38 * scale + (k % 3) * 0.16 * scale, Math.sin(k * 1.15) * 0.42 * scale));
+    return g;
+  }
+  const BERRY_POS = [[44.6, 1.8], [46.2, 1.8], [47.8, 1.8], [45.4, 4.6], [47.0, 4.6]];
+  BERRY_POS.forEach(([x, z], i) => {
+    const g = bushMesh(1); bleuetDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.55 }); bleuets.push(g);
+    interactables.push({ id: `berry_${i}`, kind: 'berry', zone: 'bleuets', pos: new THREE.Vector3(x, 0, z), r: 1.7, label: 'Cueillir les bleuets', obj: g, ready: 0, cooldown: 40 });
+  });
+  const extraBushes = [], extraBushObs = [];
+  for (let i = 0; i < 4; i++) {
+    const a = i / 4 * 6.283 + 0.3, d = 6.2 + (i % 2) * 0.55;
+    const x = 46 + Math.cos(a) * d, z = 4 + Math.sin(a) * d;
+    const g = bushMesh(0.9, 4); bleuetDecor.add(at(g, x, 0, z)); extraBushObs.push({ x, z, r: 0.6 }); bleuets.push(g); extraBushes.push(g);
+  }
+  {
+    const tb = new THREE.Group();
+    tb.add(at(mesh(new THREE.BoxGeometry(1.8, 0.12, 1.1), '#b07b4f'), 0, 0.85, 0));
+    for (const [lx, lz] of [[-0.75, -0.4], [0.75, -0.4], [-0.75, 0.4], [0.75, 0.4]]) tb.add(at(mesh(new THREE.BoxGeometry(0.12, 0.85, 0.12), '#8a5a36'), lx, 0.42, lz));
+    tb.add(at(mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.32, 7), '#c4a574'), -0.45, 1.08, 0.1));
+    tb.add(at(mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.28, 7), '#3d4f9e'), 0.4, 1.06, -0.12));
+    tb.add(at(mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.22, 6), '#c4a574'), 0.55, 0.22, 0.55));
+    const sg = label('Bleuetière', { size: 26, scale: 0.8 }); sg.position.set(0, 1.7, 0); tb.add(sg);
+    tb.add(blob(1.3));
+    bleuetDecor.add(at(tb, 48.4, 0, 6.8, -0.4)); obstacles.push({ x: 48.4, z: 6.8, r: 1.05 });
+  }
+  const touchFx = typeof window !== 'undefined' && 'ontouchstart' in window ? 0.6 : 1;
+  let fxMul = () => touchFx;
+  import('./joli.js').then(m => { fxMul = () => { try { return m.fxQ().fx * touchFx; } catch { return touchFx; } }; }).catch(() => {});
+  function syncZoneDecor(state) {
+    const e = !!(state && state.bridges && state.bridges.erables), b = !!(state && state.bridges && state.bridges.bleuets);
+    cabaneDecor.visible = e; bleuetDecor.visible = b;
+    const q = fxMul();
+    const nSmoke = Math.max(1, Math.round(SMOKE_MAX * q));
+    for (let i = 0; i < smoke.length; i++) smoke[i].visible = e && i < nSmoke;
+    const nBush = Math.max(1, Math.round(extraBushes.length * q));
+    for (let i = 0; i < extraBushes.length; i++) {
+      const vis = b && i < nBush; extraBushes[i].visible = vis;
+      const ob = extraBushObs[i], idx = obstacles.indexOf(ob);
+      if (vis && idx < 0) obstacles.push(ob); else if (!vis && idx >= 0) obstacles.splice(idx, 1);
+    }
+  }
+  syncZoneDecor(G.state);
 
   // ---------- Établi de Gaston
   { const [x, z] = PLACES.etabli; const g = new THREE.Group();
@@ -291,7 +379,7 @@ export function buildWorld(scene, G) {
     for (let i = 0; i < L / 0.55; i++) { const p = mesh(new THREE.BoxGeometry(horiz ? 0.48 : 2.9, 0.14, horiz ? 2.9 : 0.48), i % 2 ? '#b88a5c' : '#a77a4f'); const t = (i + 0.5) * 0.55; const arch = Math.sin(t / L * Math.PI) * 0.2; deck.add(at(p, horiz ? b.x0 + t : cx, 0.05 + arch, horiz ? cz : b.z0 + t)); }
     for (const side of [-1.4, 1.4]) { const rail = mesh(new THREE.BoxGeometry(horiz ? L : 0.1, 0.1, horiz ? 0.1 : L), '#8a5a36'); rail.position.set(horiz ? cx : cx + side, 1.1, horiz ? cz + side : cz); deck.add(rail); }
     deck.visible = false; g.add(deck); g.userData.deck = deck; root.add(g); bridgeObjs[zone] = g; }
-  function openBridge(zone) { const g = bridgeObjs[zone]; if (!g) return; g.userData.deck.visible = true; g.userData.sign.visible = false; }
+  function openBridge(zone) { const g = bridgeObjs[zone]; if (!g) return; g.userData.deck.visible = true; g.userData.sign.visible = false; if (G.state) G.state.bridges[zone] = true; syncZoneDecor(G.state); }
 
   // ---------- Marcher
   function walkable(x, z, state) {
@@ -335,8 +423,17 @@ export function buildWorld(scene, G) {
       b.g.visible = vis; const x = b.home[0] + Math.sin(b.t * 0.7) * 3 + Math.sin(b.t * 1.9) * 0.8, z = b.home[1] + Math.cos(b.t * 0.5) * 3, y = 1.1 + Math.sin(b.t * 3) * 0.3;
       b.g.position.set(x, y, z); b.g.rotation.y = Math.atan2(Math.cos(b.t * 0.7) * 0.7, -Math.sin(b.t * 0.5) * 0.5); const f = Math.sin(wt * 16 + b.t) * 0.9; b.lw.rotation.z = f; b.rw.rotation.z = -f; }
     for (const d of Object.values(decor)) if (d.userData.flame) { d.userData.flame.scale.y = 1 + Math.sin(wt * 9) * 0.15; }
-    for (const g of bleuets) g.rotation.y = Math.sin(wt * 0.5 + g.position.x) * 0.03;
+    for (const g of bleuets) if (g.visible) g.rotation.y = Math.sin(wt * 0.5 + g.position.x) * 0.03;
+    syncZoneDecor(G.state);
+    if (cabaneDecor.visible) {
+      for (const s of smoke) {
+        if (!s.visible) continue;
+        const t = wt * 0.45 + s.userData.phase, rise = (t % 1);
+        s.position.set(s.userData.x + Math.sin(t * 2.1) * 0.16, 1.6 + rise * 1.7, s.userData.z + Math.cos(t * 1.7) * 0.12);
+        s.scale.setScalar(0.65 + rise * 1.15);
+      }
+    }
   }
   const fishSpot = { x: 6, z: DOCK.z1 - 0.8, fx: 6, fz: DOCK.z1 + 3 };
-  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS, water, ferry, fishSpot, isle: 1, sky, sun, hemi, stars };
+  return { update, setTime, interactables, walkable, zoneOf, placeDecor, openBridge, butterflies, beds, digs, bobber, decor, root, obstacles, BUGS, water, ferry, fishSpot, isle: 1, sky, sun, hemi, stars, smoke };
 }
