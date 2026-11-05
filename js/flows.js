@@ -27,6 +27,11 @@ marigane: ['🐟', 'Marigane noire'], omble_ch: ['🐠', 'Omble chevalier'], est
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
   cocotte: ['🌰', 'Cocotte de pin'], coquillage: ['🐚', 'Coquillage'],
 };
+export const RODS = [
+  { id: 'petite', nom: 'Canne de base', prixCents: 0, desc: 'Quai de l’île 1 — petits poissons.' },
+  { id: 'moyenne', nom: 'Canne moyenne', prixCents: 7500, desc: 'Spot de Lise — poissons moyens.' },
+  { id: 'grosse', nom: 'Canne grosse', prixCents: 15000, desc: 'Spot de Lionel — gros poissons.' },
+];
 const SHOP_SKILL = 'qc_s1_ari_08'; // magasin : rabais en pourcentage + taxes
 const dots = (n, max = MASTERY) => h('span', { class: 'dots', 'aria-label': `${Math.min(n, max)} sur ${max}` }, Array.from({ length: max }, (_, i) => h('i', { class: i < n ? 'on' : '' })));
 // 3 étoiles sur l’île 1 ; une 4e (secondaire 2) une fois le traversier ouvert
@@ -138,10 +143,42 @@ export function makeFlows(G) {
       }
       return h('div', { class: `tool ${!up ? 'done' : up.unlocked ? '' : 'lock'}` }, h('div', { class: 'ticon' }, t.icone), h('div', { class: 'tbody' }, h('div', { class: 'thead' }, h('b', {}, t.nom), h('span', { class: 'stars' }, stars(lvl, max))), body));
     });
+    const stRods = st.rods || { petite: true, moyenne: false, grosse: false };
+    const rodRows = isle === 1 ? h('div', { class: 'rods' },
+      h('h4', {}, 'Cannes'),
+      ...RODS.map(r => {
+        const owned = !!stRods[r.id];
+        const body = owned
+          ? h('p', { class: 'max' }, 'Possédée')
+          : h('div', { class: 'row' },
+              h('button', {
+                class: 'btn primary', 'data-rod': r.id,
+                onclick: () => { click(); F.buyRod(r.id); },
+              }, r.prixCents ? `Acheter · ${fmtMoney(r.prixCents)}` : 'Prendre'));
+        return h('div', { class: `rod ${owned ? 'owned' : ''}`, 'data-rod': r.id },
+          h('div', { class: 'ticon' }, '🎣'),
+          h('div', { class: 'tbody' },
+            h('div', { class: 'thead' }, h('b', {}, r.nom), h('span', { class: 'price' }, r.prixCents ? fmtMoney(r.prixCents) : 'Offerte')),
+            h('p', { class: 'benefit' }, r.desc), body));
+      })) : null;
     const who = isle === 2 ? face('rosalie') : face('gaston');
     const title = isle === 2 ? 'L’atelier de Rosalie' : 'L’établi de Gaston';
     const line = isle === 2 ? 'Niveau 4 : 3 bonnes réponses dans une compétence de secondaire 2. Ici, on travaille fin!' : 'Chaque amélioration : 3 bonnes réponses dans une compétence. Pas de presse!';
-    open(h('div', {}, h('div', { class: 'who' }, who, h('div', {}, h('b', {}, title), h('p', { class: 'line' }, line))), h('div', { class: 'tools' }, cards)), { cls: 'bench' });
+    open(h('div', {}, h('div', { class: 'who' }, who, h('div', {}, h('b', {}, title), h('p', { class: 'line' }, line))), h('div', { class: 'tools' }, cards), rodRows), { cls: 'bench' });
+  };
+
+  F.buyRod = (id) => {
+    const st = S(), rod = RODS.find(r => r.id === id); if (!rod) return;
+    if (!st.rods) st.rods = { petite: true, moyenne: false, grosse: false };
+    if (st.rods[id]) { ui.toast(`Tu as déjà la ${rod.nom.toLowerCase()}.`); return; }
+    if (rod.prixCents <= 0) { st.rods[id] = true; G.save(); return; }
+    if (st.money < rod.prixCents) {
+      ui.toast(`Il te manque ${fmtMoney(rod.prixCents - st.money)} pour la ${rod.nom.toLowerCase()}.`);
+      return;
+    }
+    st.money -= rod.prixCents; st.rods[id] = true; G.save(); audio.sfx('coin');
+    ui.toast(`🎣 ${rod.nom} achetée!`, 'gold');
+    F.workbench(1);
   };
 
   // ---------- Champs de réponse + pavé

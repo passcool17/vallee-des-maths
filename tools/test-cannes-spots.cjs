@@ -83,6 +83,34 @@ ok('b ITEMS labels québécois',
   && pools.items.laquaiche[1] === 'Laquaiche aux yeux d’or'
   && pools.items.marigane[1] === 'Marigane noire', JSON.stringify(pools.items));
 
+
+    const rodsUi = await p.evaluate(async () => {
+      const fl = await import('./js/flows.js');
+      __mv.state.money = 20000;
+      __mv.state.rods = { petite: true, moyenne: false, grosse: false };
+      __mv.flows.workbench(1);
+      const rows = [...document.querySelectorAll('#panel .rods .rod')].map(el => ({
+        id: el.dataset.rod,
+        owned: el.classList.contains('owned'),
+        btn: el.querySelector('button')?.textContent || null,
+      }));
+      return { RODS: fl.RODS, rows, money: __mv.state.money };
+    });
+    ok('c RODS : petite 0, moyenne 7500, grosse 15000',
+      rodsUi.RODS && rodsUi.RODS[0].id === 'petite' && rodsUi.RODS[0].prixCents === 0
+      && rodsUi.RODS[1].prixCents === 7500 && rodsUi.RODS[2].prixCents === 15000, JSON.stringify(rodsUi.RODS));
+    ok('c UI Cannes : petite owned, moyenne achetable',
+      rodsUi.rows.length === 3 && rodsUi.rows[0].owned && !rodsUi.rows[1].owned
+      && /75/.test(rodsUi.rows[1].btn || ''), JSON.stringify(rodsUi.rows));
+
+    const bought = await p.evaluate(() => {
+      const btn = document.querySelector('#panel .rods .rod[data-rod="moyenne"] button');
+      if (btn) btn.click();
+      return { rods: { ...__mv.state.rods }, money: __mv.state.money };
+    });
+    ok('c buyRod moyenne : −75 $ et owned',
+      bought.rods.moyenne === true && bought.money === 12500, JSON.stringify(bought));
+
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
   ok('z 0 erreur console', errs.length === 0, errs.slice(0, 5).join(' | '));
