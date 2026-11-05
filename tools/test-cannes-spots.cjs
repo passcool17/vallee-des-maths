@@ -12,6 +12,21 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     await p.goto(BASE + q); await p.waitForFunction(() => window.__mv, null, { timeout: 30000 }); await p.click('#play'); await p.evaluate(() => __mv.waitT(0.6));
     return { c, p };
   }
+  const typeAnswer = async p => {
+    await p.waitForFunction(() => __mv.flows.cur && !document.querySelector('#panel .feedback.ok'), null, { timeout: 5000 });
+    const info = await p.evaluate(() => { const c = __mv.flows.cur; return { kind: c.ex ? c.ex.answer.kind : 'num', ans: c.answer() }; });
+    if (info.kind === 'choice') {
+      const btns = p.locator('#panel .btn.choice'); const n = await btns.count();
+      for (let i = 0; i < n; i++) if ((await btns.nth(i).textContent()) === info.ans) { await btns.nth(i).click(); break; }
+      await p.click('#panel .validate'); return info.ans;
+    }
+    const parts = info.ans.split(' ; ');
+    for (let f = 0; f < parts.length; f++) {
+      await p.click(`#panel .field[data-f="${f}"]`);
+      for (const ch of parts[f]) await p.click(`#panel .numpad [data-k="${ch === '-' || ch === '−' ? '−' : ch === '.' ? ',' : ch}"]`);
+    }
+    await p.click('#panel .numpad [data-k="✓"]'); return info.ans;
+  };
   try {
     const { c, p } = await open();
 
@@ -194,6 +209,37 @@ ok('b ITEMS labels québécois',
     const gotG = await fishOnce(p, 'quai_lionel', { rodState: { petite: true, moyenne: true, grosse: true } });
     ok('e Lionel + grosse → laquaiche|coregone|barbotte',
       gotG.bag.some(k => ['laquaiche', 'coregone', 'barbotte'].includes(k)), JSON.stringify(gotG));
+
+    // Task 6: rares moyenne/grosse + régression île 2
+    await p.evaluate(() => __mv.waitT(0.2));
+    await p.evaluate(() => {
+      __mv.state.rods = { petite: true, moyenne: true, grosse: true };
+      __mv.state.bag = []; __mv.state.rares = {};
+      __mv.flows.actionQ({ kind: 'fish', rod: 'moyenne', skill: 'qc_s1_ari_01', d: 1, stretch: true });
+    });
+    await typeAnswer(p);
+    await p.waitForSelector('#panel .actionwin');
+    const afterM = await p.evaluate(() => ({ bag: __mv.state.bag.slice(), rares: { ...__mv.state.rares } }));
+    ok('f rare moyenne → touladi', afterM.bag.includes('touladi') || afterM.rares.touladi >= 1, JSON.stringify(afterM));
+    await p.click('#panel .action .btn.primary');
+    await p.evaluate(() => __mv.waitT(0.2));
+
+    await p.evaluate(() => {
+      __mv.state.bag = []; __mv.state.rares = {};
+      __mv.flows.actionQ({ kind: 'fish', rod: 'grosse', skill: 'qc_s1_ari_01', d: 2, stretch: true });
+    });
+    await typeAnswer(p);
+    await p.waitForSelector('#panel .actionwin');
+    const afterG = await p.evaluate(() => ({ bag: __mv.state.bag.slice(), rares: { ...__mv.state.rares } }));
+    ok('f rare grosse → esturgeon_n', afterG.bag.includes('esturgeon_n') || afterG.rares.esturgeon_n >= 1, JSON.stringify(afterG));
+    await p.click('#panel .action .btn.primary');
+    await p.evaluate(() => __mv.waitT(0.2));
+
+    const i2 = await p.evaluate(async () => {
+      const aq = await import('./js/actionq.js');
+      return { a: aq.loot('fish', 0, 2, 'petite'), b: aq.loot('fish', 1, 2, 'moyenne'), c: aq.loot('fish', 2, 2, 'grosse') };
+    });
+    ok('f île 2 RARE_FISH2 inchangé', i2.a === 'gros_dore' && i2.b === 'saumon' && i2.c === 'bar', JSON.stringify(i2));
 
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
