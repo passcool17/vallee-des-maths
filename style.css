@@ -99,6 +99,15 @@ body.modal #touch, body.modal #prompt { display: none; }
 .locked { color: var(--soft); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .max { color: var(--green); font-weight: 800; }
 
+/* Cannes (établi Gaston) */
+.rods { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.rods > h4 { margin: 2px 0 0; font-size: 15px; color: var(--soft); letter-spacing: .02em; }
+.rod { display: flex; gap: 12px; background: #fff; border-radius: 16px; padding: 12px; border: 2px solid var(--line); }
+.rod.owned { border-color: var(--green); }
+.rod p { margin: 4px 0; }
+.rod .row { justify-content: space-between; margin-top: 6px; }
+.rod .price { color: var(--soft); font-size: 14px; font-weight: 800; }
+
 /* Exercice */
 .exhead h3 { margin: 6px 0 4px; font-size: 20px; padding-right: 36px; }
 .prog { display: flex; gap: 10px; align-items: center; font-weight: 800; color: var(--soft); font-size: 14px; padding-right: 40px; }
