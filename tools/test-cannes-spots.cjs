@@ -111,6 +111,41 @@ ok('b ITEMS labels québécois',
     ok('c buyRod moyenne : −75 $ et owned',
       bought.rods.moyenne === true && bought.money === 12500, JSON.stringify(bought));
 
+    const spotsClosed = await p.evaluate(() => {
+      const its = __mv.world.interactables.filter(i => i.kind === 'fish');
+      return {
+        ids: its.map(i => i.id),
+        rods: Object.fromEntries(its.map(i => [i.id, i.rod])),
+        zones: Object.fromEntries(its.map(i => [i.id, i.zone || null])),
+        bridges: { ...__mv.state.bridges },
+        // visible via parent décor (bleuetDecor / cabaneDecor) — obj.visible seul ne reflète pas le gate
+        liseVis: (() => { const o = its.find(i => i.id === 'quai_lise')?.obj; return !!(o && o.visible && o.parent && o.parent.visible); })(),
+        lionelVis: (() => { const o = its.find(i => i.id === 'quai_lionel')?.obj; return !!(o && o.visible && o.parent && o.parent.visible); })(),
+        quaiSpot: its.find(i => i.id === 'quai')?.spot || null,
+      };
+    });
+    ok('d quai + quai_lise + quai_lionel existent avec rods',
+      spotsClosed.ids.includes('quai') && spotsClosed.ids.includes('quai_lise') && spotsClosed.ids.includes('quai_lionel')
+      && spotsClosed.rods.quai === 'petite' && spotsClosed.rods.quai_lise === 'moyenne' && spotsClosed.rods.quai_lionel === 'grosse',
+      JSON.stringify(spotsClosed));
+    ok('d ponts fermés : quais Lise/Lionel non visibles (parent décor)',
+      spotsClosed.liseVis === false && spotsClosed.lionelVis === false, JSON.stringify(spotsClosed));
+
+    await p.evaluate(() => {
+      __mv.world.openBridge('bleuets');
+      __mv.world.openBridge('erables');
+    });
+    await p.evaluate(() => __mv.waitT(0.2));
+    const spotsOpen = await p.evaluate(() => {
+      const its = __mv.world.interactables.filter(i => i.kind === 'fish');
+      return {
+        liseVis: (() => { const o = its.find(i => i.id === 'quai_lise')?.obj; return !!(o && o.visible && o.parent && o.parent.visible); })(),
+        lionelVis: (() => { const o = its.find(i => i.id === 'quai_lionel')?.obj; return !!(o && o.visible && o.parent && o.parent.visible); })(),
+      };
+    });
+    ok('d ponts ouverts : quais Lise/Lionel visibles',
+      spotsOpen.liseVis && spotsOpen.lionelVis, JSON.stringify(spotsOpen));
+
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
   ok('z 0 erreur console', errs.length === 0, errs.slice(0, 5).join(' | '));

@@ -271,6 +271,19 @@ export function buildWorld(scene, G) {
     tb.add(blob(1.3));
     bleuetDecor.add(at(tb, 48.4, 0, 6.8, -0.4)); obstacles.push({ x: 48.4, z: 6.8, r: 1.05 });
   }
+  function makeShoreDock(parent, { id, x, z, fx, fz, rod, zone, labelText }) {
+    const g = new THREE.Group();
+    for (let i = 0; i < 4; i++) g.add(at(mesh(new THREE.BoxGeometry(1.8, 0.14, 0.42), i % 2 ? '#b88a5c' : '#a77a4f'), 0, 0.05, i * 0.45));
+    for (const px of [-0.85, 0.85]) g.add(at(mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 5), '#7a5236'), px, -0.4, 1.5));
+    const sg = label(labelText, { size: 22, scale: 0.75 }); sg.position.set(0, 1.6, 0.6); g.add(sg);
+    parent.add(at(g, x, 0, z));
+    obstacles.push({ x, z, r: 0.9 });
+    const spot = { x, z, fx, fz };
+    interactables.push({ id, kind: 'fish', rod, zone, pos: new THREE.Vector3(x, 0, z), r: 1.8, label: 'Pêcher', obj: g, spot });
+    return spot;
+  }
+  makeShoreDock(bleuetDecor, { id: 'quai_lise', x: 52, z: 6, fx: 56, fz: 6, rod: 'moyenne', zone: 'bleuets', labelText: 'Quai de Lise' });
+  makeShoreDock(cabaneDecor, { id: 'quai_lionel', x: -4, z: -56, fx: -4, fz: -60, rod: 'grosse', zone: 'erables', labelText: 'Quai de Lionel' });
   const touchFx = typeof window !== 'undefined' && 'ontouchstart' in window ? 0.6 : 1;
   let fxMul = () => touchFx;
   import('./joli.js').then(m => { fxMul = () => { try { return m.fxQ().fx * touchFx; } catch { return touchFx; } }; }).catch(() => {});
@@ -323,7 +336,7 @@ export function buildWorld(scene, G) {
     for (let i = 0; i <= 3; i++) for (const px of [4.75, 7.25]) g.add(at(mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.8, 6), '#7a5236'), px, -0.5, DOCK.z0 + 2 + i * (len - 2) / 3));
     g.add(at(mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 8), '#d64545'), 7.6, -0.62, DOCK.z1 + 1.6)); // flotteur
     root.add(g);
-    interactables.push({ id: 'quai', kind: 'fish', pos: new THREE.Vector3(6, 0, DOCK.z1 - 0.8), r: 1.8, label: 'Pêcher', obj: g }); }
+    interactables.push({ id: 'quai', kind: 'fish', rod: 'petite', pos: new THREE.Vector3(6, 0, DOCK.z1 - 0.8), r: 1.8, label: 'Pêcher', obj: g, spot: { x: 6, z: DOCK.z1 - 0.8, fx: 6, fz: DOCK.z1 + 3 } }); }
   const bobber = at(mesh(new THREE.SphereGeometry(0.16, 8, 6), '#ff5a4a'), 6, -0.55, DOCK.z1 + 2.2); bobber.visible = false; root.add(bobber);
 
   // ---------- Traversier (vers l’île de Secondaire 2)
