@@ -334,7 +334,7 @@ export function makeFlows(G) {
   ACTION.maple2 = { ...ACTION.maple, titre: 'L’érable rouge coule!', line: 'Une question de secondaire 2 pour remplir ton seau. Tu peux aussi laisser filer.' };
   F.ACTION = ACTION;
   F.actionQ = (q) => {
-    const st = S(), isle = st.island === 2 ? 2 : 1, cfg = ACTION[q.kind + (isle === 2 ? '2' : '')]; st.exCount = (st.exCount || 0) + 1;
+    const st = S(), isle = st.island === 2 ? 2 : 1, cfg = ACTION[q.kind + (isle === 2 ? '2' : '')] || ACTION[q.kind]; st.exCount = (st.exCount || 0) + 1;
     const ex = makeExercise(q.skill, `${st.seed}:${st.exCount}:${q.kind}`, q.d);
     const sk = skillById(q.skill), timer = makeTimer(timeFor(ex, q));
     let settled = false, hintN = 0;

@@ -14,7 +14,7 @@ import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
 import { makeSons } from './sons.js';
 import { stats, canFerry } from './progression.js';
-import { rareBiteChance, pickQuestion, MAPLE_CHANCE, useBait } from './actionq.js';
+import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait } from './actionq.js';
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
@@ -98,7 +98,7 @@ const earn = (cents, x, z) => { state.money += cents; state.journal.coins += cen
 const emote = (a, y = 0.9) => hearts.push({ m: heart(scene, a.pos.x, y, a.pos.z), t: 1.3 });
 const comp = makeCompagnons({ G, state, scene, pets, rng, ui, audio, earn, bagAdd, emote, W: () => W(), player }); G.animaux = comp;
 G.grant = key => { if (state.bag.length < bagCap()) { state.bag.push(key); return { bag: true }; } const c = SELL[key] || 0; earn(c, player.pos.x, player.pos.z); return { coins: c }; };
-// Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, q: { skill, d, stretch } }
+// Forçage pour les tests : __mv.force = { rare: true|false, maple: true|false, sap: true|false, berry: true|false, q: { skill, d, stretch } }
 const force = {};
 const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng, state.island === 2 ? 2 : 1);
 
@@ -174,6 +174,24 @@ function interact(target = nearest()) {
       // Coup de sirop : parfois, une question (facultative) en bonus — secondaire 2 sur les érables rouges
       const sirop = 'maple' in force ? force.maple : rng.chance(it.red ? Math.max(0.45, MAPLE_CHANCE) : MAPLE_CHANCE); delete force.maple;
       if (sirop) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'maple', ...question('maple') }); });
+      break;
+    }
+    case 'sap': {
+      if (state.island === 2 || !state.bridges.erables) break;
+      if (G.time < it.ready) { ui.toast('🪣 Cette chaudière se remplit. Reviens tantôt!'); break; }
+      it.ready = G.time + (it.cooldown || 45); audio.sfx('shake'); player.busyFor(0.5);
+      const cents = 50 + rng.int(0, 100); setTimeout(() => { earn(cents, it.pos.x, it.pos.z); ui.gain(cents); }, 350);
+      const hit = 'sap' in force ? force.sap : rng.chance(MAPLE_CHANCE); delete force.sap;
+      if (hit) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'sap', ...question('sap') }); });
+      break;
+    }
+    case 'berry': {
+      if (state.island === 2 || !state.bridges.bleuets) break;
+      if (G.time < it.ready) { ui.toast('🫐 Les bleuets poussent encore. Reviens tantôt!'); break; }
+      it.ready = G.time + (it.cooldown || 40); audio.sfx('catch'); player.busyFor(0.5);
+      const cents = 50 + rng.int(0, 100); setTimeout(() => { earn(cents, it.pos.x, it.pos.z); ui.gain(cents); }, 350);
+      const hit = 'berry' in force ? force.berry : rng.chance(BERRY_CHANCE); delete force.berry;
+      if (hit) waitT(0.8).then(() => { if (!ui.isOpen) flows.actionQ({ kind: 'berry', ...question('berry') }); });
       break;
     }
     case 'bed': {

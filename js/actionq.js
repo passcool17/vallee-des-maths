@@ -11,6 +11,7 @@ export const SAP_SKILLS = ['qc_s1_pro_01', 'qc_s1_pro_02', 'qc_s1_geo_02', 'qc_s
 // Bleuetière : dénombrement + moyenne et étendue
 export const BERRY_SKILLS = ['qc_s1_prb_01', 'qc_s1_sta_01'];
 export const MAPLE_CHANCE = 0.33;
+export const BERRY_CHANCE = 0.33;
 export const STRETCH_CHANCE = 0.15, BUMP_CHANCE = 0.2;
 
 // Chance qu’une touche soit « rare » : 25 % de base, jusqu’à ~40 % avec la canne niveau 3.

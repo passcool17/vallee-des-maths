@@ -183,6 +183,123 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     ok('j Lionel et Lise visibles une fois les ponts ouverts', zone.folk.length === 2 && zone.folk.every(v => v.vis === true), JSON.stringify(zone.folk));
     ok('j fumée de l’évaporateur présente (densité fxQ)', zone.smoke >= 1 && zone.smokeVis <= zone.smoke, JSON.stringify({ smoke: zone.smoke, smokeVis: zone.smokeVis }));
 
+    const chances = await p.evaluate(async () => {
+      const aq = await import('./js/actionq.js');
+      return { maple: aq.MAPLE_CHANCE, berry: aq.BERRY_CHANCE };
+    });
+    ok('k MAPLE_CHANCE et BERRY_CHANCE ≈ 1/3', chances.maple === 0.33 && chances.berry === 0.33, JSON.stringify(chances));
+
+    const sapQ = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'sap');
+      const money = __mv.state.money;
+      __mv.tp(it.pos.x, it.pos.z + 0.4);
+      __mv.force.sap = true;
+      __mv.force.q = { skill: 'qc_s1_pro_01', d: 0 };
+      __mv.G.interact(it);
+      return { money, ready: it.ready, t: __mv.G.time, cd: it.cooldown };
+    });
+    await p.waitForFunction(m => __mv.state.money > m, sapQ.money, { timeout: 2500 }).catch(() => {});
+    await p.evaluate(() => __mv.waitT(1.0));
+    await p.waitForSelector('#panel .action.sap', { timeout: 5000 });
+    const sapPanel = await p.evaluate(() => ({
+      titre: document.querySelector('#panel .who b')?.textContent,
+      cls: document.querySelector('#panel .action.sap') && true,
+      money: __mv.state.money,
+      skill: __mv.flows.cur && __mv.flows.cur.q && __mv.flows.cur.q.skill,
+    }));
+    ok('k force.sap : sous de base donnés', sapPanel.money > sapQ.money, JSON.stringify({ before: sapQ.money, after: sapPanel.money }));
+    ok('k force.sap : question « La sève coule! »', sapPanel.titre === 'La sève coule!' && sapPanel.cls && sapPanel.skill === 'qc_s1_pro_01', JSON.stringify(sapPanel));
+    ok('k sap : recharge ~45 s', sapQ.ready >= sapQ.t + 44 && sapQ.cd === 45, JSON.stringify(sapQ));
+    await p.click('#panel .btn.skip');
+    await p.waitForSelector('#panel .actionlose');
+    await p.click('#panel .action .btn.primary');
+    await p.evaluate(() => __mv.waitT(0.2));
+
+    const sapCd = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'sap' && __mv.G.time < i.ready);
+      const money = __mv.state.money;
+      __mv.force.sap = true;
+      __mv.G.interact(it);
+      const toast = document.querySelector('#toasts .toast')?.textContent || '';
+      return { toast, moneyNow: __mv.state.money, money, panel: !!document.querySelector('#panel .action.sap') };
+    });
+    ok('k sap en recharge : toast chaudière, pas de question', /chaudière se remplit/.test(sapCd.toast) && sapCd.moneyNow === sapCd.money && !sapCd.panel, JSON.stringify(sapCd));
+
+    const sapNoQ = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'sap' && __mv.G.time >= i.ready);
+      const money = __mv.state.money;
+      __mv.tp(it.pos.x, it.pos.z + 0.4);
+      __mv.force.sap = false;
+      delete __mv.force.q;
+      __mv.G.interact(it);
+      return { money };
+    });
+    await p.waitForFunction(m => __mv.state.money > m, sapNoQ.money, { timeout: 2500 }).catch(() => {});
+    await p.evaluate(() => __mv.waitT(1.0));
+    const sapNoQAfter = await p.evaluate(() => ({ money: __mv.state.money, panel: !!document.querySelector('#panel .action') }));
+    ok('k force.sap = false : sous sans question', sapNoQAfter.money > sapNoQ.money && !sapNoQAfter.panel, JSON.stringify({ before: sapNoQ.money, after: sapNoQAfter }));
+
+    const isleGuard = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'sap' && __mv.G.time >= i.ready);
+      const money = __mv.state.money;
+      const ready = it.ready;
+      __mv.state.island = 2;
+      __mv.force.sap = true;
+      __mv.G.interact(it);
+      __mv.state.island = 1;
+      return { moneySame: __mv.state.money === money, readySame: it.ready === ready, panel: !!document.querySelector('#panel .action') };
+    });
+    ok('k sap ignoré sur l’île 2', isleGuard.moneySame && isleGuard.readySame && !isleGuard.panel, JSON.stringify(isleGuard));
+
+    const berryQ = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'berry');
+      const money = __mv.state.money;
+      __mv.tp(it.pos.x, it.pos.z + 0.4);
+      __mv.force.berry = true;
+      __mv.force.q = { skill: 'qc_s1_prb_01', d: 1 };
+      __mv.G.interact(it);
+      return { money, ready: it.ready, t: __mv.G.time, cd: it.cooldown };
+    });
+    await p.waitForFunction(m => __mv.state.money > m, berryQ.money, { timeout: 2500 }).catch(() => {});
+    await p.evaluate(() => __mv.waitT(1.0));
+    await p.waitForSelector('#panel .action.berry', { timeout: 5000 });
+    const berryPanel = await p.evaluate(() => ({
+      titre: document.querySelector('#panel .who b')?.textContent,
+      money: __mv.state.money,
+      skill: __mv.flows.cur && __mv.flows.cur.q && __mv.flows.cur.q.skill,
+    }));
+    ok('k force.berry : sous de base donnés', berryPanel.money > berryQ.money, JSON.stringify({ before: berryQ.money, after: berryPanel.money }));
+    ok('k force.berry : question « Cueillette! »', berryPanel.titre === 'Cueillette!' && berryPanel.skill === 'qc_s1_prb_01', JSON.stringify(berryPanel));
+    ok('k berry : recharge ~40 s', berryQ.ready >= berryQ.t + 39 && berryQ.cd === 40, JSON.stringify(berryQ));
+    await p.click('#panel .btn.skip');
+    await p.waitForSelector('#panel .actionlose');
+    await p.click('#panel .action .btn.primary');
+    await p.evaluate(() => __mv.waitT(0.2));
+
+    const berryCd = await p.evaluate(() => {
+      const it = __mv.world.interactables.find(i => i.kind === 'berry' && __mv.G.time < i.ready);
+      __mv.force.berry = true;
+      __mv.G.interact(it);
+      const toast = document.querySelector('#toasts .toast')?.textContent || '';
+      return { toast, panel: !!document.querySelector('#panel .action.berry') };
+    });
+    ok('k berry en recharge : toast plants, pas de question', /bleuets poussent encore|plants se remplissent/.test(berryCd.toast) && !berryCd.panel, JSON.stringify(berryCd));
+
+    const sell = await p.evaluate(() => {
+      const prev = __mv.state.bag.slice();
+      __mv.state.bag = ['barquette', 'confiture', 'confiture_mamie'];
+      __mv.flows.sell();
+      const btn = document.querySelector('#panel .btn.primary')?.textContent || '';
+      const rows = [...document.querySelectorAll('#panel .item')].map(el => el.textContent);
+      return { btn, rows, prev };
+    });
+    ok('k Ginette rachète barquette, confiture et confiture de grand-mère (4 $ + 8 $ + 14 $)',
+      sell.btn.includes('26,00') && sell.rows.some(r => /Barquette de bleuets/.test(r) && /4,00/.test(r))
+      && sell.rows.some(r => /Confiture de bleuets/.test(r) && /8,00/.test(r))
+      && sell.rows.some(r => /Confiture de grand-mère/.test(r) && /14,00/.test(r)), JSON.stringify(sell));
+    await p.keyboard.press('Escape');
+    await p.evaluate(prev => { __mv.state.bag = prev; }, sell.prev);
+
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
   ok('z 0 erreur console', errs.length === 0, errs.slice(0, 5).join(' | '));
