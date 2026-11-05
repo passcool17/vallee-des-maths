@@ -136,6 +136,53 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
     ok('i VOIX : Lionel grave et lent, Lise medium-high', !!(vil.voix && vil.voix.lionel && vil.voix.lise && vil.voix.lionel.f < vil.voix.ginette.f && vil.voix.lionel.gap > vil.voix.ginette.gap && vil.voix.lise.f > vil.voix.gaston.f && vil.voix.lise.f < vil.voix.flocon.f), JSON.stringify(vil.voix));
     ok('i makeVillagers produit lionel et lise', !!(vil.spawned.includes('lionel') && vil.spawned.includes('lise')), JSON.stringify(vil.spawned));
 
+    const gated = await p.evaluate(() => {
+      const kinds = __mv.world.interactables.map(i => i.kind);
+      const folk = (__mv.G.allVillagers || []).filter(v => v.id === 'lionel' || v.id === 'lise').map(v => ({ id: v.id, vis: v.obj.visible }));
+      return {
+        kinds,
+        hasSap: kinds.includes('sap'),
+        hasBerry: kinds.includes('berry'),
+        folk,
+        bridges: { ...__mv.state.bridges },
+      };
+    });
+    ok('j ponts fermés au départ (fresh)', !gated.bridges.erables && !gated.bridges.bleuets, JSON.stringify(gated.bridges));
+    ok('j Lionel / Lise invisibles tant que les ponts sont fermés', gated.folk.length === 2 && gated.folk.every(v => v.vis === false), JSON.stringify(gated.folk));
+
+    await p.evaluate(() => {
+      const st = window.__mv.state;
+      st.bridges.erables = true; st.bridges.bleuets = true;
+      window.__mv.world.openBridge('erables');
+      window.__mv.world.openBridge('bleuets');
+    });
+    await p.evaluate(() => __mv.waitT(0.2));
+    const kinds = await p.evaluate(() => window.__mv.world.interactables.map(i => i.kind));
+    ok('j interactables sap et berry après ouverture des ponts', kinds.includes('sap') && kinds.includes('berry'), JSON.stringify(kinds.filter(k => k === 'sap' || k === 'berry' || k === 'tree')));
+
+    const zone = await p.evaluate(() => {
+      const its = __mv.world.interactables;
+      const sap = its.filter(i => i.kind === 'sap');
+      const berry = its.filter(i => i.kind === 'berry');
+      const folk = (__mv.G.allVillagers || []).filter(v => v.id === 'lionel' || v.id === 'lise').map(v => ({ id: v.id, vis: v.obj.visible, x: v.pos.x, z: v.pos.z }));
+      const smoke = (__mv.world.smoke || []).length;
+      const smokeVis = (__mv.world.smoke || []).filter(s => s.visible).length;
+      return {
+        sapN: sap.length, berryN: berry.length,
+        sap: sap.map(i => ({ zone: i.zone, label: i.label, ready: i.ready, cooldown: i.cooldown, x: i.pos.x, z: i.pos.z, vis: i.obj && i.obj.visible })),
+        berry: berry.map(i => ({ zone: i.zone, label: i.label, ready: i.ready, cooldown: i.cooldown, x: i.pos.x, z: i.pos.z, vis: i.obj && i.obj.visible })),
+        folk, smoke, smokeVis,
+      };
+    });
+    ok('j 4 à 6 chaudières sap', zone.sapN >= 4 && zone.sapN <= 6, JSON.stringify({ n: zone.sapN }));
+    ok('j sap : zone erables, libellé, ready 0, cooldown 45 s', zone.sap.length && zone.sap.every(i => i.zone === 'erables' && i.label === 'Récolter la sève' && i.ready === 0 && i.cooldown === 45 && i.vis !== false), JSON.stringify(zone.sap));
+    ok('j sap près de la cabane (−4, −47)', zone.sap.length && zone.sap.every(i => Math.hypot(i.x - (-4), i.z - (-47)) < 8), JSON.stringify(zone.sap.map(i => [i.x, i.z])));
+    ok('j 4 à 6 plants berry', zone.berryN >= 4 && zone.berryN <= 6, JSON.stringify({ n: zone.berryN }));
+    ok('j berry : zone bleuets, libellé, ready 0, cooldown 40 s', zone.berry.length && zone.berry.every(i => i.zone === 'bleuets' && i.label === 'Cueillir les bleuets' && i.ready === 0 && i.cooldown === 40 && i.vis !== false), JSON.stringify(zone.berry));
+    ok('j berry près de la pointe (46, 4)', zone.berry.length && zone.berry.every(i => Math.hypot(i.x - 46, i.z - 4) < 10), JSON.stringify(zone.berry.map(i => [i.x, i.z])));
+    ok('j Lionel et Lise visibles une fois les ponts ouverts', zone.folk.length === 2 && zone.folk.every(v => v.vis === true), JSON.stringify(zone.folk));
+    ok('j fumée de l’évaporateur présente (densité fxQ)', zone.smoke >= 1 && zone.smokeVis <= zone.smoke, JSON.stringify({ smoke: zone.smoke, smokeVis: zone.smokeVis }));
+
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
   ok('z 0 erreur console', errs.length === 0, errs.slice(0, 5).join(' | '));

@@ -45,6 +45,17 @@ for (const id of state.decor) world.placeDecor(id);
 for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridge(z);
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
 const allVillagers = makeVillagers(world.root, ['gaston', 'ginette', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
+function zoneFolkOk(v) { return (v.id !== 'lionel' || state.bridges.erables) && (v.id !== 'lise' || state.bridges.bleuets); }
+function zoneItOk(it) { return !((it.kind === 'sap' && !state.bridges.erables) || (it.kind === 'berry' && !state.bridges.bleuets)); }
+function syncZoneFolk() {
+  for (const v of allVillagers) {
+    if (v.id === 'lionel') v.obj.visible = !!state.bridges.erables;
+    else if (v.id === 'lise') v.obj.visible = !!state.bridges.bleuets;
+  }
+}
+const _openBridge = world.openBridge;
+world.openBridge = zone => { _openBridge(zone); syncZoneFolk(); };
+syncZoneFolk();
 let isle2 = null;
 function ensureIsle2() { if (isle2) return isle2; isle2 = buildIsland2(scene, G); G.isle2 = isle2; allVillagers.push(...makeVillagers(isle2.root, ['rosalie', 'bernard'])); J.addGrass(isle2.root, { cx: 0, cz: 0, r: 30, color: '#ffffff', ground: '#6fae58', count: 2400, ok: (x, z) => isle2.walkable(x, z, state) }); J.dress(isle2.root); return isle2; }
 if (state.island === 2) ensureIsle2();
@@ -129,8 +140,8 @@ function reel() {
 function nearest() {
   const p = player.pos; let best = null, bd = Infinity;
   const consider = (o, d, r) => { if (d < r && d < bd) { bd = d; best = o; } };
-  for (const v of villagers) consider({ kind: 'npc', v, label: `Parler à ${v.nom.split(' ')[0]}`, pos: v.pos }, Math.hypot(p.x - v.pos.x, p.z - v.pos.z), 2.4);
-  for (const it of W().interactables) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
+  for (const v of villagers) if (zoneFolkOk(v)) consider({ kind: 'npc', v, label: `Parler à ${v.nom.split(' ')[0]}`, pos: v.pos }, Math.hypot(p.x - v.pos.x, p.z - v.pos.z), 2.4);
+  for (const it of W().interactables) if (zoneItOk(it)) consider(it, Math.hypot(p.x - it.pos.x, p.z - it.pos.z), it.r);
   const reach = stats('filet', state.tools.filet).reach;
   for (const b of W().butterflies) if (b.g.visible) consider({ kind: 'bug', b, label: 'Attraper le papillon', pos: b.g.position }, Math.hypot(p.x - b.g.position.x, p.z - b.g.position.z), reach);
   // la cachette de quête / la trouvaille gagnent sur l’érable voisin quand elles sont à portée
@@ -197,7 +208,7 @@ function onTap(cx, cy) {
   if (fishing.state) { reel(); return; }
   const r = canvas.getBoundingClientRect();
   // 1) Un objet interactif près du doigt (en coordonnées écran, pour tenir compte de la courbure)
-  const cands = [...villagers.map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables, ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position })), ...comp.targets()];
+  const cands = [...villagers.filter(zoneFolkOk).map(v => ({ kind: 'npc', v, pos: v.pos, label: '' })), ...W().interactables.filter(zoneItOk), ...W().butterflies.filter(b => b.g.visible).map(b => ({ kind: 'bug', b, pos: b.g.position })), ...comp.targets()];
   let best = null, bd = 46;
   for (const c of cands) { tmp.set(c.pos.x, (c.kind === 'npc' ? 1.2 : 0.6) - curveDrop(c.pos.x, c.pos.z), c.pos.z).project(camera); const sx = (tmp.x + 1) / 2 * r.width + r.left, sy = (1 - tmp.y) / 2 * r.height + r.top; const d = Math.hypot(sx - cx, sy - cy); if (tmp.z < 1 && d < bd) { bd = d; best = c; } }
   if (!best) { let pd = 30; for (const a of pets.visible(state.island)) { tmp.set(a.pos.x, 0.4 - curveDrop(a.pos.x, a.pos.z), a.pos.z).project(camera); const d = Math.hypot((tmp.x + 1) / 2 * r.width + r.left - cx, (1 - tmp.y) / 2 * r.height + r.top - cy); if (tmp.z < 1 && d < pd) { pd = d; best = { kind: 'pet', p: a, pos: a.pos, r: 1.6 }; } } }
