@@ -254,11 +254,11 @@ export function buildWorld(scene, G) {
     const g = bushMesh(1); bleuetDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.55 }); bleuets.push(g);
     interactables.push({ id: `berry_${i}`, kind: 'berry', zone: 'bleuets', pos: new THREE.Vector3(x, 0, z), r: 1.7, label: 'Cueillir les bleuets', obj: g, ready: 0, cooldown: 40 });
   });
-  const extraBushes = [];
+  const extraBushes = [], extraBushObs = [];
   for (let i = 0; i < 4; i++) {
     const a = i / 4 * 6.283 + 0.3, d = 6.2 + (i % 2) * 0.55;
     const x = 46 + Math.cos(a) * d, z = 4 + Math.sin(a) * d;
-    const g = bushMesh(0.9, 4); bleuetDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.6 }); bleuets.push(g); extraBushes.push(g);
+    const g = bushMesh(0.9, 4); bleuetDecor.add(at(g, x, 0, z)); extraBushObs.push({ x, z, r: 0.6 }); bleuets.push(g); extraBushes.push(g);
   }
   {
     const tb = new THREE.Group();
@@ -281,7 +281,11 @@ export function buildWorld(scene, G) {
     const nSmoke = Math.max(1, Math.round(SMOKE_MAX * q));
     for (let i = 0; i < smoke.length; i++) smoke[i].visible = e && i < nSmoke;
     const nBush = Math.max(1, Math.round(extraBushes.length * q));
-    for (let i = 0; i < extraBushes.length; i++) extraBushes[i].visible = b && i < nBush;
+    for (let i = 0; i < extraBushes.length; i++) {
+      const vis = b && i < nBush; extraBushes[i].visible = vis;
+      const ob = extraBushObs[i], idx = obstacles.indexOf(ob);
+      if (vis && idx < 0) obstacles.push(ob); else if (!vis && idx >= 0) obstacles.splice(idx, 1);
+    }
   }
   syncZoneDecor(G.state);
 

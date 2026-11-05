@@ -324,7 +324,7 @@ export function makeFlows(G) {
       win: k => `Tu as sorti un ${ITEMS[k][1].toLowerCase()}! Il est noté dans ton carnet.`, lose: { miss: 'Il a donné un bon coup de queue pis il est reparti. Ce sera pour la prochaine!', timeout: 'Il s’est faufilé entre les quenouilles. Pas grave, le lac en est plein!', skip: 'Tu l’as laissé filer. Il te fait un clin d’œil en partant.' } },
     maple: { icon: '🍁', titre: 'Coup de sirop!', line: 'L’érable coule! Une petite question de fractions pour remplir ton seau. Tu peux aussi laisser filer.',
       win: k => `${ITEMS[k][1]} pour toi! C’est noté dans ton carnet.`, lose: { miss: 'La sève s’est arrêtée de couler. L’érable va se reprendre, promis!', timeout: 'Le seau a débordé dans la neige. Les écureuils sont ben contents!', skip: 'Tu laisses l’érable tranquille pour l’instant.' } },
-    sap: { icon: '🪣', titre: 'La sève coule!', line: 'Lionel te passe une chaudière pleine! Une petite question de proportions ou de volumes. Tu peux aussi laisser filer.',
+    sap: { icon: '🪣', titre: 'La sève coule!', line: 'Lionel te passe une chaudière pleine! Une petite question de proportions, d’unités ou d’aires. Tu peux aussi laisser filer.',
       win: k => `${ITEMS[k][1]} pour toi! C’est noté dans ton carnet.`, lose: { miss: 'La sève s’est arrêtée de couler. Lionel va reposer la chaudière, promis!', timeout: 'La chaudière a débordé un peu. Lionel sourit : « Une autre coulée va venir! »', skip: 'Tu laisses la chaudière tranquille pour l’instant.' } },
     berry: { icon: '🫐', titre: 'Cueillette!', line: 'Lise te tend un panier! Une petite question de dénombrement ou de moyenne. Tu peux aussi laisser filer.',
       win: k => `${ITEMS[k][1]} pour toi! C’est noté dans ton carnet.`, lose: { miss: 'Les bleuets restent sur le plant. Lise te dit : « Une autre fois, ma belle! »', timeout: 'Le panier s’est un peu renversé. Les merles sont ben contents!', skip: 'Tu laisses les plants tranquilles pour l’instant.' } },
@@ -413,7 +413,7 @@ export function makeFlows(G) {
     const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee', 'barquette', 'confiture', 'confiture_mamie', 'gros_dore', 'saumon', 'bar'];
     const rares = h('section', { class: 'rares' }, h('h4', {}, '✨ Prises rares et sirop'), RARE_KEYS.some(k => st.rares[k])
       ? h('div', { class: 'ctools' }, RARE_KEYS.filter(k => st.rares[k]).map(k => h('span', { class: 'chip rare', 'data-k': k }, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${st.rares[k]}`)))
-      : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort ou qu’un érable coule, une petite question peut te rapporter une prise rare!'));
+      : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort, qu’un érable coule ou qu’on récolte sève et bleuets, une petite question peut te rapporter une prise rare!'));
     // Progrès par compétence : essais, % de réussite, niveau (à découvrir / en apprentissage / maîtrisé)
     const pct = id => Math.round((successRate(st, id) ?? 0) * 100);
     const essais = id => { const s = st.stats?.[id]; return s?.n ? `${s.n}\u00a0essai${s.n > 1 ? 's' : ''} · ${pct(id)}\u00a0% réussi${s.sec ? ` · ~${Math.round(s.sec)}\u00a0s` : ''}` : 'Pas encore essayé'; };

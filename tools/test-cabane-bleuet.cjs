@@ -82,7 +82,7 @@ const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`$
         berry: { icon: A.berry && A.berry.icon, titre: A.berry && A.berry.titre, line: A.berry && A.berry.line, win: typeof (A.berry && A.berry.win), lose: !!(A.berry && A.berry.lose && A.berry.lose.miss && A.berry.lose.timeout && A.berry.lose.skip) },
       };
     });
-    ok('f ACTION.sap : icône, titre et ligne demandés', act && act.sap.icon === '🪣' && act.sap.titre === 'La sève coule!' && act.sap.line === 'Lionel te passe une chaudière pleine! Une petite question de proportions ou de volumes. Tu peux aussi laisser filer.' && act.sap.win === 'function' && act.sap.lose, JSON.stringify(act && act.sap));
+    ok('f ACTION.sap : icône, titre et ligne demandés', act && act.sap.icon === '🪣' && act.sap.titre === 'La sève coule!' && act.sap.line === 'Lionel te passe une chaudière pleine! Une petite question de proportions, d’unités ou d’aires. Tu peux aussi laisser filer.' && act.sap.win === 'function' && act.sap.lose, JSON.stringify(act && act.sap));
     ok('f ACTION.berry : icône, titre et ligne demandés', act && act.berry.icon === '🫐' && act.berry.titre === 'Cueillette!' && act.berry.line === 'Lise te tend un panier! Une petite question de dénombrement ou de moyenne. Tu peux aussi laisser filer.' && act.berry.win === 'function' && act.berry.lose, JSON.stringify(act && act.berry));
 
     await p.evaluate(() => __mv.flows.actionQ({ kind: 'sap', skill: 'qc_s1_pro_01', d: 0, stretch: true }));
