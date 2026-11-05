@@ -23,11 +23,23 @@ export const SIROP = ['tire', 'sirop', 'coulee'];
 export const BLEUETS = ['barquette', 'confiture', 'confiture_mamie'];
 // Île de Secondaire 2 : gros doré (trophée), saumon atlantique, bar rayé
 export const RARE_FISH2 = ['gros_dore', 'saumon', 'bar'];
-export const loot = (kind, d, isle = 1) => {
+export const RARE_FISH_M = ['ouananiche', 'touladi', 'anguille'];
+export const RARE_FISH_G = ['marigane', 'omble_ch', 'esturgeon_n'];
+export const COMMON_FISH = {
+  petite: [['perchaude', 50], ['achigan', 30], ['dore', 12], ['truite', 8]],
+  moyenne: [['meunier', 45], ['crapet', 30], ['brochet', 25]],
+  grosse: [['laquaiche', 40], ['coregone', 35], ['barbotte', 25]],
+};
+export const loot = (kind, d, isle = 1, rod = 'petite') => {
   const i = Math.max(0, Math.min(2, d));
-  if (kind === 'fish') return (isle === 2 ? RARE_FISH2 : RARE_FISH)[i];
+  if (kind === 'fish') {
+    if (isle === 2) return RARE_FISH2[i];
+    if (rod === 'moyenne') return RARE_FISH_M[i];
+    if (rod === 'grosse') return RARE_FISH_G[i];
+    return RARE_FISH[i];
+  }
   if (kind === 'berry') return BLEUETS[i];
-  return SIROP[i]; // maple et sap
+  return SIROP[i];
 };
 
 // Choisit la compétence et la difficulté. rng : { next(), chance(p), pick(list) }.
