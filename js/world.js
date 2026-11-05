@@ -233,7 +233,7 @@ export function buildWorld(scene, G) {
     interactables.push({ id: `sap_${i}`, kind: 'sap', zone: 'erables', pos: new THREE.Vector3(x, 0, z), r: 1.65, label: 'Récolter la sève', obj: g, ready: 0, cooldown: 45 });
   });
   const smoke = [];
-  const SMOKE_MAX = 8;
+  const SMOKE_MAX = 5;
   for (let i = 0; i < SMOKE_MAX; i++) {
     const puff = mesh(new THREE.SphereGeometry(0.14, 6, 5), '#d8d4cc', { transparent: true, opacity: 0.42 });
     puff.userData = { x: -6.5, z: -48.4, phase: i * 0.37 };
@@ -243,10 +243,10 @@ export function buildWorld(scene, G) {
   // Bleuetière : rangées de plants + table de tri (visible une fois le pont des bleuets ouvert)
   const bleuetDecor = new THREE.Group(); root.add(bleuetDecor);
   const bleuets = [];
-  function bushMesh(scale = 1) {
+  function bushMesh(scale = 1, berries = 6) {
     const g = new THREE.Group();
     g.add(at(mesh(new THREE.IcosahedronGeometry(0.55 * scale, 0), '#4f8a4a'), 0, 0.42 * scale, 0));
-    for (let k = 0; k < 6; k++) g.add(at(mesh(new THREE.IcosahedronGeometry(0.11 * scale, 0), '#3d4f9e'), Math.cos(k * 1.15) * 0.42 * scale, 0.38 * scale + (k % 3) * 0.16 * scale, Math.sin(k * 1.15) * 0.42 * scale));
+    for (let k = 0; k < berries; k++) g.add(at(mesh(new THREE.IcosahedronGeometry(0.11 * scale, 0), '#3d4f9e'), Math.cos(k * 1.15) * 0.42 * scale, 0.38 * scale + (k % 3) * 0.16 * scale, Math.sin(k * 1.15) * 0.42 * scale));
     return g;
   }
   const BERRY_POS = [[44.6, 1.8], [46.2, 1.8], [47.8, 1.8], [45.4, 4.6], [47.0, 4.6]];
@@ -255,10 +255,10 @@ export function buildWorld(scene, G) {
     interactables.push({ id: `berry_${i}`, kind: 'berry', zone: 'bleuets', pos: new THREE.Vector3(x, 0, z), r: 1.7, label: 'Cueillir les bleuets', obj: g, ready: 0, cooldown: 40 });
   });
   const extraBushes = [];
-  for (let i = 0; i < 8; i++) {
-    const a = i / 8 * 6.283 + 0.3, d = 6.2 + (i % 3) * 0.55;
+  for (let i = 0; i < 4; i++) {
+    const a = i / 4 * 6.283 + 0.3, d = 6.2 + (i % 2) * 0.55;
     const x = 46 + Math.cos(a) * d, z = 4 + Math.sin(a) * d;
-    const g = bushMesh(0.9); bleuetDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.6 }); bleuets.push(g); extraBushes.push(g);
+    const g = bushMesh(0.9, 4); bleuetDecor.add(at(g, x, 0, z)); obstacles.push({ x, z, r: 0.6 }); bleuets.push(g); extraBushes.push(g);
   }
   {
     const tb = new THREE.Group();
@@ -271,15 +271,16 @@ export function buildWorld(scene, G) {
     tb.add(blob(1.3));
     bleuetDecor.add(at(tb, 48.4, 0, 6.8, -0.4)); obstacles.push({ x: 48.4, z: 6.8, r: 1.05 });
   }
-  let fxMul = () => 1;
-  import('./joli.js').then(m => { fxMul = () => { try { return m.fxQ().fx; } catch { return 1; } }; }).catch(() => {});
+  const touchFx = typeof window !== 'undefined' && 'ontouchstart' in window ? 0.6 : 1;
+  let fxMul = () => touchFx;
+  import('./joli.js').then(m => { fxMul = () => { try { return m.fxQ().fx * touchFx; } catch { return touchFx; } }; }).catch(() => {});
   function syncZoneDecor(state) {
     const e = !!(state && state.bridges && state.bridges.erables), b = !!(state && state.bridges && state.bridges.bleuets);
     cabaneDecor.visible = e; bleuetDecor.visible = b;
     const q = fxMul();
     const nSmoke = Math.max(1, Math.round(SMOKE_MAX * q));
     for (let i = 0; i < smoke.length; i++) smoke[i].visible = e && i < nSmoke;
-    const nBush = Math.max(2, Math.round(extraBushes.length * q));
+    const nBush = Math.max(1, Math.round(extraBushes.length * q));
     for (let i = 0; i < extraBushes.length; i++) extraBushes[i].visible = b && i < nBush;
   }
   syncZoneDecor(G.state);

@@ -31,6 +31,8 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 - **Hortense la tortue** est la bibliothécaire de l’île 1. Elle lit dans son coin lecture (banc, pile de livres, lutrin), entre l’établi et Flocon. « 📖 Une leçon » ouvre sa bibliothèque : une fiche de théorie par compétence (voir *Les leçons d’Hortense*).
 - **Rosalie la loutre** (île 2) garde le phare, tient l’atelier du niveau 4 et propose les défis de Secondaire 2.
 - **Bernard le huard** (île 2) tient le kiosque de pêche et donne les appâts rares.
+- **Lionel l’orignal** tient la cabane à sucre, sur la colline du nord (pont des érables). Il accueille près de l’évaporateur et des chaudières.
+- **Lise la renarde** tient la bleuetière, sur l’îlot de l’est (pont des bleuets). Elle trie les plants près de sa table.
 
 ### Boucle de jeu
 
@@ -41,8 +43,10 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 | Arroser | plates-bandes | Des sous par plate-bande prête |
 | Creuser | petits monticules ✕ | Trouvailles à vendre, selon la chance de la pelle |
 | Attraper des papillons | près des fleurs | Selon la portée et la chance du filet |
+| Récolter la sève | chaudières de la cabane (après le pont des érables) | 0,50 $ à 1,50 $ par chaudière (recharge 45 s). Environ une fois sur trois, une question en bonus |
+| Cueillir les bleuets | plants de la bleuetière (après le pont des bleuets) | 0,50 $ à 1,50 $ par plant (recharge 40 s). Environ une fois sur trois, une question en bonus |
 
-Le contenu du sac se vend chez Ginette. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île.
+Le contenu du sac se vend chez Ginette. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île : le **Pont de la Pointe-aux-Bleuets** (60,00 $) mène à Lise et à la bleuetière, à l’est ; le **Pont de la Colline des Érables** (90,00 $) mène à Lionel et à la cabane à sucre, au nord. Tant que le pont est fermé, on voit l’îlot de l’autre côté de l’eau, mais Lionel, Lise, la cabane, l’évaporateur et les plants à cueillir restent cachés.
 
 ### Questions en action (étape 2)
 
@@ -52,6 +56,8 @@ Les maths arrivent aussi pendant les gestes, mais jamais de force : chaque quest
   - Bonne réponse : un poisson rare dans le sac, noté dans le carnet. Omble de fontaine (basique, 7 $), maskinongé (standard, 10 $), esturgeon jaune (avancé, 15 $).
   - Mauvaise réponse ou temps écoulé : le poisson se sauve avec un message gentil, la bonne réponse est montrée, et il n’y a aucune pénalité.
 - **Coup de sirop à l’érable.** Secouer un érable donne toujours ses sous (une pastille « +x $ » apparaît sous le HUD). Environ une fois sur trois, l’érable coule et propose une question de **fractions** (Sec 1). Bonne réponse : tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
+- **La sève coule!** Récolter une chaudière à la cabane de Lionel donne toujours ses sous. Environ une fois sur trois, Lionel passe une chaudière pleine et propose une question de **taux unitaire**, de **proportion directe**, de **périmètre et unités** ou d’**aires** (Sec 1). Bonne réponse : le même sirop que l’érable — tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
+- **Cueillette!** Cueillir un plant chez Lise donne toujours ses sous. Environ une fois sur trois, Lise tend un panier et propose une question de **dénombrement** ou de **moyenne et étendue**. Bonne réponse : barquette de bleuets (basique, 4 $), confiture de bleuets (standard, 8 $) ou confiture de grand-mère (avancé, 14 $). Ginette rachète tout ça au magasin.
 - **Niveaux.** Basique, standard ou avancé selon la maîtrise de la compétence, avec parfois un cran de plus. Plus c’est difficile, plus le butin est rare. La question porte surtout sur des compétences débloquées. Environ 15 % des fois, c’est un **⭐ défi surprise** sur une notion pas encore débloquée : niveau basique, 5 s de plus, et ça ne compte pas dans la maîtrise.
 - **Chrono généreux.** 20 s (basique), 25 s (standard), 30 s (avancé), plus 5 s pour les réponses à plusieurs champs ou en fraction. Les réponses « presque » donnent un coup de pouce au lieu d’un échec. Les indices 💡 restent offerts.
 - **Pause.** P ou le bouton ⏸ met le jeu en pause et fige le chrono. Si l’onglet est caché, la pause se met toute seule et attend « Reprendre ».
@@ -82,7 +88,7 @@ Chaque achat affiche un ticket avec le prix, un rabais du jour éventuel (10 à 
 
 ### Le carnet
 
-Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, proportionnalité, algèbre, probabilités, statistique, géométrie). Pour chacune, il montre la référence PDA du MEQ, la maîtrise (●●●), les préalables et le cadenas. On y trouve aussi les étoiles des outils et le journal : poissons (dont les prises rares), sirop, papillons, trouvailles, fleurs et sous gagnés. La section **✨ Prises rares et sirop** compte chaque prise rare et chaque cruchon.
+Il présente les 22 compétences de Secondaire 1 par domaine (arithmétique, proportionnalité, algèbre, probabilités, statistique, géométrie). Pour chacune, il montre la référence PDA du MEQ, la maîtrise (●●●), les préalables et le cadenas. On y trouve aussi les étoiles des outils et le journal : poissons (dont les prises rares), sirop, bleuets, papillons, trouvailles, fleurs et sous gagnés. La section **✨ Prises rares et sirop** compte chaque prise rare, chaque cruchon et chaque barquette ou pot de confiture.
 
 Ajouts « progrès par compétence » : chaque compétence affiche ses **essais**, son **% de réussite** (barre), son **temps moyen** et un **niveau** (à découvrir, en apprentissage, maîtrisé). En haut, **🎯 À pratiquer** liste les 2 ou 3 compétences les plus ratées récemment, avec un bouton **Pratiquer** (défi sur cette compétence) et un **📖** vers la leçon d’Hortense. Chaque compétence a aussi son bouton **📖 Leçon**.
 
@@ -93,7 +99,7 @@ Le jeu note chaque réponse (bonne ou non, temps) par compétence, avec un histo
 - Environ **55 %** des questions (touche rare, coup de sirop, kiosque exclu) vont aux compétences faibles. Plus une compétence est ratée, plus elle revient (poids = taux d’erreur au carré).
 - Le reste suit le choix normal de l’activité, qui favorise ce qui n’est pas encore maîtrisé. Les compétences jamais vues gardent donc leur chance.
 - Jamais **3 fois de suite** la même compétence.
-- Les contraintes de l’activité tiennent : l’érable pose toujours des fractions, l’île 2 du Secondaire 2.
+- Les contraintes de l’activité tiennent : l’érable pose toujours des fractions, la sève des questions de proportions ou de mesure, la cueillette du dénombrement ou de la moyenne, l’île 2 du Secondaire 2.
 - Une compétence faible revient au niveau basique ou standard, jamais plus difficile.
 - Les défis de Flocon et de Rosalie proposent les compétences faibles en premier.
 - Un « presque » ne compte pas comme une erreur. Un temps écoulé compte comme une erreur dans les statistiques, sans toucher à la maîtrise.
@@ -104,7 +110,7 @@ Une fiche par compétence (34) dans `js/lecons.js` : **💡 l’idée** (2 à 4 
 
 - **Chez Hortense** : « 📖 Une leçon » ouvre la liste, avec **🎯 À revoir en premier** (compétences faibles), puis toutes les compétences par domaine, onglets Secondaire 1 et 2. Chaque fiche a un bouton **⭐ Pratiquer**.
 - **Sur l’île 2** : Rosalie a « 📖 Les notes d’Hortense » (mêmes fiches, onglet Secondaire 2).
-- **Pendant une question** (exercice, défi, touche rare, coup de sirop) : le bouton **📖 Théorie** ouvre la fiche de la compétence par-dessus la question. La question reste là, le chrono s’arrête, et « ↩ Retour à la question » (ou Échap) referme la fiche.
+- **Pendant une question** (exercice, défi, touche rare, coup de sirop, sève ou cueillette) : le bouton **📖 Théorie** ouvre la fiche de la compétence par-dessus la question. La question reste là, le chrono s’arrête, et « ↩ Retour à la question » (ou Échap) referme la fiche.
 - **Après 2 erreurs** sur la même question, Hortense suggère la théorie. Si une touche rare est ratée deux fois de suite sur la même compétence, l’écran de fin propose la leçon.
 - **Dans le carnet** : un bouton 📖 par compétence et dans **🎯 À pratiquer**.
 
@@ -172,7 +178,7 @@ Chaque île a sa musique, en boucle : « Une petite île 1 » sur l’île de Se
 Tout est synthétisé en WebAudio (aucun fichier). Bus « vie » (0,8) sous la musique, baissé pendant les questions, coupé par 🔊/M (tout) ou 🐦/N (sons de vie seulement, `state.sons`). Rien ne joue avant le geste « Jouer ».
 - **Nappes** : vagues (bruit filtré 420 Hz, selon la distance à l’eau, hors bâtiments/arbres), vent dans les feuilles (selon les arbres à 9 m, coupé aux paliers bas), grillons la nuit (4,4 kHz hachés en rafales).
 - **Pas de Camille** au rythme de `walkPhase` : herbe, pierre (sentier), bois (quais), sable (rive).
-- **Créatures** (positionnées : volume (1−d/22)², panoramique gauche/droite) : Charlie jappe/halète (flatté, rapporte), Gisèle/Olga miaou + ronron (Olga plus aiguë), villageois « blablas » à hauteur propre (Ginette grave, Hortense lente, Gaston moyen, Bernard + cri du huard, Rosalie couinante, Flocon aiguë + hululement), oiseaux le jour, grenouilles la nuit près de l’eau, goélands près du phare/quai (île 2), lucioles muettes.
+- **Créatures** (positionnées : volume (1−d/22)², panoramique gauche/droite) : Charlie jappe/halète (flatté, rapporte), Gisèle/Olga miaou + ronron (Olga plus aiguë), villageois « blablas » à hauteur propre (Lionel très grave et lent, Ginette grave, Hortense lente, Gaston moyen, Lise un peu plus aiguë, Bernard + cri du huard, Rosalie couinante, Flocon aiguë + hululement), oiseaux le jour, grenouilles la nuit près de l’eau, goélands près du phare/quai (île 2), lucioles muettes.
 - **Perf** : max 8 voix (5 aux paliers fxQ ≥ 3), un seul tampon de bruit partagé. Test : `node tools/test-sons.cjs`.
 
 ## Rendu (« joli »)
@@ -185,7 +191,7 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 - **Formes** : couronnes d’arbres arrondies et légèrement bosselées, personnages et sapins avec plus de segments, herbe instanciée (1 appel de dessin par île) qui ondule au vent.
 - **Caméra proche** (cadrage « diorama ») et légère vignette. Paysage : 7,6 m de haut, 10,6 m derrière Camille (≈ 13 m, ~31° vers le bas, champ 34°). Portrait (téléphone) : ×1,08 de (10,8 ; 14) et champ 38°, pour garder les côtés. Camille occupe ~20 % de la hauteur de l’écran. Suivi amorti (lerp 6/s). Brume rapprochée (26 → 105 m).
   - **Zoom** : molette, pincer à deux doigts (sans déclencher le « tap pour marcher »), touches + / −, entre 0,7 et 1,6. Bloqué pendant les questions.
-  - **Obstacles** : si un bâtiment ou un gros arbre coupe la ligne Camille → caméra (et que la caméra n’est pas déjà au-dessus), elle se rapproche devant lui (vite), puis revient doucement. Lampadaires et piquets ignorés. Test : `node tools/test-camera.cjs` ; captures : `node tools/shots-camera.cjs <dossier>`.
+  - **Obstacles** : si un bâtiment ou un gros arbre coupe la ligne Camille → caméra (et que la caméra n’est pas déjà au-dessus), elle se rapproche devant lui (vite), puis revient doucement. Lampadaires et piquets ignorés. Test : `node tools/test-camera.cjs` ; captures : `node tools/shots-camera.cjs <dossier>`. Cabane et bleuetière : `node tools/test-cabane-bleuet.cjs` ; captures : `node tools/shots-cabane.cjs <dossier>`.
 - **Qualité adaptative** : la densité de pixels est plafonnée à 2 (un écran DPR 3 comme le Galaxy S20 rendrait 2,25× plus de pixels). Si l’image reste sous ~40 i/s pendant 4 s, le jeu descend d’un seul palier à la fois, avec 4 s de répit : DPR 1,5 → 1,25 → carte d’ombre ÷2 → sans ombres → DPR 1. Il ne remonte pas pendant la partie.
 
 - **Vie** (`js/vie.js`, seulement avec « joli ») :
@@ -197,7 +203,7 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
   - **Feuilles** : feuilles d’automne qui tombent des arbres proches (instanciées, 44 au plus).
   - **Marche animée** : Camille balance le torse et respire au repos. Les villageois se dandinent. Charlie et Olga bougent les pattes par paires.
   - **Enseigne du magasin** : plaque plate sur le devant de l’auvent, inclinée vers la caméra. Elle n’est plus coupée par le toit.
-  - **Paliers de qualité** : chaque palier réduit ces effets. Les lucioles et les feuilles passent de 100 % à 30 %, les vraies lumières de 2 à 0 et les reflets s’arrêtent dès le palier 3. Sur téléphone, les particules sont à 60 %.
+  - **Paliers de qualité** : chaque palier réduit ces effets. Les lucioles et les feuilles passent de 100 % à 30 %, les vraies lumières de 2 à 0 et les reflets s’arrêtent dès le palier 3. Sur téléphone, les particules sont à 60 %. La fumée de l’évaporateur (5 volutes au plus) et les plants décoratifs de la bleuetière suivent le même `fxQ` ; sur téléphone, leur densité est encore un peu réduite.
 
 `?joli=0` redonne le rendu d’avant ; voir le README pour les interrupteurs de test.
 
@@ -209,7 +215,7 @@ L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1
 - `tools{outil: niveau}` et `upg{outil: progrès}`
 - `mastery{compétence: {ok, tries, miss}}`
 - `decor[]` et `bridges[]`
-- `journal{fish, bugs, finds, flowers, coins, rare, sirop}`
+- `journal{fish, bugs, finds, flowers, coins, rare, sirop, bleuets}`
 - `rares{objet: nb}` (prises rares et sirop), `quotes{article: {day, n}}` (devis mémorisés), `day` (jour du jeu)
 - `met{villageois: nb}` et `exCount`
 - Secondaire 2 : `island` (1 ou 2), `ferry`, `phare{step, done, redo}`, `appats`, `kiosk{day}`
@@ -224,4 +230,4 @@ Une sauvegarde v1 à v4 se charge sans perte : `normalize()` ajoute les nouveaux
 - Une île de Secondaire 3, plus loin que le phare.
 - Révision espacée : Flocon ramène les notions maîtrisées il y a longtemps.
 - Une vue enseignant ou parent, qui exporte le carnet.
-- Saisons : hiver avec pêche blanche, puis printemps et cabane à sucre.
+- Saisons : hiver avec pêche blanche (la cabane à sucre et la bleuetière sont déjà sur l’île 1, derrière les ponts).
