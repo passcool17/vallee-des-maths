@@ -39,7 +39,9 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 | Action | Où | Ce que ça donne |
 | --- | --- | --- |
 | Secouer un érable | arbres | 0,50 $ à 1,50 $ (plus sur les gros). Chaque arbre se recharge en 45 s |
-| Pêcher | bout du quai | Attendre la touche, puis appuyer pour ferrer. Le poisson va dans le sac |
+| Pêcher (petite canne) | quai de l’île 1 | Petits poissons (perchaude, achigan, doré, truite). Touche rare → omble / maskinongé / esturgeon |
+| Pêcher (canne moyenne) | quai de Lise (après pont des bleuets) | Poissons moyens. Il faut la canne moyenne (75 $ chez Gaston). Touche rare → ouananiche / touladi / anguille |
+| Pêcher (canne grosse) | quai de Lionel (après pont des érables) | Gros poissons. Il faut la canne grosse (150 $ chez Gaston). Touche rare → marigane / omble chevalier / esturgeon noir |
 | Arroser | plates-bandes | Des sous par plate-bande prête |
 | Creuser | petits monticules ✕ | Trouvailles à vendre, selon la chance de la pelle |
 | Attraper des papillons | près des fleurs | Selon la portée et la chance du filet |
@@ -48,12 +50,14 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 
 Le contenu du sac se vend chez Thérèse. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île : le **Pont de la Pointe-aux-Bleuets** (60,00 $) mène à Lise et à la bleuetière, à l’est ; le **Pont de la Colline des Érables** (90,00 $) mène à Lionel et à la cabane à sucre, au nord. Tant que le pont est fermé, on voit l’îlot de l’autre côté de l’eau, mais Lionel, Lise, la cabane, l’évaporateur et les plants à cueillir restent cachés.
 
+Chez **Gaston**, en plus d’améliorer les outils (questions maths), on achète des **cannes en cash** (sans taxes) : canne de base offerte dès le départ, canne moyenne **75,00 $**, canne grosse **150,00 $**. Chaque canne débloque son spot. Les **niveaux** de l’outil canne (vitesse de touche, rares) restent et s’appliquent à tous les spots. Le quai de Bernard sur l’île 2 ne change pas.
+
 ### Questions en action (étape 2)
 
 Les maths arrivent aussi pendant les gestes, mais jamais de force : chaque question a un bouton **« Laisser filer »**, et le jeu normal n’est jamais bloqué.
 
-- **Touche rare à la pêche.** Environ 1 touche sur 4 est une touche rare (25 % avec la canne de base, puis environ 29 %, 33 % et 40 % selon le niveau de la canne). Le bouchon cale plus creux et le texte devient « Ça mord fort! Ferre! ». En ferrant, une question chronométrée s’ouvre.
-  - Bonne réponse : un poisson rare dans le sac, noté dans le carnet. Omble de fontaine (basique, 7 $), maskinongé (standard, 10 $), esturgeon jaune (avancé, 15 $).
+- **Touche rare à la pêche.** Environ 1 touche sur 4 est une touche rare (25 % avec la canne de base, puis environ 29 %, 33 % et 40 % selon le niveau de la canne). Le bouchon cale plus creux et le texte devient « Ça mord fort! Ferre! ». En ferrant, une question chronométrée s’ouvre. Le butin rare dépend de la canne / du spot (pas seulement omble / maskinongé / esturgeon).
+  - Bonne réponse : un poisson rare dans le sac, noté dans le carnet. Petite canne (quai île 1) : omble de fontaine (basique, 7 $), maskinongé (standard, 10 $), esturgeon jaune (avancé, 15 $). Canne moyenne (Lise) : ouananiche / touladi / anguille. Canne grosse (Lionel) : marigane / omble chevalier / esturgeon noir.
   - Mauvaise réponse ou temps écoulé : le poisson se sauve avec un message gentil, la bonne réponse est montrée, et il n’y a aucune pénalité.
 - **Coup de sirop à l’érable.** Secouer un érable donne toujours ses sous (une pastille « +x $ » apparaît sous le HUD). Environ une fois sur trois, l’érable coule et propose une question de **fractions** (Sec 1). Bonne réponse : tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
 - **La sève coule!** Récolter une chaudière à la cabane de Lionel donne toujours ses sous. Environ une fois sur trois, Lionel passe une chaudière pleine et propose une question de **taux unitaire**, de **proportion directe**, de **périmètre et unités** ou d’**aires** (Sec 1). Bonne réponse : le même sirop que l’érable — tire d’érable (basique, 3 $), cruchon de sirop ambré (standard, 6 $) ou première coulée (avancé, 12 $).
@@ -221,6 +225,7 @@ L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1
 - Secondaire 2 : `island` (1 ou 2), `ferry`, `phare{step, done, redo}`, `appats`, `kiosk{day}`
 - v4 : `stats{compétence: {n, ok, h, sec}}` (essais, réussites, 10 dernières réponses « 1 »/« 0 », temps moyen) et `recentQ[]` (4 dernières questions en action)
 - v5 : `animaux{day, fetchN, fetchT, quete, spot, faites{quête: jour}, total, colliers[], collier, olga}` (rapports du jour, quête en cours et sa cachette, colliers gagnés et porté, position d’Olga)
+- `rods{ petite, moyenne, grosse }` (booléens ; `petite: true` par défaut si absent à la normalisation)
 
 Une sauvegarde v1 à v4 se charge sans perte : `normalize()` ajoute les nouveaux champs, répare les valeurs abîmées et réécrit en v5 sous la même clé. Les `stats` d’une vieille sauvegarde partent de `mastery` (essais et réussites, sans historique récent). Une partie sauvegardée sur l’île 2 y recommence. Les exercices sont seedés par `seed:exCount`, donc reproductibles.
 
