@@ -19,6 +19,10 @@ export const CATALOG = [
 export const SELL = {
   perchaude: 150, achigan: 250, dore: 400, truite: 500, omble: 700, maskinonge: 1000, esturgeon: 1500,
   gros_dore: 900, saumon: 1400, bar: 2000,
+meunier: 350, crapet: 450, brochet: 550,
+ouananiche: 850, touladi: 1050, anguille: 1250,
+laquaiche: 600, coregone: 750, barbotte: 900,
+marigane: 1300, omble_ch: 1600, esturgeon_n: 1900,
   tire: 300, sirop: 600, coulee: 1200,
   barquette: 400, confiture: 800, confiture_mamie: 1400,
   monarque: 200, amiral: 250, lune: 600,

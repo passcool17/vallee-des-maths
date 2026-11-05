@@ -20,6 +20,10 @@ export const ITEMS = {
   barquette: ['🫐', 'Barquette de bleuets'], confiture: ['🫙', 'Confiture de bleuets'], confiture_mamie: ['💜', 'Confiture de grand-mère'],
   monarque: ['🦋', 'Monarque'], amiral: ['🦋', 'Amiral'], lune: ['🦋', 'Papillon lune'],
   gros_dore: ['🐟', 'Gros doré'], saumon: ['🐟', 'Saumon atlantique'], bar: ['🐟', 'Bar rayé'],
+meunier: ['🐟', 'Meunier noir'], crapet: ['🐟', 'Crapet-soleil'], brochet: ['🐠', 'Brochet maillé'],
+ouananiche: ['🐠', 'Ouananiche'], touladi: ['🐟', 'Touladi'], anguille: ['🐋', 'Anguille d’Amérique'],
+laquaiche: ['🐟', 'Laquaiche aux yeux d’or'], coregone: ['🐠', 'Corégone'], barbotte: ['🐟', 'Barbotte'],
+marigane: ['🐟', 'Marigane noire'], omble_ch: ['🐠', 'Omble chevalier'], esturgeon_n: ['🐋', 'Esturgeon noir'],
   capsule: ['🧢', 'Capsule de liqueur'], bouton: ['🔘', 'Bouton de manteau'], cle: ['🗝️', 'Vieille clé'], pepite: ['✨', 'Pépite d’or'], trilobite: ['🐚', 'Trilobite fossile'],
   cocotte: ['🌰', 'Cocotte de pin'], coquillage: ['🐚', 'Coquillage'],
 };
@@ -350,7 +354,7 @@ export function makeFlows(G) {
       if (closed) { audio.sfx('click'); ui.toast(`${q.kind === 'fish' ? '💨' : '🍂'} ${cfg.lose.skip}`); F.cur = null; q.onEnd && q.onEnd('skip'); return; }
       let body;
       if (result === 'win') {
-        const key = loot(q.kind, q.d, isle), got = G.grant(key);
+        const key = loot(q.kind, q.d, isle, q.rod || 'petite'), got = G.grant(key);
         st.rares[key] = (st.rares[key] || 0) + 1; const jkey = q.kind === 'fish' ? 'rare' : q.kind === 'berry' ? 'bleuets' : 'sirop'; st.journal[jkey] = (st.journal[jkey] || 0) + 1; if (q.kind === 'fish') st.journal.fish++;
         audio.sfx('up');
         body = h('div', { class: 'celebrate actionwin' }, h('div', { class: 'big' }, ITEMS[key][0]), h('h3', {}, cfg.win(key)),
@@ -410,7 +414,7 @@ export function makeFlows(G) {
     const max = canFerry(st) ? 4 : 3;
     const tools = h('div', { class: 'ctools' }, TOOLS.map(t => h('span', { class: 'chip' }, `${t.icone} ${stars(st.tools[t.id] || 0, max)}`)));
     const journal = h('p', { class: 'journal' }, `🐟 ${j.fish} (✨ ${j.rare || 0} rare${(j.rare || 0) > 1 ? "s" : ""}) · 🍯 ${j.sirop || 0} · 🫐 ${j.bleuets || 0} · 🦋 ${j.bugs} · ⛏️ ${j.finds} · 🌸 ${j.flowers} · 🪙 ${fmtMoney(j.coins)} gagnés`);
-    const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee', 'barquette', 'confiture', 'confiture_mamie', 'gros_dore', 'saumon', 'bar'];
+    const RARE_KEYS = ['omble', 'maskinonge', 'esturgeon', 'tire', 'sirop', 'coulee', 'barquette', 'confiture', 'confiture_mamie', 'gros_dore', 'saumon', 'bar', 'ouananiche', 'touladi', 'anguille', 'marigane', 'omble_ch', 'esturgeon_n'];
     const rares = h('section', { class: 'rares' }, h('h4', {}, '✨ Prises rares et sirop'), RARE_KEYS.some(k => st.rares[k])
       ? h('div', { class: 'ctools' }, RARE_KEYS.filter(k => st.rares[k]).map(k => h('span', { class: 'chip rare', 'data-k': k }, `${ITEMS[k][0]} ${ITEMS[k][1]} × ${st.rares[k]}`)))
       : h('p', { class: 'pre' }, 'Rien encore. Quand ça mord fort, qu’un érable coule ou qu’on récolte sève et bleuets, une petite question peut te rapporter une prise rare!'));
