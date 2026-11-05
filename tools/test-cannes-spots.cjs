@@ -146,6 +146,55 @@ ok('b ITEMS labels québécois',
     ok('d ponts ouverts : quais Lise/Lionel visibles',
       spotsOpen.liseVis && spotsOpen.lionelVis, JSON.stringify(spotsOpen));
 
+    await p.evaluate(() => { if (__mv.G.ui.isOpen) __mv.G.ui.close(); });
+
+    async function fishOnce(page, dockId, { rare = false, rodState } = {}) {
+      return page.evaluate(async ({ dockId, rare, rodState }) => {
+        if (rodState) __mv.state.rods = rodState;
+        __mv.state.bag = [];
+        __mv.force.rare = rare;
+        const it = __mv.world.interactables.find(i => i.id === dockId);
+        __mv.tp(it.pos.x, it.pos.z + 0.2);
+        await __mv.waitT(0.15); // annule une pêche déjà ouverte si on a changé de spot
+        __mv.G.interact(it);
+        for (let n = 0; n < 80 && __mv.world.bobber.visible; n++) {
+          await __mv.waitT(0.2);
+          const prompt = document.querySelector('#prompt')?.textContent || '';
+          if (/Ça mord/i.test(prompt)) __mv.G.interact(it); // reel when bite
+        }
+        return { bag: __mv.state.bag.slice(), bobber: __mv.world.bobber.visible };
+      }, { dockId, rare, rodState });
+    }
+
+    const noRod = await p.evaluate(() => {
+      const msgs = [];
+      const ui = __mv.G.ui;
+      const old = ui.toast.bind(ui);
+      ui.toast = (m, k) => { msgs.push(String(m)); old(m, k); };
+      __mv.state.rods = { petite: true, moyenne: false, grosse: false };
+      __mv.world.openBridge('bleuets');
+      const it = __mv.world.interactables.find(i => i.id === 'quai_lise');
+      __mv.tp(it.pos.x, it.pos.z + 0.2);
+      __mv.G.interact(it);
+      ui.toast = old;
+      return { msgs, bobber: __mv.world.bobber.visible };
+    });
+    ok('e sans canne moyenne : toast Gaston, pas de pêche',
+      noRod.msgs.some(m => /canne moyenne/i.test(m)) && noRod.bobber === false, JSON.stringify(noRod));
+
+    const gotM = await fishOnce(p, 'quai_lise', { rodState: { petite: true, moyenne: true, grosse: false } });
+    ok('e Lise + moyenne → meunier|crapet|brochet',
+      gotM.bag.some(k => ['meunier', 'crapet', 'brochet'].includes(k)), JSON.stringify(gotM));
+
+    const gotP = await fishOnce(p, 'quai', { rodState: { petite: true, moyenne: false, grosse: false } });
+    ok('e quai + petite → perchaude|achigan|dore|truite',
+      gotP.bag.some(k => ['perchaude', 'achigan', 'dore', 'truite'].includes(k)), JSON.stringify(gotP));
+
+    await p.evaluate(() => __mv.world.openBridge('erables'));
+    const gotG = await fishOnce(p, 'quai_lionel', { rodState: { petite: true, moyenne: true, grosse: true } });
+    ok('e Lionel + grosse → laquaiche|coregone|barbotte',
+      gotG.bag.some(k => ['laquaiche', 'coregone', 'barbotte'].includes(k)), JSON.stringify(gotG));
+
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
   ok('z 0 erreur console', errs.length === 0, errs.slice(0, 5).join(' | '));

@@ -14,7 +14,7 @@ import { makeFlows, ITEMS } from './flows.js';
 import { makeAudio } from './audio.js';
 import { makeSons } from './sons.js';
 import { stats, canFerry } from './progression.js';
-import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait } from './actionq.js';
+import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait, COMMON_FISH } from './actionq.js';
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
@@ -46,7 +46,11 @@ for (const [z, open] of Object.entries(state.bridges)) if (open) world.openBridg
 // ---------- Deux îles : une seule est dans la scène à la fois (l’autre est cachée, l’île 2 est construite au premier passage)
 const allVillagers = makeVillagers(world.root, ['gaston', 'therese', 'flocon', 'hortense', 'lionel', 'lise']); G.allVillagers = allVillagers;
 function zoneFolkOk(v) { return (v.id !== 'lionel' || state.bridges.erables) && (v.id !== 'lise' || state.bridges.bleuets); }
-function zoneItOk(it) { return !((it.kind === 'sap' && !state.bridges.erables) || (it.kind === 'berry' && !state.bridges.bleuets)); }
+function zoneItOk(it) {
+  if ((it.kind === 'sap' && !state.bridges.erables) || (it.kind === 'berry' && !state.bridges.bleuets)) return false;
+  if (it.kind === 'fish' && it.zone && !state.bridges[it.zone]) return false;
+  return true;
+}
 function syncZoneFolk() {
   for (const v of allVillagers) {
     if (v.id === 'lionel') v.obj.visible = !!state.bridges.erables;
@@ -103,18 +107,38 @@ const force = {};
 const question = kind => force.q ? { stretch: false, ...force.q } : pickQuestion(state, kind, rng, state.island === 2 ? 2 : 1);
 
 // ---------- Pêche
-const fishing = { state: null, t: 0, rare: false };
+const fishing = { state: null, t: 0, rare: false, rod: null, spot: null };
+const ROD_NEED = {
+  petite: 'Il te faut la canne de base — passe voir Gaston.',
+  moyenne: 'Il te faut la canne moyenne — passe voir Gaston.',
+  grosse: 'Il te faut la canne grosse — passe voir Gaston.',
+};
 function weighted(table) { const tot = table.reduce((a, [, w]) => a + w, 0); let r = rng.next() * tot; for (const [k, w] of table) { if ((r -= w) < 0) return k; } return table[0][0]; }
-function startFishing() {
-  const s = stats('canne', state.tools.canne); fishing.state = 'wait'; fishing.t = s.wait[0] + rng.next() * (s.wait[1] - s.wait[0]);
-  const f = W().fishSpot; player.teleport(f.x, f.z); player.face(f.fx, f.fz); hold('canne', 0); W().bobber.visible = true; audio.sfx('splash');
+function startFishing(it) {
+  const isle2 = state.island === 2;
+  const rod = isle2 ? null : (it?.rod || 'petite');
+  if (!isle2) {
+    if (!state.rods) state.rods = { petite: true, moyenne: false, grosse: false };
+    if (!state.rods[rod]) { ui.toast(ROD_NEED[rod] || ROD_NEED.petite); return; }
+  }
+  const s = stats('canne', state.tools.canne);
+  fishing.state = 'wait';
+  fishing.t = s.wait[0] + rng.next() * (s.wait[1] - s.wait[0]);
+  fishing.rod = rod;
+  const f = (it && it.spot) || W().fishSpot;
+  fishing.spot = f;
+  player.teleport(f.x, f.z); player.face(f.fx, f.fz); hold('canne', 0);
+  const b = W().bobber; b.position.set(f.fx, -0.55, f.fz); b.visible = true; audio.sfx('splash');
   fishing.bait = useBait(state);
   ui.toast(fishing.bait ? `🪱 Appât rare de Bernard accroché! Un gros poisson s’en vient… (il t’en reste ${state.appats})` : '🎣 Attends que ça morde… pis appuie au bon moment!');
 }
-function stopFishing() { fishing.state = null; fishing.rare = false; fishing.bait = false; W().bobber.visible = false; player.tool.clear(); }
+function stopFishing() {
+  fishing.state = null; fishing.rare = false; fishing.bait = false; fishing.rod = null; fishing.spot = null;
+  W().bobber.visible = false; player.tool.clear();
+}
 function fishTick(dt) {
   if (!fishing.state) return;
-  const f = W().fishSpot;
+  const f = fishing.spot || W().fishSpot;
   if (Math.hypot(player.pos.x - f.x, player.pos.z - f.z) > 1.2) { stopFishing(); return; }
   fishing.t -= dt; const b = W().bobber;
   b.position.y = -0.45 + Math.sin(G.time * 3) * 0.04 - (fishing.state === 'bite' ? 0.18 + Math.sin(G.time * 30) * 0.05 : 0);
@@ -130,8 +154,23 @@ function reel() {
   const s = stats('canne', state.tools.canne);
   if (fishing.state === 'wait') { ui.toast('Trop tôt! Attends que le bouchon cale.'); stopFishing(); return; }
   const lvl = state.tools.canne;
-  if (fishing.rare) { stopFishing(); audio.sfx('catch'); flows.actionQ({ kind: 'fish', ...question('fish') }); return; }
-  const kind = state.island === 2 ? weighted([['truite', 40], ['achigan', 25], ['dore', 20 + lvl * 4], ['perchaude', 15]]) : weighted([['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]);
+  const rod = fishing.rod;
+  if (fishing.rare) {
+    const r = rod || 'petite';
+    stopFishing(); audio.sfx('catch');
+    flows.actionQ({ kind: 'fish', rod: r, ...question('fish') });
+    return;
+  }
+  let kind;
+  if (state.island === 2) {
+    kind = weighted([['truite', 40], ['achigan', 25], ['dore', 20 + lvl * 4], ['perchaude', 15]]);
+  } else {
+    const base = COMMON_FISH[rod || 'petite'] || COMMON_FISH.petite;
+    const table = (rod === 'petite' || !rod)
+      ? [['perchaude', 50], ['achigan', 30], ['dore', 12 + lvl * 4], ['truite', 4 + lvl * 5]]
+      : base;
+    kind = weighted(table);
+  }
   stopFishing(); if (!bagAdd(kind)) return;
   state.journal.fish++; audio.sfx('catch'); ui.toast(`${ITEMS[kind][0]} Une belle prise : ${ITEMS[kind][1]}!`); G.save();
 }
@@ -166,7 +205,7 @@ function interact(target = nearest()) {
     case 'atelier': flows.workbench(2); break;
     case 'phare': flows.phare(); break;
     case 'kiosk': flows.kiosk(); break;
-    case 'fish': startFishing(); break;
+    case 'fish': startFishing(it); break;
     case 'tree': {
       if (G.time < it.ready) { it.shake = 0.3; ui.toast('🍁 Cet érable se repose. Reviens tantôt!'); break; }
       it.shake = 1; it.ready = G.time + 45; audio.sfx('shake'); player.busyFor(0.5);
