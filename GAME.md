@@ -50,7 +50,7 @@ Face à un animal, **E** (ou un tap dessus) le flatte : un cœur monte, un ronro
 
 Le contenu du sac se vend chez Thérèse. Les sous servent au décor (nichoir, lupins, lanterne, banc, feu de camp, chaise Adirondack) et aux 2 ponts qui ouvrent de nouveaux coins de l’île : le **Pont de la Pointe-aux-Bleuets** (60,00 $) mène à Lise et à la bleuetière, à l’est ; le **Pont de la Colline des Érables** (90,00 $) mène à Lionel et à la cabane à sucre, au nord. Tant que le pont est fermé, on voit l’îlot de l’autre côté de l’eau, mais Lionel, Lise, la cabane, l’évaporateur et les plants à cueillir restent cachés.
 
-Chez **Gaston**, en plus d’améliorer les outils (questions maths), on achète des **cannes en cash** (sans taxes) : canne de base offerte dès le départ, canne moyenne **75,00 $**, canne grosse **150,00 $**. Chaque canne débloque son spot. Les **niveaux** de l’outil canne (vitesse de touche, rares) restent et s’appliquent à tous les spots. Le quai de Bernard sur l’île 2 ne change pas.
+Chez **Gaston**, en plus d’améliorer les outils (questions maths), on achète des **cannes en cash** (sans taxes) : canne de base offerte dès le départ, canne moyenne **75,00 $**, canne grosse **150,00 $**. Chaque canne débloque son spot. Les **niveaux** de l’outil canne (vitesse de touche, rares) restent et s’appliquent à tous les spots. Le quai de Bernard sur l’île 2 ne change pas. Le quai de Lise part de la rive est de l’îlot et avance sur l’eau, vers l’est ; celui de Lionel part de la rive nord et avance vers le nord. On y marche depuis l’îlot, et la ligne part vers le large.
 
 ### Questions en action (étape 2)
 

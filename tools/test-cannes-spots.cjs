@@ -1,14 +1,23 @@
 // Test : 3 cannes + 3 spots (save.rods, shop Gaston, spots Lise/Lionel)
 // Usage : node tools/serve.js 8653 & node tools/test-cannes-spots.cjs [port]
-const { chromium } = require('/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright');
+const fs = require('fs');
+let chromium;
+try {
+  ({ chromium } = require('/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright'));
+} catch {
+  ({ chromium } = require('playwright'));
+}
+const CI_EXE = '/home/box/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell';
+const EXE = fs.existsSync(CI_EXE) ? CI_EXE : chromium.executablePath();
 const PORT = process.argv[2] || 8653, BASE = `http://localhost:${PORT}/?fresh=1&seed=4242&adapt=0&time=midi`;
 let pass = 0, fail = 0, errs = [];
 const ok = (name, c, extra = '') => { if (c) pass++; else fail++; console.log(`${c ? 'PASS' : 'FAIL'} ${name}${c || !extra ? '' : ' — ' + extra}`); };
 (async () => {
-  const b = await chromium.launch({ executablePath: '/home/box/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const b = await chromium.launch({ executablePath: EXE, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   async function open(q = '') {
     const c = await b.newContext({ viewport: { width: 1024, height: 640 } }); const p = await c.newPage();
     p.on('pageerror', e => errs.push(q + ': ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(q + ': ' + m.text()); });
+    p.on('requestfailed', req => errs.push(q + ': net ' + req.url() + ' ' + ((req.failure() && req.failure().errorText) || '')));
     await p.goto(BASE + q); await p.waitForFunction(() => window.__mv, null, { timeout: 30000 }); await p.click('#play'); await p.evaluate(() => __mv.waitT(0.6));
     return { c, p };
   }
@@ -161,6 +170,106 @@ ok('b ITEMS labels québécois',
     ok('d ponts ouverts : quais Lise/Lionel visibles',
       spotsOpen.liseVis && spotsOpen.lionelVis, JSON.stringify(spotsOpen));
 
+    // Régression : les quais de Lise (est) et Lionel (nord) joignent la rive marchable
+    // et avancent sur l’eau. Oracle indépendant du placement : le sable rencontre l’eau
+    // vers (r + 2,01) × k (k ≤ 1,035), donc au plus r + 2,5. « Sur l’eau » = planches
+    // au-delà de r + 4,2. La rive marchable est hypot < r − 0,3 : des planches doivent
+    // encore être sous r − 1,2 pour qu’on puisse y monter depuis l’îlot.
+    const geom = await p.evaluate(async () => {
+      const { ISLANDS, DOCK } = await import('./js/world.js');
+      const by = Object.fromEntries(ISLANDS.map(i => [i.id, i]));
+      const spec = { quai_lise: 'bleuets', quai_lionel: 'erables' };
+      const dist = (isl, x, z) => Math.hypot(x - isl.x, z - isl.z);
+      const analyze = id => {
+        const it = __mv.world.interactables.find(i => i.id === id);
+        const isl = by[spec[id]];
+        const planks = [];
+        it.obj.updateWorldMatrix(true, true);
+        it.obj.traverse(o => {
+          const gp = o.geometry && o.geometry.parameters;
+          if (!gp || o.geometry.type !== 'BoxGeometry') return;
+          if (!(gp.width > 1.4 && gp.height < 0.35 && gp.depth < 1.3)) return;
+          const v = o.position.clone(); o.getWorldPosition(v);
+          planks.push({ x: v.x, y: v.y, z: v.z });
+        });
+        if (!planks.length) return { id, n: 0, rIsland: isl.r };
+        let minP = planks[0], maxP = planks[0];
+        for (const q of planks) {
+          if (dist(isl, q.x, q.z) < dist(isl, minP.x, minP.z)) minP = q;
+          if (dist(isl, q.x, q.z) > dist(isl, maxP.x, maxP.z)) maxP = q;
+        }
+        const ax = maxP.x - minP.x, az = maxP.z - minP.z, al = Math.hypot(ax, az) || 1;
+        const rx = maxP.x - isl.x, rz = maxP.z - isl.z, rl = Math.hypot(rx, rz) || 1;
+        const spot = it.spot;
+        const fx = spot.fx - spot.x, fz = spot.fz - spot.z, fl = Math.hypot(fx, fz) || 1;
+        const srx = spot.x - isl.x, srz = spot.z - isl.z, srl = Math.hypot(srx, srz) || 1;
+        const open = { bridges: { bleuets: true, erables: true } };
+        const ang = Math.atan2(spot.z - isl.z, spot.x - isl.x);
+        const blocked = [];
+        let pathOk = true;
+        for (let d = isl.r - 2.2; d <= dist(isl, spot.x, spot.z) + 0.05; d += 0.4) {
+          const x = isl.x + Math.cos(ang) * d, z = isl.z + Math.sin(ang) * d;
+          if (!__mv.world.walkable(x, z, open)) { pathOk = false; blocked.push({ d: +d.toFixed(2), x: +x.toFixed(2), z: +z.toFixed(2) }); }
+        }
+        return {
+          id, n: planks.length, rIsland: isl.r,
+          minD: +dist(isl, minP.x, minP.z).toFixed(2), maxD: +dist(isl, maxP.x, maxP.z).toFixed(2),
+          minY: +Math.min(...planks.map(q => q.y)).toFixed(3), maxY: +Math.max(...planks.map(q => q.y)).toFixed(3),
+          outward: +((ax * rx + az * rz) / (al * rl)).toFixed(3),
+          face: +((fx * srx + fz * srz) / (fl * srl)).toFixed(3),
+          sd: +dist(isl, spot.x, spot.z).toFixed(2), bd: +dist(isl, spot.fx, spot.fz).toFixed(2),
+          spotWalk: __mv.world.walkable(spot.x, spot.z, open),
+          spotClosed: __mv.world.walkable(spot.x, spot.z, { bridges: {} }),
+          pathOk, blocked: blocked.slice(0, 3),
+          east: maxP.x > isl.x + isl.r && Math.abs(maxP.z - isl.z) < 3,
+          north: maxP.z < isl.z - isl.r && Math.abs(maxP.x - isl.x) < 3,
+          near: +Math.hypot(it.pos.x - spot.x, it.pos.z - spot.z).toFixed(3),
+          r: it.r, spot,
+        };
+      };
+      const quai = __mv.world.interactables.find(i => i.id === 'quai');
+      const shop = await import('./js/shop.js');
+      const fl = await import('./js/flows.js');
+      return {
+        lise: analyze('quai_lise'), lionel: analyze('quai_lionel'),
+        quai: quai.spot, quaiR: quai.r, quaiZone: quai.zone || null, quaiRod: quai.rod,
+        dock: { ...DOCK },
+        fishIds: __mv.world.interactables.filter(i => i.kind === 'fish').map(i => i.id).sort(),
+        quaiWalk: __mv.world.walkable(quai.spot.x, quai.spot.z, { bridges: {} }),
+        ponts: {
+          bleuets: shop.CATALOG.find(a => a.id === 'pont_bleuets').prixCents,
+          erables: shop.CATALOG.find(a => a.id === 'pont_erables').prixCents,
+        },
+        rods: fl.RODS.map(r => [r.id, r.prixCents]),
+      };
+    });
+    const dockOk = (name, g, side) => {
+      ok(`g ${name} : planches de la rive marchable jusqu’au-dessus de l’eau`,
+        g.n >= 4 && g.minD < g.rIsland - 1.2 && g.maxD > g.rIsland + 4.2 && g.minY > -0.05 && g.maxY < 0.4,
+        JSON.stringify(g));
+      ok(`g ${name} : le quai pointe vers le large (${side})`,
+        g.outward > 0.92 && (side === 'est' ? g.east : g.north),
+        JSON.stringify(g));
+      ok(`g ${name} : on marche de l’îlot au bout, et seulement si le pont est ouvert`,
+        g.pathOk && g.spotWalk === true && g.spotClosed === false && g.sd > g.rIsland + 2.5,
+        JSON.stringify(g));
+      ok(`g ${name} : la ligne part vers l’eau, interaction au bout du quai`,
+        g.face > 0.92 && g.bd > g.sd + 1.5 && g.bd > g.rIsland + 5 && g.near < 0.35 && g.r === 1.8,
+        JSON.stringify(g));
+    };
+    dockOk('Lise', geom.lise, 'est');
+    dockOk('Lionel', geom.lionel, 'nord');
+    ok('g trois spots de pêche, quai de l’île 1 inchangé',
+      geom.fishIds.join() === 'quai,quai_lionel,quai_lise'
+      && geom.quai.x === 6 && geom.quai.z === geom.dock.z1 - 0.8 && geom.quai.fx === 6 && geom.quai.fz === geom.dock.z1 + 3
+      && geom.dock.z0 === 27 && geom.dock.z1 === 38 && geom.dock.x0 === 4.8 && geom.dock.x1 === 7.2
+      && geom.quaiRod === 'petite' && geom.quaiZone == null && geom.quaiR === 1.8 && geom.quaiWalk === true
+      && geom.ponts.bleuets === 6000 && geom.ponts.erables === 9000
+      && geom.rods[0][0] === 'petite' && geom.rods[0][1] === 0
+      && geom.rods[1][0] === 'moyenne' && geom.rods[1][1] === 7500
+      && geom.rods[2][0] === 'grosse' && geom.rods[2][1] === 15000,
+      JSON.stringify({ fishIds: geom.fishIds, quai: geom.quai, dock: geom.dock, ponts: geom.ponts, rods: geom.rods, quaiWalk: geom.quaiWalk }));
+
     await p.evaluate(() => { if (__mv.G.ui.isOpen) __mv.G.ui.close(); });
 
     async function fishOnce(page, dockId, { rare = false, rodState } = {}) {
@@ -240,6 +349,72 @@ ok('b ITEMS labels québécois',
       return { a: aq.loot('fish', 0, 2, 'petite'), b: aq.loot('fish', 1, 2, 'moyenne'), c: aq.loot('fish', 2, 2, 'grosse') };
     });
     ok('f île 2 RARE_FISH2 inchangé', i2.a === 'gros_dore' && i2.b === 'saumon' && i2.c === 'bar', JSON.stringify(i2));
+
+    // Contrôles réels : marcher du gazon jusqu’au bout du quai, puis E pour pêcher vers l’eau.
+    fs.mkdirSync('/opt/cursor/artifacts', { recursive: true });
+    async function hold(code, seconds) {
+      await p.keyboard.down('ShiftLeft');
+      await p.keyboard.down(code);
+      await p.evaluate(s => __mv.waitT(s), seconds);
+      await p.keyboard.up(code);
+      await p.keyboard.up('ShiftLeft');
+      await p.evaluate(() => __mv.waitT(0.2));
+    }
+    async function walkFish(name, { x, z, key, reached, castOut, shot }) {
+      await p.evaluate(() => { if (__mv.G.ui.isOpen) __mv.G.ui.close(); __mv.tp(2, 6); });
+      await p.evaluate(() => __mv.waitT(0.35));
+      await p.evaluate(({ x, z }) => {
+        __mv.state.rods = { petite: true, moyenne: true, grosse: true };
+        __mv.world.openBridge('bleuets'); __mv.world.openBridge('erables');
+        __mv.tp(x, z);
+      }, { x, z });
+      await p.evaluate(() => __mv.waitT(0.25));
+      const start = await p.evaluate(() => ({ x: +__mv.player.pos.x.toFixed(2), z: +__mv.player.pos.z.toFixed(2) }));
+      await hold(key, 4);
+      const mid = await p.evaluate(() => {
+        const el = document.querySelector('#prompt');
+        return {
+          x: +__mv.player.pos.x.toFixed(2), z: +__mv.player.pos.z.toFixed(2),
+          nearest: __mv.nearest(),
+          prompt: el && !el.classList.contains('hidden') ? el.textContent : '',
+        };
+      });
+      ok(`h ${name} : le clavier mène de la rive au bout du quai`, reached(start, mid) && /Pêcher/.test(mid.prompt), JSON.stringify({ start, mid }));
+      await p.keyboard.press('KeyE');
+      await p.evaluate(() => __mv.waitT(0.5));
+      const fish = await p.evaluate(() => {
+        const el = document.querySelector('#prompt');
+        return {
+          bobber: __mv.world.bobber.visible,
+          bx: +__mv.world.bobber.position.x.toFixed(2), bz: +__mv.world.bobber.position.z.toFixed(2),
+          px: +__mv.player.pos.x.toFixed(2), pz: +__mv.player.pos.z.toFixed(2),
+          prompt: el && !el.classList.contains('hidden') ? el.textContent : '',
+        };
+      });
+      ok(`h ${name} : E pêche vers l’eau`, fish.bobber && /Remonter|mord/i.test(fish.prompt) && castOut(fish), JSON.stringify(fish));
+      if (shot && fish.bobber) {
+        await p.evaluate(() => { __mv.camK(1.9); __mv.cam().setZoom(1.6); });
+        await p.evaluate(() => __mv.waitT(0.9));
+        await p.waitForTimeout(250);
+        await p.screenshot({ path: shot });
+        await p.evaluate(() => { __mv.camK(1); __mv.cam().setZoom(1); });
+      }
+    }
+    await walkFish('Lise', {
+      x: 53.5, z: 4, key: 'KeyD', shot: '/opt/cursor/artifacts/quai_lise_rive_eau.png',
+      reached: (s, m) => s.x < 55 && m.x > 60 && Math.abs(m.z - 4) < 1.5,
+      castOut: f => f.px > 60 && f.bx > f.px + 1.5 && Math.abs(f.bz - f.pz) < 1.2,
+    });
+    await walkFish('Lionel', {
+      x: -4, z: -55.2, key: 'KeyW', shot: '/opt/cursor/artifacts/quai_lionel_rive_eau.png',
+      reached: (s, m) => s.z > -56 && m.z < -62 && Math.abs(m.x + 4) < 1.5,
+      castOut: f => f.pz < -62 && f.bz < f.pz - 1.5 && Math.abs(f.bx - f.px) < 1.2,
+    });
+    await walkFish('quai île 1', {
+      x: 6, z: 30, key: 'KeyS', shot: '/opt/cursor/artifacts/quai_ile1_inchange.png',
+      reached: (s, m) => s.z < 32 && m.z > 36.4 && m.z < 38 && Math.abs(m.x - 6) < 1.2,
+      castOut: f => f.pz > 36.4 && f.bz > f.pz + 1.5 && Math.abs(f.bx - 6) < 1.2 && Math.abs(f.px - 6) < 0.4,
+    });
 
     await c.close();
   } catch (e) { ok('exception', false, e.stack); }
