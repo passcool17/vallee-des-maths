@@ -39,6 +39,7 @@ node tools/serve.js 8653 &
 node tools/test.cjs 8653        # parcours Playwright de l’île 1, bureau 1280×800 puis mobile 390×844 (ONLY=desktop|mobile pour un seul)
 node tools/test-s2.cjs          # parcours de l’île de Secondaire 2 (traversier, phare, kiosque, niveau 4, carnet, FPS)
 node tools/test-music.cjs 8653  # musique : piste 1 sur l’île 1, piste 2 sur l’île 2, retour, pause, muet, piste introuvable
+node tools/test-cannes-spots.cjs 8653  # cannes 0/75/150 $, ponts 60/90 $, quais de Lise et Lionel (rive marchable → eau)
 ```
 
 `tools/test.cjs` joue une vraie partie avec de vraies entrées : clavier, clic pour marcher, joystick, bouton ✋ et pavé numérique. Il améliore la canne et l’arrosoir, déclenche un réchauffement, achète un nichoir en calculant le total avec rabais, TPS et TVQ, puis pêche. Pour l’étape 2, il force des touches rares (bonne réponse, mauvaise réponse, « Laisser filer », temps écoulé), vérifie que le chrono s’arrête en pause (P, ⏸, onglet caché), répond à une question de fractions à l’érable, contrôle le carnet et recharge une vieille sauvegarde v1. Il vérifie aussi qu’il n’y a aucune erreur JS et que l’interface ne se chevauche pas. Les captures vont dans `../shots/`.

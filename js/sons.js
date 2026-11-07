@@ -2,7 +2,7 @@
 // oiseaux le jour, grillons et grenouilles la nuit), pas de Camille selon le sol, et une voix par créature, placée (volume + gauche/droite)
 // selon la distance à Camille. Au plus CAP voix ponctuelles à la fois; les paliers de qualité bas allègent (moins de voix, pas de vent).
 import { fxQ } from './joli.js';
-import { DOCK } from './world.js';
+import { onDockWood } from './world.js';
 import { PLACES2 } from './island2.js';
 
 const R = 22;               // au-delà, une créature ne s’entend plus
@@ -98,7 +98,7 @@ export function makeSons(audio, G) {
   // ---------- pas de Camille
   function surface(x, z) {
     if (G.state.island === 2) return S.shore < 1.6 ? 'sable' : 'herbe';
-    if (x > DOCK.x0 - 0.3 && x < DOCK.x1 + 0.3 && z > DOCK.z0) return 'bois';
+    if (onDockWood(x, z)) return 'bois';
     if (Math.abs(x - (6 * ((z + 10) / 36) ** 2 - 0.5)) < 0.9 && z > -12 && z < 27) return 'pierre';
     return S.shore < 1.6 ? 'sable' : 'herbe';
   }

@@ -87,6 +87,17 @@ export const BRIDGES = {
   erables: { x0: -5.4, x1: -2.6, z0: -37.5, z1: -28 },
 };
 export const DOCK = { x0: 4.8, x1: 7.2, z0: 27, z1: 38 };
+// Quais de rive (Lise, Lionel) : remplis dans buildWorld. Le quai principal reste DOCK.
+const shoreDockBounds = [];
+export function onDockWood(x, z) {
+  if (x > DOCK.x0 - 0.3 && x < DOCK.x1 + 0.3 && z > DOCK.z0) return true;
+  for (const d of shoreDockBounds) {
+    const wx = x - d.ox, wz = z - d.oz;
+    const px = d.dz * wx - d.dx * wz, pz = d.dx * wx + d.dz * wz;
+    if (Math.abs(px) < d.half + 0.25 && pz > -0.4 && pz < d.len + 0.3) return true;
+  }
+  return false;
+}
 // Quai du traversier : même endroit (côte ouest) sur les deux îles.
 export const FERRY = { x0: -40, x1: -29.2, z0: 2.8, z1: 5.2, boatX: -43, arrive: [-34, 4] };
 export const onFerryDock = (x, z) => x > FERRY.x0 + 0.2 && x < FERRY.x1 + 0.4 && z > FERRY.z0 + 0.2 && z < FERRY.z1 - 0.2;
@@ -121,6 +132,7 @@ export const PLACES = {
 const DECOR_SPOTS = { nichoir: [-6, 5], lupins: [3, 11], lanterne: [8.8, 27], banc: [0, 3], feu: [-14, 12], adirondack: [-11, 14.5] };
 
 export function buildWorld(scene, G) {
+  shoreDockBounds.length = 0;
   const rng = makeRng(G.state.seed ^ 0x51ed);
   const root = new THREE.Group(); scene.add(root);
   const interactables = [], obstacles = [], anims = [];
@@ -271,19 +283,32 @@ export function buildWorld(scene, G) {
     tb.add(blob(1.3));
     bleuetDecor.add(at(tb, 48.4, 0, 6.8, -0.4)); obstacles.push({ x: 48.4, z: 6.8, r: 1.05 });
   }
-  function makeShoreDock(parent, { id, x, z, fx, fz, rod, zone, labelText }) {
+  // Le cylindre de sable (rayon haut r+1,6, bas r+2,6, centré à y=-0,85) coupe le plan d’eau y=-0,7
+  // à (r+2,00625), avant le petit feston du bord. Le quai part sur le gazon marchable et dépasse cette ligne.
+  function shoreWater(isl, dir) {
+    const k = 1 + (Math.sin(dir * 3 + isl.r) * 0.03 + Math.sin(dir * 7) * 0.02) * 0.7;
+    return (isl.r + 2.00625) * k;
+  }
+  function makeShoreDock(parent, { id, islId, dir, rod, zone, labelText }) {
+    const isl = ISLANDS.find(i => i.id === islId);
+    const dx = Math.cos(dir), dz = Math.sin(dir);
+    const inner = isl.r - 1.85;
+    const len = shoreWater(isl, dir) + 5 - inner;
+    const x0 = isl.x + dx * inner, z0 = isl.z + dz * inner;
     const g = new THREE.Group();
-    for (let i = 0; i < 4; i++) g.add(at(mesh(new THREE.BoxGeometry(1.8, 0.14, 0.42), i % 2 ? '#b88a5c' : '#a77a4f'), 0, 0.05, i * 0.45));
-    for (const px of [-0.85, 0.85]) g.add(at(mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 5), '#7a5236'), px, -0.4, 1.5));
-    const sg = label(labelText, { size: 22, scale: 0.75 }); sg.position.set(0, 1.6, 0.6); g.add(sg);
-    parent.add(at(g, x, 0, z));
-    obstacles.push({ x, z, r: 0.9 });
-    const spot = { x, z, fx, fz };
-    interactables.push({ id, kind: 'fish', rod, zone, pos: new THREE.Vector3(x, 0, z), r: 1.8, label: 'Pêcher', obj: g, spot });
+    const n = Math.max(6, Math.round(len / 0.62)), step = len / n;
+    for (let i = 0; i < n; i++) g.add(at(mesh(new THREE.BoxGeometry(2.4, 0.16, step * 0.9), i % 2 ? '#b88a5c' : '#a77a4f'), 0, 0.05, (i + 0.5) * step));
+    for (let i = 0; i < 4; i++) { const t = 0.35 + (len - 0.7) * (i / 3); for (const px of [-1.12, 1.12]) g.add(at(mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.55, 5), '#7a5236'), px, -0.48, t)); }
+    g.add(at(mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 8), '#d64545'), 1.35, -0.58, len - 0.35));
+    const sg = label(labelText, { size: 22, scale: 0.75 }); sg.position.set(0, 1.65, 1.15); g.add(sg);
+    parent.add(at(g, x0, 0, z0, Math.atan2(dx, dz)));
+    shoreDockBounds.push({ ox: x0, oz: z0, dx, dz, half: 1, len, zone });
+    const spot = { x: x0 + dx * (len - 0.8), z: z0 + dz * (len - 0.8), fx: x0 + dx * (len + 2.7), fz: z0 + dz * (len + 2.7) };
+    interactables.push({ id, kind: 'fish', rod, zone, pos: new THREE.Vector3(spot.x, 0, spot.z), r: 1.8, label: 'Pêcher', obj: g, spot });
     return spot;
   }
-  makeShoreDock(bleuetDecor, { id: 'quai_lise', x: 52, z: 6, fx: 56, fz: 6, rod: 'moyenne', zone: 'bleuets', labelText: 'Quai de Lise' });
-  makeShoreDock(cabaneDecor, { id: 'quai_lionel', x: -4, z: -56, fx: -4, fz: -60, rod: 'grosse', zone: 'erables', labelText: 'Quai de Lionel' });
+  makeShoreDock(bleuetDecor, { id: 'quai_lise', islId: 'bleuets', dir: 0, rod: 'moyenne', zone: 'bleuets', labelText: 'Quai de Lise' });
+  makeShoreDock(cabaneDecor, { id: 'quai_lionel', islId: 'erables', dir: -Math.PI / 2, rod: 'grosse', zone: 'erables', labelText: 'Quai de Lionel' });
   const touchFx = typeof window !== 'undefined' && 'ontouchstart' in window ? 0.6 : 1;
   let fxMul = () => touchFx;
   import('./joli.js').then(m => { fxMul = () => { try { return m.fxQ().fx * touchFx; } catch { return touchFx; } }; }).catch(() => {});
@@ -397,7 +422,12 @@ export function buildWorld(scene, G) {
   // ---------- Marcher
   function walkable(x, z, state) {
     const onIsland = ISLANDS.some(i => (i.id === 'main' || state.bridges[i.id]) && Math.hypot(x - i.x, z - i.z) < i.r - 0.3);
-    const onDock = (x > DOCK.x0 + 0.2 && x < DOCK.x1 - 0.2 && z > DOCK.z0 - 1 && z < DOCK.z1 - 0.3) || onFerryDock(x, z);
+    const onShore = shoreDockBounds.some(d => {
+      if (!state.bridges[d.zone]) return false;
+      const wx = x - d.ox, wz = z - d.oz, px = d.dz * wx - d.dx * wz, pz = d.dx * wx + d.dz * wz;
+      return Math.abs(px) < d.half && pz > -0.85 && pz < d.len - 0.2;
+    });
+    const onDock = (x > DOCK.x0 + 0.2 && x < DOCK.x1 - 0.2 && z > DOCK.z0 - 1 && z < DOCK.z1 - 0.3) || onFerryDock(x, z) || onShore;
     const onBridge = Object.entries(BRIDGES).some(([k, b]) => state.bridges[k] && x > b.x0 + 0.25 && x < b.x1 - 0.25 && z > b.z0 + 0.25 && z < b.z1 - 0.25);
     if (!(onIsland || onDock || onBridge)) return false;
     return !obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.r + 0.35);
