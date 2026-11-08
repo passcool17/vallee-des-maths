@@ -7,7 +7,47 @@
 <meta name="description" content="Une petite île douillette où les maths du secondaire 1 améliorent tes outils.">
 <meta name="theme-color" content="#f6c98f">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<!-- importmap:debut -->
+<script type="importmap">
+{
+ "imports": {
+  "./js/actionq.js": "./js/actionq.js?v=e9a41fec69",
+  "./js/adapt.js": "./js/adapt.js?v=26ed5c96a6",
+  "./js/animaux.js": "./js/animaux.js?v=23d59c82a0",
+  "./js/audio.js": "./js/audio.js?v=5dc9c59879",
+  "./js/bake.js": "./js/bake.js?v=2b2c0f1bbb",
+  "./js/compagnons.js": "./js/compagnons.js?v=35a110cc97",
+  "./js/fete-scene.js": "./js/fete-scene.js?v=fee89f5e2b",
+  "./js/fete.js": "./js/fete.js?v=c1c24558e1",
+  "./js/flows.js": "./js/flows.js?v=2012646f3a",
+  "./js/input.js": "./js/input.js?v=0334b479e7",
+  "./js/island2.js": "./js/island2.js?v=e50117c3d4",
+  "./js/joli.js": "./js/joli.js?v=fb17ed80db",
+  "./js/lecons.js": "./js/lecons.js?v=1289b5d9d1",
+  "./js/main.js": "./js/main.js?v=e9c18d035b",
+  "./js/math/check.js": "./js/math/check.js?v=6c9befeb96",
+  "./js/math/frac.js": "./js/math/frac.js?v=33431673ef",
+  "./js/math/gen.js": "./js/math/gen.js?v=7e8d1ff6ef",
+  "./js/math/gen2.js": "./js/math/gen2.js?v=f2a73a2c3a",
+  "./js/math/rng.js": "./js/math/rng.js?v=c2f15a5a46",
+  "./js/math/skills.js": "./js/math/skills.js?v=bb466e350e",
+  "./js/pets.js": "./js/pets.js?v=854b5338f8",
+  "./js/phare.js": "./js/phare.js?v=30051d5022",
+  "./js/player.js": "./js/player.js?v=2435a2b60d",
+  "./js/progression.js": "./js/progression.js?v=c7880f8b6e",
+  "./js/save.js": "./js/save.js?v=069e4f305f",
+  "./js/shop.js": "./js/shop.js?v=9568841cba",
+  "./js/sons.js": "./js/sons.js?v=4e5ae5a1b3",
+  "./js/ui.js": "./js/ui.js?v=5bd7cf0a29",
+  "./js/vie.js": "./js/vie.js?v=2cd0107bab",
+  "./js/villagers.js": "./js/villagers.js?v=6cef287bbf",
+  "./js/world.js": "./js/world.js?v=cf2cca8365",
+  "./vendor/three.module.min.js": "./vendor/three.module.min.js?v=08fd7545d1"
+ }
+}
+</script>
+<link rel="stylesheet" href="style.css?v=0cfa915fda">
+<!-- importmap:fin -->
 </head>
 <body>
 <canvas id="c" aria-label="L’île de la Vallée des Maths"></canvas>
@@ -32,6 +72,6 @@
   </div>
 </div>
 <noscript>Ce jeu a besoin de JavaScript.</noscript>
-<script type="module" src="js/main.js"></script>
+<script type="module">import './js/main.js';</script>
 </body>
 </html>

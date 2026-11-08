@@ -263,3 +263,8 @@ body.modal #touch, body.modal #prompt { display: none; }
 .hintline.hortense { background: #eef7e4; border-radius: 12px; padding: 8px 10px; }
 .btn.lecbtn { padding: 4px 8px; font-size: 13px; }
 .sk .niv .lecbtn { margin-top: 4px; }
+
+/* Fête de Camille (13 ans) */
+.prog.fete { background: #fde6ef; color: #7a2e4a; }
+.fete-msg { font-size: 1.15rem; font-weight: 800; color: #7a2e4a; }
+#fete-debug { position: fixed; left: 8px; bottom: 8px; z-index: 60; background: rgba(20, 20, 30, .78); color: #fff; font: 700 12px/1.3 ui-monospace, monospace; padding: 4px 8px; border-radius: 8px; pointer-events: none; }
