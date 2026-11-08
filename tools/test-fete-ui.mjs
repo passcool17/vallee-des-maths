@@ -23,6 +23,7 @@ function key(F, code, k = '') {
   if (a && /INPUT|TEXTAREA/.test(a.tagName)) { const e = a.dispatch('keydown', { code, key: k }); if (!e.defaultPrevented && code === 'Space' && a.type === 'checkbox') a.click(); return 'natif'; }
   return F.handleKey({ code, key: k, shiftKey: false, preventDefault() {} });
 }
+const tab = (F, shift = false) => F.handleKey({ code: 'Tab', key: 'Tab', shiftKey: shift, preventDefault() {} });
 const tape = (F, s) => { for (const c of s) key(F, c === '/' ? 'Slash' : `Digit${c}`, c); };
 const btn = txt => panel().querySelectorAll('button').find(b => b.textContent.includes(txt));
 const villageois = id => ({ id, talkTo() {}, nextLine: () => 'Salut!' });
@@ -59,6 +60,30 @@ for (const [id, rep] of [['gaston', '5'], ['therese', '9/13'], ['hortense', '52'
   ok('aucune statistique ni argent', Object.keys(state.stats).length === 0 && state.money === newState(5).money && state.exCount === 0);
   pad('9'); // le pavé est caché après réussite : rien ne casse
   ok('pavé masqué après réussite', !visible(panel().querySelector('.numpad')));
+}
+// 2b) Aide au clavier seulement : 3 erreurs, Tab jusqu’à « Voir la réponse », Entrée ou Espace (aucun click() de test)
+for (const touche of ['Enter', 'Space']) {
+  const { F, state } = monde();
+  F.feteDefi('gaston');
+  for (const r of ['1', '2', '3']) { tape(F, r); key(F, 'Enter'); }
+  const voir = btn('Voir la réponse'); ok(`${touche} : Voir la réponse visible après 3 erreurs`, visible(voir));
+  tab(F); ok(`${touche} : Tab focalise Voir la réponse`, doc.activeElement === voir, doc.activeElement?.textContent);
+  key(F, touche);
+  ok(`${touche} sur Voir la réponse → défi acquis`, state.fete13.defis.gaston === true);
+  ok(`${touche} : Continuer visible et focalisé`, visible(btn('Continuer')) && doc.activeElement === btn('Continuer'));
+  key(F, touche); ok(`${touche} : Continuer ferme`, panel().classList.contains('hidden'));
+}
+{ // Tab / Maj+Tab : champ ↔ Voir la réponse ↔ Fermer (✕) ; la saisie reprend dans le champ ; Entrée sur ✕ annule
+  const { F, state } = monde();
+  F.feteDefi('hortense');
+  for (const r of ['1', '2', '3']) { tape(F, r); key(F, 'Enter'); }
+  tab(F); tab(F); const x = panel().querySelector('button.x');
+  ok('Tab atteint Fermer (✕)', doc.activeElement === x, doc.activeElement?.textContent);
+  tab(F); ok('Tab revient au champ', doc.activeElement?.classList.contains('field'));
+  tab(F, true); ok('Maj+Tab va à Fermer', doc.activeElement === x);
+  tab(F); tape(F, '52'); key(F, 'Enter'); ok('saisie au champ après Tab : 52 + Entrée', state.fete13.defis.hortense === true);
+  const m2 = monde(); m2.F.feteDefi('therese'); tab(m2.F); ok('sans aide visible, Tab va à Fermer', doc.activeElement === panel().querySelector('button.x'));
+  key(m2.F, 'Enter'); ok('Entrée sur Fermer annule', panel().classList.contains('hidden') && !m2.state.fete13.defis.therese);
 }
 // 3) Échap annule sans rien changer
 {

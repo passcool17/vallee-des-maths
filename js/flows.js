@@ -135,7 +135,7 @@ export function makeFlows(G) {
   // ---------- Fête de Camille (13 ans) : 3 petits défis, sans chrono, sans pénalité, hors statistiques
   F.feteDefi = (id) => {
     const st = S(), d = FETE.defiDe(id); if (!d || !G.fete) return;
-    let erreurs = 0, fini = false;
+    let erreurs = 0, fini = false; const nav = inner => navFete(inner);
     const fb = h('div', { class: 'feedback', role: 'status' }), aide = h('div', { class: 'hints' });
     const prog = () => h('div', { class: 'prog fete' }, `🎂 Bougies allumées : ${FETE.bougies(st.fete13)} sur 13`);
     const progEl = h('div', {}, prog());
@@ -148,7 +148,7 @@ export function makeFlows(G) {
       fb.className = vue ? 'feedback info' : 'feedback ok';
       fb.replaceChildren(h('b', {}, vue ? 'La réponse : ' : 'Bravo! '), d.explication, h('p', { class: 'benefit' }, `🕯️ ${d.bougies} bougies de plus sur le gâteau!`));
       progEl.replaceChildren(prog()); box.el.classList.add('hidden'); voir.classList.add('hidden'); fin.classList.remove('hidden');
-      keyHandler = e => { if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') { fin.click(); return true; } return false; };
+      keyHandler = nav(e => { if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') { fin.click(); return true; } return false; }); fin.focus();
       if (FETE.pretASouffler(st.fete13)) ui.toast('🎂 Les 13 bougies sont allumées! Va souffler au gâteau, sur la place.', 'gold');
     }
     const slot = h('div', { class: 'fete-reponse' });
@@ -166,6 +166,18 @@ export function makeFlows(G) {
       box.clear();
     });
     slot.append(box.el);
+    keyHandler = nav(keyHandler);
+  };
+  // Clavier propre au défi de fête : Tab / Maj+Tab parcourent champ → aide → Continuer → Fermer (✕) visibles ;
+  // Entrée ou Espace sur un de ces boutons l’active ; sinon les touches vont à la zone de réponse (chiffres, /, Entrée = valider).
+  function navFete(inner) {
+    const cibles = () => [document.querySelector('#panel .fete-reponse .field'), ...document.querySelectorAll('#panel .fete .row button'), document.querySelector('#panel button.x')].filter(el => el && shown(el));
+    return e => {
+      const a = document.activeElement, c = cibles();
+      if (e.code === 'Tab') { if (!c.length) return true; let i = c.indexOf(a); if (i < 0) i = a && shown(a) ? -1 : 0; c[((i < 0 ? (e.shiftKey ? 0 : -1) : i) + (e.shiftKey ? c.length - 1 : 1)) % c.length].focus(); return true; }
+      if ((e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') && a && a.tagName === 'BUTTON' && !a.classList.contains('field') && c.includes(a)) { a.click(); return true; }
+      return inner(e);
+    };
   };
   F.feteGateau = () => {
     const st = S(); if (!G.fete) return;
