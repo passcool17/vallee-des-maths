@@ -1,6 +1,8 @@
 // Tests Node purs de la fête de Camille (aucun navigateur).
 import * as F from '../js/fete.js';
 import { newState, normalize } from '../js/save.js';
+import { readFileSync } from 'node:fs';
+import { apply, modules } from './importmap.mjs';
 let pass = 0, fail = 0; const ok = (n, c, x = '') => { if (c) pass++; else { fail++; console.log('FAIL', n, x); } };
 const D = s => new Date(s);
 // Activation
@@ -63,5 +65,12 @@ for (const v of [1, 2, 3, 4]) {
   const n = normalize(old, 11);
   ok(`v${v} → fete13 défaut, argent intact`, JSON.stringify(n.fete13) === JSON.stringify(F.feteDefaut()) && n.money === 4321 + v && n.bridges.erables && n.tools.canne === 1);
 }
+// Cache Pages : carte d’import à jour, chaque module versionné, point d’entrée par la carte
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+ok('carte d’import à jour', apply(html) === html);
+ok('chaque module dans la carte', modules().every(m => html.includes(`"./${m}": "./${m}?v=`)), modules().filter(m => !html.includes(`"./${m}"`)).join());
+ok('fete.js et fete-scene.js versionnés', html.includes('"./js/fete.js"') && html.includes('"./js/fete-scene.js"'));
+ok('entrée par la carte', html.includes("import './js/main.js'") && !html.includes('src="js/main.js"') && html.indexOf('type="importmap"') < html.indexOf("import './js/main.js'"));
+ok('style versionné', /style\.css\?v=[0-9a-f]{10}/.test(html));
 console.log(`${pass} PASS, ${fail} FAIL`);
 if (fail) process.exit(1);
