@@ -18,6 +18,8 @@ import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait, COMM
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
+import { feteActive, normFete, reussir, souffler, basculerChapeau, bougies, pretASouffler, nbConfettis, FETE_PARAM } from './fete.js';
+import { makeFeteScene, chapeauCharlie, GATEAU } from './fete-scene.js';
 
 const params = new URLSearchParams(location.search);
 if (params.has('fresh')) reset();
@@ -71,6 +73,25 @@ const start = W().walkable(state.pos.x, state.pos.z, state) ? state.pos : state.
 const player = makePlayer(scene, start); G.player = player;
 const pets = makePets(scene, world, G); G.pets = pets; const sons = makeSons(audio, G); G.sons = sons; pets.regroup(player); J.dress(scene);
 const vie = J.ON ? makeVie(scene, world, G, W) : null; G.vie = vie; // nuit, eau vivante, lucioles, lanternes, feuilles (seulement avec « joli »)
+// ---------- Fête de Camille (13 ans) : décidée une seule fois au chargement (8 nov. 2026 à Toronto ou ?fete=camille13)
+state.fete13 = normFete(state.fete13);
+const feteOn = feteActive(new Date(), location.search);
+const feteScene = makeFeteScene({ scene, world, active: feteOn });
+const chapeau = chapeauCharlie(pets.charlie.body);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const gateauIt = feteOn ? { id: 'gateau', kind: 'gateau', pos: new THREE.Vector3(GATEAU.x, 0, GATEAU.z), r: 2.1, label: 'Voir le gâteau 🎂' } : null;
+if (gateauIt) world.interactables.push(gateauIt);
+function syncFete() {
+  const f = state.fete13; feteScene.setBougies(f.souffle ? 0 : bougies(f)); chapeau.visible = f.chapeau && f.porte;
+  if (gateauIt) gateauIt.label = pretASouffler(f) ? 'Souffler les bougies 🎂' : f.souffle ? 'Relire le message 🎉' : 'Voir le gâteau 🎂';
+}
+G.fete = {
+  on: feteOn,
+  reussir(id) { state.fete13 = reussir(state.fete13, id); syncFete(); G.save(); },
+  souffler() { if (!pretASouffler(state.fete13)) return false; state.fete13 = souffler(state.fete13); feteScene.confettis(nbConfettis(J.quality().level, reduceMotion)); audio.sfx('ok'); syncFete(); G.save(); return true; },
+  basculer() { state.fete13 = basculerChapeau(state.fete13); syncFete(); G.save(); },
+};
+syncFete();
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);
 
@@ -198,6 +219,7 @@ function interact(target = nearest()) {
     case 'npc': flows.talk(it.v); break;
     case 'pet': { const a = it.p, line = pets.pat(a); hearts.push({ m: heart(scene, a.pos.x, a.id === 'charlie' ? 0.95 : 0.8, a.pos.z), t: 1.3 }); if (audio.sons) sons.pet(a); else audio.sfx(a.id === 'charlie' ? 'woof' : 'purr'); if (a.id === 'charlie') waitT(0.6).then(() => comp.fetch(true)); ui.toast(`${a.id === 'charlie' ? '🐶' : '🐱'} ${line}`); break; }
     case 'fetch': comp.pickup(); break;
+    case 'gateau': flows.feteGateau(); break;
     case 'quete': comp.trouver(); break;
     case 'etabli': flows.workbench(); break;
     case 'magasin': flows.shop(); break;
@@ -312,6 +334,7 @@ document.getElementById('new').addEventListener('click', () => { if (confirm('Ef
 document.getElementById('play').addEventListener('click', () => {
   if (started) return; started = true; document.getElementById('title').remove(); audio.start(state.island); audio.setMuted(state.muted);
   if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île, Camille! Charlie te suit partout. Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }
+  if (feteOn && !state.fete13.souffle) setTimeout(() => ui.toast('🎂 C’est la fête de Camille! Le gâteau t’attend sur la place. Gaston, Thérèse pis Hortense ont chacun un petit défi.', 'gold'), state.island === 2 ? 600 : 3400);
 });
 
 // ---------- Caméra et boucle
@@ -358,7 +381,7 @@ function frame(now) {
   comp.tick(dt, started && !ui.isOpen && !fishing.state);
   for (const v of villagers) v.update(dt, player);
   world.update(dt, G); if (state.island === 2 && isle2) isle2.update(dt, G); fishTick(dt);
-  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); if (started) sons.update(dt, player, W()); updateFx(dt); flows.tick(dt);
+  { const lock = !canFerry(state); if (lock !== G.ferryLock) { G.ferryLock = lock; world.ferry.setLocked(lock); if (!lock) audio.preload(2); } } audio.duck(ui.isOpen); if (started) sons.update(dt, player, W()); updateFx(dt); flows.tick(dt); feteScene.update(dt, G.time);
   curve.uCenter.value.set(player.pos.x, player.pos.z); updateLabels(); J.tick(dt, world.sun, player, world.hemi, camera, G.phase); if (vie) vie.update(dt, player, camera, renderer);
   { const f = occlusion(); cam.occ += (f - cam.occ) * Math.min(1, dt * (f < cam.occ ? 9 : 2.5)); } // vite devant un mur, doucement en ressortant
   const o = camOffset(); look.set(player.pos.x, CAMV.look[0], player.pos.z + CAMV.look[1]);
@@ -368,8 +391,11 @@ function frame(now) {
   saveT += dt; if (saveT > 5) { saveT = 0; G.save(); }
   for (let i = waiters.length - 1; i >= 0; i--) if (G.time >= waiters[i].t) { waiters[i].res(); waiters.splice(i, 1); }
   renderer.render(scene, camera);
+  if (debugEl && (debugT += dt) > 1) { debugT = 0; const q = J.quality(); debugEl.textContent = `${Math.round(fps)} i/s · ${renderer.info.render.calls} appels de dessin · palier ${q.level}`; }
   requestAnimationFrame(frame);
 }
+// Encart de mesure visible seulement avec ?fete=camille13&debug=1 (lecture à l’écran, sans console)
+const debugEl = params.get('fete') === FETE_PARAM && params.get('debug') === '1' ? document.body.appendChild(Object.assign(document.createElement('div'), { id: 'fete-debug' })) : null; let debugT = 0;
 requestAnimationFrame(frame);
 addEventListener('pagehide', () => G.save());
 

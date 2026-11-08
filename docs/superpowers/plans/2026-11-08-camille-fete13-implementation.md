@@ -373,7 +373,7 @@ const flows = makeFlows(G); G.flows = flows;""")
 rep("    case 'fetch': comp.pickup(); break;","    case 'fetch': comp.pickup(); break;\n    case 'gateau': flows.feteGateau(); break;")
 rep("  if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île, Camille! Charlie te suit partout. Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }",
 "  if (!state.met.intro) { state.met.intro = 1; setTimeout(() => ui.toast('🍁 Bienvenue sur l’île, Camille! Charlie te suit partout. Va voir Gaston, à l’établi, à gauche du sentier.'), 400); }\n  if (feteOn && !state.fete13.souffle) setTimeout(() => ui.toast('🎂 C’est la fête de Camille! Le gâteau t’attend sur la place. Gaston, Thérèse pis Hortense ont chacun un petit défi.', 'gold'), state.island === 2 ? 600 : 3400);")
-rep("  updateFx(dt); flows.tick(dt);","  updateFx(dt); flows.tick(dt); feteScene.update(dt, G.time);")
+rep(" updateFx(dt); flows.tick(dt);"," updateFx(dt); flows.tick(dt); feteScene.update(dt, G.time);")
 rep("  renderer.render(scene, camera);\n  requestAnimationFrame(frame);\n}\nrequestAnimationFrame(frame);",
 """  renderer.render(scene, camera);
   if (debugEl && (debugT += dt) > 1) { debugT = 0; const q = J.quality(); debugEl.textContent = `${Math.round(fps)} i/s · ${renderer.info.render.calls} appels de dessin · palier ${q.level}`; }
