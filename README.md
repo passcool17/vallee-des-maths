@@ -34,7 +34,9 @@ Paramètres d’URL utiles :
 ## Tests
 
 ```bash
-node tools/test-math.mjs        # 139 795 vérifications : générateurs Sec 1 et Sec 2 (200 graines chacun, oracles indépendants), vérificateur (π compris), progression, niveau 4, traversier, phare, kiosque, sauvegardes v1/v2/v3→v4, statistiques et choix adaptatif (6 000 tirages), leçons (34 fiches, exemples recalculés)
+node tools/test-fete.mjs        # fête de Camille : activation (heure de Toronto, ?fete=camille13), 3 défis, sauvegarde fete13 (règles, v1→v5), carte d’import à jour
+node tools/importmap.mjs        # à relancer après toute modification d’un .js ou de style.css (versionne chaque module pour le cache de GitHub Pages ; --check pour vérifier)
+node tools/test-math.mjs        # 139 815 (au 2026-11-08) ; avant : 139 795 vérifications : générateurs Sec 1 et Sec 2 (200 graines chacun, oracles indépendants), vérificateur (π compris), progression, niveau 4, traversier, phare, kiosque, sauvegardes v1/v2/v3→v4, statistiques et choix adaptatif (6 000 tirages), leçons (34 fiches, exemples recalculés)
 node tools/serve.js 8653 &
 node tools/test.cjs 8653        # parcours Playwright de l’île 1, bureau 1280×800 puis mobile 390×844 (ONLY=desktop|mobile pour un seul)
 node tools/test-s2.cjs          # parcours de l’île de Secondaire 2 (traversier, phare, kiosque, niveau 4, carnet, FPS)

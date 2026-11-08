@@ -211,6 +211,21 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
 
 `?joli=0` redonne le rendu d’avant ; voir le README pour les interrupteurs de test.
 
+## Fête de Camille (13 ans)
+
+- **Quand :** automatiquement le 8 novembre 2026, à l’heure de Toronto, ou n’importe quand avec le lien `?fete=camille13`. La décision est prise au chargement de la page : rien ne disparaît à minuit en pleine partie. Les autres jours, sans le lien, il n’y a ni décor ni défi.
+- **Où :** sur la place de l’île 1, à l’est du sentier, près de l’arrivée. On y trouve une guirlande de 13 fanions entre deux poteaux, une table avec un gâteau à deux étages et 13 bougies, et la bannière « Bonne fête Camille! — 13 ans ». Aucune vraie lumière : les flammes et les confettis sont en matériaux simples.
+- **3 défis gratuits**, dans l’ordre qu’on veut, par l’option « 🎂 Défi de fête » (le dialogue habituel reste là) :
+  - Gaston : 13 − 8 = **5** (5 bougies) ;
+  - Thérèse : 13 parts, on en mange 4, il reste **9/13** (4 bougies) ;
+  - Hortense : 13 × 4 = **52** fanions (4 bougies).
+  Pas de chrono, pas d’argent, et rien ne compte dans le carnet ni dans les questions adaptatives. Après une erreur : « Presque! Essaie encore. » ; à la 2e, un indice ; à partir de la 3e, « Voir la réponse » allume quand même les bougies.
+- **Le gâteau :** E (ou un tap) montre les bougies qui restent. Une fois les 13 allumées, E souffle : confettis (150 au plus, moins sur un appareil lent, aucun si l’appareil demande moins d’animations), puis le message « Bonne fête Camille! 13 ans, 13 bougies : bravo! Charlie a un cadeau pour toi. »
+- **Le chapeau de Charlie :** une fois gagné, il le garde pour toujours, même après la fête. Le carnet, section 🐾, permet de l’enlever ou de le remettre.
+- **Sauvegarde :** le champ optionnel `fete13` (`defis` gaston/therese/hortense, `souffle`, `chapeau`, `porte`). La clé et la version (5) ne changent pas. Règles : une valeur invalide revient au défaut ; on ne peut pas avoir soufflé sans les 3 défis ; avoir soufflé donne le chapeau ; sans chapeau, il n’est pas porté.
+- **Mesure :** `?fete=camille13&debug=1` affiche en bas à gauche les i/s, les appels de dessin et le palier de qualité.
+- **Pas encore vérifié** (au 2026-11-08) : rendu et jouabilité dans un navigateur (ordinateur, 390 px, 360 px), placement du décor par rapport aux chemins, coût réel en appels de dessin et i/s sur S20. Les tests Playwright (`tools/*.cjs`) n’ont pas été lancés pour cette fonction.
+
 ## État et sauvegarde
 
 L’état est sauvegardé automatiquement dans `localStorage` (clé `vdm.save.v1`, champ `v: 5` depuis les quêtes des animaux) toutes les 5 s et après chaque réponse. Il contient :

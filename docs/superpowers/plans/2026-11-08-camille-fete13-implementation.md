@@ -1,6 +1,6 @@
 # Fête de Camille (13 ans) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Décor de fête sur la place de l’île 1, 3 petits défis gratuits qui allument 13 bougies, souffle avec confettis bornés, message final et chapeau de Charlie, sans perte de sauvegarde.
 
@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: `feteActive(date, search)`, `feteDefaut()`, `normFete(raw)`, `bougies(f)`, `pretASouffler(f)`, `defiDe(id)`, `verifier(id, saisie)`, `etapeErreur(n)`, `reussir(f,id)`, `souffler(f)`, `basculerChapeau(f)`, `nbConfettis(level, reduceMotion)`, constantes `DEFIS`, `DEFI_IDS`, `MESSAGE`, `BANNIERE`, `ENCOURAGE`, `FETE_PARAM`, `CONFETTI_MAX`, `TOTAL_BOUGIES`.
 
-- [ ] **Step 1: Write the failing test** (`tools/test-fete.mjs`; le bloc « Cache Pages » est ajouté à la tâche 2)
+- [x] **Step 1: Write the failing test** (`tools/test-fete.mjs`; le bloc « Cache Pages » est ajouté à la tâche 2)
 
 ```js
 // Tests Node purs de la fête de Camille (aucun navigateur).
@@ -102,12 +102,12 @@ console.log(`${pass} PASS, ${fail} FAIL`);
 if (fail) process.exit(1);
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node tools/test-fete.mjs`
 Expected: erreur `Cannot find module .../js/fete.js`.
 
-- [ ] **Step 3: Write minimal implementation** (`js/fete.js`)
+- [x] **Step 3: Write minimal implementation** (`js/fete.js`)
 
 ```js
 // Fête de Camille, 13 ans : logique pure (activation, défis, sauvegarde). Aucune dépendance au DOM ni à three.js.
@@ -185,12 +185,12 @@ s=s.replace("    })() };\n}","    })(), fete13: normFete(raw.fete13) };\n}",1)
 open(p,'w').write(s)
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `node tools/test-fete.mjs && node tools/test-math.mjs | tail -1`
 Expected: `… PASS, 0 FAIL` puis `139815 PASS, 0 FAIL`.
 
-- [ ] **Step 5: Commit** — `git add js/fete.js js/save.js tools/test-fete.mjs && git commit -m "feat(fete): logique pure et sauvegarde fete13"`
+- [x] **Step 5: Commit** — `git add js/fete.js js/save.js tools/test-fete.mjs && git commit -m "feat(fete): logique pure et sauvegarde fete13"`
 
 ### Task 2: Cache GitHub Pages (carte d’import)
 
@@ -200,7 +200,7 @@ Expected: `… PASS, 0 FAIL` puis `139815 PASS, 0 FAIL`.
 
 **Interfaces:** Produces `hash(buf)`, `modules(root)`, `render(root)`, `apply(html, root)` ; CLI `node tools/importmap.mjs [--check]`.
 
-- [ ] **Step 1: Ajouter le test** (avant la ligne `console.log` finale de `tools/test-fete.mjs`)
+- [x] **Step 1: Ajouter le test** (avant la ligne `console.log` finale de `tools/test-fete.mjs`)
 
 ```js
 // Cache Pages : carte d’import à jour, chaque module versionné, point d’entrée par la carte
@@ -213,8 +213,8 @@ ok('style versionné', /style\.css\?v=[0-9a-f]{10}/.test(html));
 ```
 avec, en tête : `import { readFileSync } from 'node:fs';` et `import { apply, modules } from './importmap.mjs';`
 
-- [ ] **Step 2: Vérifier l’échec** — `node tools/test-fete.mjs` → `Cannot find module …/importmap.mjs`.
-- [ ] **Step 3: Implémenter** `tools/importmap.mjs` :
+- [x] **Step 2: Vérifier l’échec** — `node tools/test-fete.mjs` → `Cannot find module …/importmap.mjs`.
+- [x] **Step 3: Implémenter** `tools/importmap.mjs` :
 
 ```js
 // Cache de GitHub Pages : chaque module JS reçoit ?v=<empreinte de son contenu> par une carte d’import dans index.html.
@@ -251,8 +251,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 }
 ```
 
-- [ ] **Step 4: Générer et vérifier** — `node tools/importmap.mjs && node tools/importmap.mjs --check && node tools/test-fete.mjs` → `carte d’import à jour`, `… PASS, 0 FAIL`. (Ce test échoue tant que `fete-scene.js` n’existe pas ; il passe à la tâche 3.)
-- [ ] **Step 5: Commit** — `git add tools/importmap.mjs tools/test-fete.mjs index.html && git commit -m "build(cache): carte d’import versionnée pour Pages"`
+- [x] **Step 4: Générer et vérifier** — `node tools/importmap.mjs && node tools/importmap.mjs --check && node tools/test-fete.mjs` → `carte d’import à jour`, `… PASS, 0 FAIL`. (Ce test échoue tant que `fete-scene.js` n’existe pas ; il passe à la tâche 3.)
+- [x] **Step 5: Commit** — `git add tools/importmap.mjs tools/test-fete.mjs index.html && git commit -m "build(cache): carte d’import versionnée pour Pages"`
 
 ### Task 3: Décor, gâteau, chapeau, confettis et branchement
 
@@ -264,7 +264,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 - Consumes: fonctions de la tâche 1 ; `mesh`, `at`, `plaque`, `curved` de `world.js` ; `pets.charlie.body`.
 - Produces: `makeFeteScene({scene, world, active})` → `{ setBougies(n), confettis(n), update(dt,time) }` ; `chapeauCharlie(body)` ; `GATEAU = {x:4.6, z:2.4}` ; `G.fete = { on, reussir(id), souffler(), basculer() }` ; interactable `kind: 'gateau'`.
 
-- [ ] **Step 1:** Créer `js/fete-scene.js` :
+- [x] **Step 1:** Créer `js/fete-scene.js` :
 
 ```js
 // Fête de Camille : décor 3D de la place (guirlande, table, gâteau à 13 bougies, bannière), confettis bornés et chapeau de Charlie.
@@ -340,7 +340,7 @@ export function chapeauCharlie(body) {
 }
 ```
 
-- [ ] **Step 2:** Éditer `main.js` (script exact, assertions d’unicité) :
+- [x] **Step 2:** Éditer `main.js` (script exact, assertions d’unicité) :
 
 ```python
 # main.js : activation au chargement, décor, gâteau, chapeau, confettis, encart de débug
@@ -385,7 +385,7 @@ requestAnimationFrame(frame);""")
 open(p,'w').write(s)
 ```
 
-- [ ] **Step 3:** Ajouter à `style.css` :
+- [x] **Step 3:** Ajouter à `style.css` :
 
 ```css
 
@@ -395,8 +395,8 @@ open(p,'w').write(s)
 #fete-debug { position: fixed; left: 8px; bottom: 8px; z-index: 60; background: rgba(20, 20, 30, .78); color: #fff; font: 700 12px/1.3 ui-monospace, monospace; padding: 4px 8px; border-radius: 8px; pointer-events: none; }
 ```
 
-- [ ] **Step 4:** `node --check js/fete-scene.js && node --check js/main.js && node tools/importmap.mjs && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1` → tout PASS.
-- [ ] **Step 5: Commit** — `git commit -am "feat(fete): décor de la place, gâteau à 13 bougies, chapeau de Charlie, confettis bornés" ` (avec `git add js/fete-scene.js`).
+- [x] **Step 4:** `node --check js/fete-scene.js && node --check js/main.js && node tools/importmap.mjs && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1` → tout PASS.
+- [x] **Step 5: Commit** — `git commit -am "feat(fete): décor de la place, gâteau à 13 bougies, chapeau de Charlie, confettis bornés" ` (avec `git add js/fete-scene.js`).
 
 ### Task 4: Dialogues des défis, gâteau et carnet
 
@@ -404,7 +404,7 @@ open(p,'w').write(s)
 
 **Interfaces:** Consumes `G.fete`, `FETE.*` ; Produces `F.feteDefi(id)`, `F.feteGateau()`, `F.feteMessage()`.
 
-- [ ] **Step 1:** Éditer `flows.js` (script exact ; insère le bloc ci-dessous avant « Établi de Gaston ») :
+- [x] **Step 1:** Éditer `flows.js` (script exact ; insère le bloc ci-dessous avant « Établi de Gaston ») :
 
 ```python
 # flows.js : option « 🎂 Défi de fête », dialogues de défi et du gâteau, chapeau dans le carnet
@@ -473,17 +473,17 @@ Bloc inséré :
   };
 ```
 
-- [ ] **Step 2:** `node --check js/flows.js && node tools/importmap.mjs && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1` → PASS.
-- [ ] **Step 3: Commit** — `git commit -am "feat(fete): 3 défis sans pénalité, gâteau, message, chapeau au carnet"`
+- [x] **Step 2:** `node --check js/flows.js && node tools/importmap.mjs && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1` → PASS.
+- [x] **Step 3: Commit** — `git commit -am "feat(fete): 3 défis sans pénalité, gâteau, message, chapeau au carnet"`
 
 ### Task 5: Docs, aperçu et liste de QA
 
 **Files:** Modify `README.md`, `GAME.md`, ce plan (cases cochées).
 
-- [ ] **Step 1:** Ajouter une section « Fête de Camille (13 ans) » dans `GAME.md` (activation, défis, sauvegarde, chapeau, ce qui n’est pas encore vérifié) et une ligne dans `README.md` (tests Node, `tools/importmap.mjs` à relancer après chaque modification de JS/CSS).
-- [ ] **Step 2:** `node tools/importmap.mjs --check && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1`.
-- [ ] **Step 3:** Lancer l’aperçu : `node tools/serve.js` sur un port libre, noter le PID.
-- [ ] **Step 4: Commit** — `git commit -am "docs(fete): GAME, README, plan coché"`
+- [x] **Step 1:** Ajouter une section « Fête de Camille (13 ans) » dans `GAME.md` (activation, défis, sauvegarde, chapeau, ce qui n’est pas encore vérifié) et une ligne dans `README.md` (tests Node, `tools/importmap.mjs` à relancer après chaque modification de JS/CSS).
+- [x] **Step 2:** `node tools/importmap.mjs --check && node tools/test-fete.mjs && node tools/test-math.mjs | tail -1`.
+- [x] **Step 3:** Lancer l’aperçu : `node tools/serve.js` sur un port libre, noter le PID.
+- [x] **Step 4: Commit** — `git commit -am "docs(fete): GAME, README, plan coché"`
 
 ## Self-review
 - Couverture de la spec : activation (T1, T3), décor sans obstacle (T3, QA), 3 défis + aide sans pénalité hors stats (T1, T4), souffle/confettis/message/chapeau (T3, T4), sauvegarde et règles (T1), chapeau hors date et carnet (T3, T4), tests (T1, T2), perf/débug (T3), déploiement (hors plan : PR après revue).
