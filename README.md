@@ -36,6 +36,7 @@ Paramètres d’URL utiles :
 ```bash
 node tools/test-fete.mjs        # fête de Camille : activation (heure de Toronto, ?fete=camille13), 3 défis, sauvegarde fete13 (règles, v1→v5), carte d’import à jour
 node tools/test-fete-ui.mjs     # parcours réels de flows.js/ui.js dans un DOM simulé (tools/fakedom.mjs) : clavier physique (5, 9/13, 52 + Entrée ; aide après 3 erreurs par Tab puis Entrée ou Espace ; Tab/Maj+Tab jusqu’à ✕), pavé, Échap, Continuer jamais masqué, bouton focalisé, gâteau, case du chapeau (Espace/Entrée, focus). Pas de rendu, de CSS ni de navigateur.
+node tools/test-fete-flammes.mjs # flammes du gâteau : vrai three.js + makeFeteScene, test de visibilité du rendu après 0→5→9→13, 4→9→13, 13, souffle, reprise (pas de rendu réel)
 node tools/importmap.mjs        # à relancer après toute modification d’un .js ou de style.css (versionne chaque module pour le cache de GitHub Pages ; --check pour vérifier)
 node tools/test-math.mjs        # 139 815 (au 2026-11-08) ; avant : 139 795 vérifications : générateurs Sec 1 et Sec 2 (200 graines chacun, oracles indépendants), vérificateur (π compris), progression, niveau 4, traversier, phare, kiosque, sauvegardes v1/v2/v3→v4, statistiques et choix adaptatif (6 000 tirages), leçons (34 fiches, exemples recalculés)
 node tools/serve.js 8653 &
