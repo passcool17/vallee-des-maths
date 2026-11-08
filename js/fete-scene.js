@@ -26,6 +26,9 @@ export function makeFeteScene({ scene, world, active }) {
       m4.makeTranslation(x, 1.07, z); candles.setMatrixAt(i, m4); candles.setColorAt(i, col.set(pal[i % 4]));
       m4.makeTranslation(x, 1.18, z); flames.setMatrixAt(i, m4);
     }
+    // Sans tri par visibilité : three r170 calcule la sphère englobante d’une maille instanciée une seule fois, avec les instances
+    // affichées à ce moment-là (0 au départ → sphère vide → flammes jamais redessinées). 13 petits cônes : coût négligeable.
+    flames.frustumCulled = false;
     flames.count = 0; root.add(candles, flames);
     // Deux poteaux et une guirlande de 13 fanions
     const p1 = [cx - 2.2, cz - 1.2], p2 = [cx + 2.2, cz - 1.2];
