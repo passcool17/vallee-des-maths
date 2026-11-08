@@ -11,6 +11,7 @@ import { NOMS, EMOJI } from './villagers.js';
 import { logAnswer, weakList, successRate } from './adapt.js';
 import { leconOf } from './lecons.js';
 import { FETCH_MAX, COLLIERS } from './animaux.js';
+import * as FETE from './fete.js';
 import { NIVEAUX, loot, timeFor, makeTimer, canKiosk, kioskExercise, kioskDone } from './actionq.js';
 
 export const ITEMS = {
@@ -119,10 +120,58 @@ export function makeFlows(G) {
     if (v.id === 'hortense') opts.push(['📖 Une leçon', () => F.lecons(1)]);
     if (v.id === 'rosalie') { opts.push(['🔧 Mon atelier (niveau 4)', () => F.workbench(2)]); opts.push([st.phare.done ? '🗼 Voir le phare' : '🗼 Réparer le phare', () => F.phare()]); opts.push(['⭐ Défi de secondaire 2', () => F.defi(undefined, 2)]); opts.push(['📖 Les notes d’Hortense', () => F.lecons(2)]); }
     if (v.id === 'bernard') { opts.push(['🎲 Piger au kiosque', () => F.kiosk()]); opts.push([`🪱 Mes appâts rares : ${st.appats}`, () => F.kiosk()]); }
+    if (G.fete?.on && st.island !== 2 && FETE.DEFI_IDS.includes(v.id) && !st.fete13?.defis?.[v.id]) opts.unshift(['🎂 Défi de fête', () => F.feteDefi(v.id)]);
     opts.push(['👋 À plus tard!', () => ui.close()]);
     open(h('div', { class: 'dialog' },
       h('div', { class: 'who' }, face(v.id), h('div', {}, h('b', {}, NOMS[v.id]), h('p', { class: 'line' }, line))),
       h('div', { class: 'choices' }, opts.map(([t, f], i) => h('button', { class: `btn ${i === 0 ? 'primary' : ''}`, onclick: () => { click(); f(); } }, t)))), { cls: 'talk' });
+  };
+
+  // ---------- Fête de Camille (13 ans) : 3 petits défis, sans chrono, sans pénalité, hors statistiques
+  F.feteDefi = (id) => {
+    const st = S(), d = FETE.defiDe(id); if (!d || !G.fete) return;
+    let erreurs = 0, fini = false;
+    const fb = h('div', { class: 'feedback', role: 'status' }), aide = h('div', { class: 'hints' });
+    const prog = () => h('div', { class: 'prog fete' }, `🎂 Bougies allumées : ${FETE.bougies(st.fete13)} sur 13`);
+    const progEl = h('div', {}, prog());
+    const voir = h('button', { class: 'btn small hidden', onclick: () => { click(); gagne(true); } }, 'Voir la réponse');
+    const fin = h('button', { class: 'btn primary hidden', onclick: () => { click(); ui.close(); } }, 'Continuer');
+    const ex = { answer: { kind: 'num', fields: [{ label: 'Réponse' }] } };
+    function gagne(vue) {
+      if (fini) return; fini = true;
+      G.fete.reussir(id); audio.sfx('ok');
+      fb.className = vue ? 'feedback info' : 'feedback ok';
+      fb.replaceChildren(h('b', {}, vue ? 'La réponse : ' : 'Bravo! '), d.explication, h('p', { class: 'benefit' }, `🕯️ ${d.bougies} bougies de plus sur le gâteau!`));
+      progEl.replaceChildren(prog()); box.el.classList.add('hidden'); voir.classList.add('hidden'); fin.classList.remove('hidden');
+      keyHandler = e => { if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') { fin.click(); return true; } return false; };
+      if (FETE.pretASouffler(st.fete13)) ui.toast('🎂 Les 13 bougies sont allumées! Va souffler au gâteau, sur la place.', 'gold');
+    }
+    const box = answerBox(ex, vals => {
+      if (fini) return; const v = String(vals[0] || '').trim();
+      if (!v) { fb.className = 'feedback info'; fb.textContent = 'Écris une réponse.'; return; }
+      if (FETE.verifier(id, v)) return gagne(false);
+      erreurs++; audio.sfx('near'); const etape = FETE.etapeErreur(erreurs);
+      fb.className = 'feedback near'; fb.textContent = FETE.ENCOURAGE;
+      if (etape !== 'encore' && !aide.childElementCount) aide.append(h('p', { class: 'hintline' }, h('b', {}, 'Indice : '), d.indice));
+      if (etape === 'reponse') voir.classList.remove('hidden');
+      box.clear();
+    });
+    open(h('div', { class: 'exercise fete' },
+      h('div', { class: 'who' }, face(id), h('div', {}, h('b', {}, `${NOMS[id]} · 🎂 Défi de fête`), h('p', { class: 'line' }, d.q))),
+      progEl, box.el, fb, aide, h('div', { class: 'row' }, voir, fin)), { cls: 'talk' });
+  };
+  F.feteGateau = () => {
+    const st = S(); if (!G.fete) return;
+    const f = st.fete13, n = FETE.bougies(f);
+    if (FETE.pretASouffler(f)) { G.fete.souffler(); return F.feteMessage(); }
+    if (f.souffle) return F.feteMessage();
+    const reste = FETE.DEFIS.filter(d => !f.defis[d.id]).map(d => `${NOMS[d.id].split(' ')[0]} (${d.bougies})`).join(', ');
+    open(h('div', { class: 'dialog' }, h('div', { class: 'who' }, h('div', { class: 'face' }, '🎂'), h('div', {}, h('b', {}, 'Le gâteau de fête'), h('p', { class: 'line' }, `${n} bougie${n > 1 ? 's' : ''} sur 13. Pour allumer les autres, va voir : ${reste}.`))),
+      h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); ui.close(); } }, 'D’accord'))), { cls: 'talk' });
+  };
+  F.feteMessage = () => {
+    open(h('div', { class: 'dialog fete-fin' }, h('div', { class: 'who' }, h('div', { class: 'face' }, '🎉'), h('div', {}, h('b', {}, '13 ans!'), h('p', { class: 'line fete-msg' }, FETE.MESSAGE))),
+      h('div', { class: 'choices' }, h('button', { class: 'btn primary', onclick: () => { click(); ui.close(); } }, 'Merci!'))), { cls: 'talk' });
   };
 
   // ---------- Établi de Gaston
@@ -445,7 +494,9 @@ export function makeFlows(G) {
     return h('section', { class: 'animaux' }, h('h4', {}, '🐾 Animaux'),
       h('p', { class: 'journal' }, `🐶 Charlie a rapporté ${Math.min(a.fetchN, FETCH_MAX)}/${FETCH_MAX} trouvailles aujourd’hui · 🏅 ${a.total} quête${a.total > 1 ? 's' : ''} réussie${a.total > 1 ? 's' : ''}`),
       list.map(q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? `En cours — ${q.indice}` : q.etat === 'faite' ? 'Réussie aujourd’hui' : 'Demande à Thérèse')), h('span', { class: `lv ${q.etat === 'faite' ? 'm' : q.etat === 'active' ? 'a' : 'd'}` }, q.etat === 'faite' ? 'Faite' : q.etat === 'active' ? 'En cours' : 'Libre'))),
-      h('div', { class: 'ctools' }, a.colliers.map(c => h('span', { class: `chip collier${a.collier === c ? ' on' : ''}`, 'data-c': c, title: 'Mettre ce collier à Charlie', onclick: () => { click(); C.wear(c); F.carnet(F.carnetTab); } }, h('i', { style: `display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${COLLIERS[c][0]};margin-right:4px` }), COLLIERS[c][1])))); };
+      h('div', { class: 'ctools' }, a.colliers.map(c => h('span', { class: `chip collier${a.collier === c ? ' on' : ''}`, 'data-c': c, title: 'Mettre ce collier à Charlie', onclick: () => { click(); C.wear(c); F.carnet(F.carnetTab); } }, h('i', { style: `display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${COLLIERS[c][0]};margin-right:4px` }), COLLIERS[c][1]))),
+      st.fete13?.chapeau ? h('div', { class: 'ctools' }, h('span', { class: `chip collier chapeau${st.fete13.porte ? ' on' : ''}`, role: 'checkbox', 'aria-checked': st.fete13.porte ? 'true' : 'false', tabindex: '0', title: 'Mettre ou enlever le chapeau de Charlie',
+        onclick: () => { click(); G.fete.basculer(); F.carnet(F.carnetTab); } }, st.fete13.porte ? '🎉 Chapeau de fête de Charlie : porté' : '🎉 Chapeau de fête de Charlie : enlevé')) : null); };
   F.carnet = (tab) => {
     const st = S(); const j = st.journal;
     const max = canFerry(st) ? 4 : 3;
