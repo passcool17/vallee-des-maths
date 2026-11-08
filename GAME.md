@@ -221,10 +221,11 @@ Le rendu vise un look doux et rond, tout en code original (`js/joli.js`), sans p
   - Hortense : 13 × 4 = **52** fanions (4 bougies).
   Pas de chrono, pas d’argent, et rien ne compte dans le carnet ni dans les questions adaptatives. Après une erreur : « Presque! Essaie encore. » ; à la 2e, un indice ; à partir de la 3e, « Voir la réponse » allume quand même les bougies.
 - **Le gâteau :** E (ou un tap) montre les bougies qui restent. Une fois les 13 allumées, E souffle : confettis (150 au plus, moins sur un appareil lent, aucun si l’appareil demande moins d’animations), puis le message « Bonne fête Camille! 13 ans, 13 bougies : bravo! Charlie a un cadeau pour toi. »
-- **Le chapeau de Charlie :** une fois gagné, il le garde pour toujours, même après la fête. Le carnet, section 🐾, permet de l’enlever ou de le remettre.
+- **Le chapeau de Charlie :** une fois gagné, il le garde pour toujours, même après la fête. Le carnet, section 🐾, a une vraie case à cocher pour l’enlever ou le remettre (Espace ou Entrée ; le focus reste sur la case).
+- **Clavier :** dans un défi, on tape la réponse (chiffres, `/`) puis Entrée ; Entrée sur « Continuer » ferme ; Échap annule. Partout dans les panneaux, Entrée ou Espace active le bouton qui a le focus (Tab), sinon le premier bouton principal visible, jamais un bouton masqué.
 - **Sauvegarde :** le champ optionnel `fete13` (`defis` gaston/therese/hortense, `souffle`, `chapeau`, `porte`). La clé et la version (5) ne changent pas. Règles : une valeur invalide revient au défaut ; on ne peut pas avoir soufflé sans les 3 défis ; avoir soufflé donne le chapeau ; sans chapeau, il n’est pas porté.
 - **Mesure :** `?fete=camille13&debug=1` affiche en bas à gauche les i/s, les appels de dessin et le palier de qualité.
-- **Pas encore vérifié** (au 2026-11-08) : rendu et jouabilité dans un navigateur (ordinateur, 390 px, 360 px), placement du décor par rapport aux chemins, coût réel en appels de dessin et i/s sur S20. Les tests Playwright (`tools/*.cjs`) n’ont pas été lancés pour cette fonction.
+- **Pas encore vérifié** (au 2026-11-08) : rendu et jouabilité dans un navigateur (ordinateur, 390 px, 360 px), placement du décor par rapport aux chemins, coût réel en appels de dessin et i/s sur S20. Les tests Playwright (`tools/*.cjs`) n’ont pas été lancés pour cette fonction. `tools/test-fete-ui.mjs` exécute les vrais flux dans un DOM simulé, sans rendu, sans CSS et sans navigateur.
 
 ## État et sauvegarde
 

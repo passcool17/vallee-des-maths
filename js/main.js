@@ -18,7 +18,7 @@ import { rareBiteChance, pickQuestion, MAPLE_CHANCE, BERRY_CHANCE, useBait, COMM
 import { SELL } from './shop.js';
 import { load, save, reset, newState } from './save.js';
 import { makeRng } from './math/rng.js';
-import { feteActive, normFete, reussir, souffler, basculerChapeau, bougies, pretASouffler, nbConfettis, FETE_PARAM } from './fete.js';
+import { feteActive, normFete, bougies, pretASouffler, nbConfettis, makeFeteControl, FETE_PARAM } from './fete.js';
 import { makeFeteScene, chapeauCharlie, GATEAU } from './fete-scene.js';
 
 const params = new URLSearchParams(location.search);
@@ -85,12 +85,7 @@ function syncFete() {
   const f = state.fete13; feteScene.setBougies(f.souffle ? 0 : bougies(f)); chapeau.visible = f.chapeau && f.porte;
   if (gateauIt) gateauIt.label = pretASouffler(f) ? 'Souffler les bougies 🎂' : f.souffle ? 'Relire le message 🎉' : 'Voir le gâteau 🎂';
 }
-G.fete = {
-  on: feteOn,
-  reussir(id) { state.fete13 = reussir(state.fete13, id); syncFete(); G.save(); },
-  souffler() { if (!pretASouffler(state.fete13)) return false; state.fete13 = souffler(state.fete13); feteScene.confettis(nbConfettis(J.quality().level, reduceMotion)); audio.sfx('ok'); syncFete(); G.save(); return true; },
-  basculer() { state.fete13 = basculerChapeau(state.fete13); syncFete(); G.save(); },
-};
+G.fete = makeFeteControl({ on: feteOn, getState: () => state, save: () => G.save(), sync: syncFete, confettis: () => { feteScene.confettis(nbConfettis(J.quality().level, reduceMotion)); audio.sfx('ok'); } });
 syncFete();
 const flows = makeFlows(G); G.flows = flows;
 const walkableFn = (x, z) => W().walkable(x, z, state) && !villagers.some(v => Math.hypot(x - v.pos.x, z - v.pos.z) < 0.75);

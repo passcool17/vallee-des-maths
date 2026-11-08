@@ -60,3 +60,12 @@ export function basculerChapeau(f) { const n = normFete(f); if (n.chapeau) n.por
 // Confettis : bornés, réduits selon le palier de qualité adaptative (0 = plein … 5 = le plus léger), aucun si mouvement réduit
 export const CONFETTI_MAX = 150;
 export function nbConfettis(level = 0, reduceMotion = false) { if (reduceMotion) return 0; return [150, 150, 100, 100, 60, 60][Math.max(0, Math.min(5, level | 0))]; }
+// Contrôleur partagé par main.js (et les tests d’interface) : modifie G.state.fete13, puis resynchronise la scène et sauvegarde
+export function makeFeteControl({ on, getState, save, sync, confettis }) {
+  return {
+    on,
+    reussir(id) { const s = getState(); s.fete13 = reussir(s.fete13, id); sync(); save(); },
+    souffler() { const s = getState(); if (!pretASouffler(normFete(s.fete13))) return false; s.fete13 = souffler(s.fete13); confettis(); sync(); save(); return true; },
+    basculer() { const s = getState(); s.fete13 = basculerChapeau(s.fete13); sync(); save(); },
+  };
+}

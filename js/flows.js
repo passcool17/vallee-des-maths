@@ -60,10 +60,15 @@ export function makeFlows(G) {
       if (ovl()) return true; // la question attend en dessous
       if (e.code === 'Escape') { ui.close(); return true; }
       if (keyHandler) return keyHandler(e);
-      if (e.code === 'Enter' || e.code === 'Space') { const b = document.querySelector('#panel .primary'); if (b) { b.click(); return true; } }
+      if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') {
+        const a = document.activeElement; if (a && a.tagName === 'BUTTON' && shown(a)) { a.click(); return true; } // le bouton focalisé (Tab) gagne
+        const b = [...document.querySelectorAll('#panel .primary')].find(shown); if (b) { b.click(); return true; } // jamais un bouton masqué
+      }
       return false;
     },
   };
+  // Visible dans le panneau : connecté, sous #panel, sans parent « hidden »
+  const shown = el => { let inPanel = false; for (let n = el; n && n.classList; n = n.parentNode) { if (n.classList.contains('hidden')) return false; if (n.id === 'panel') inPanel = true; } return inPanel && el.isConnected; };
   // La fiche disparaît avec le panneau (fermeture ✕, fin du chrono…) : on ne garde jamais une référence orpheline
   const ovl = () => (F.overlay && !F.overlay.el.isConnected ? (F.overlay = null) : F.overlay);
   const dropOverlay = () => { if (F.overlay) { F.overlay.el.remove(); F.overlay = null; } };
@@ -146,6 +151,10 @@ export function makeFlows(G) {
       keyHandler = e => { if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') { fin.click(); return true; } return false; };
       if (FETE.pretASouffler(st.fete13)) ui.toast('🎂 Les 13 bougies sont allumées! Va souffler au gâteau, sur la place.', 'gold');
     }
+    const slot = h('div', { class: 'fete-reponse' });
+    open(h('div', { class: 'exercise fete' },
+      h('div', { class: 'who' }, face(id), h('div', {}, h('b', {}, `${NOMS[id]} · 🎂 Défi de fête`), h('p', { class: 'line' }, d.q))),
+      progEl, slot, fb, aide, h('div', { class: 'row' }, voir, fin)), { cls: 'talk' });
     const box = answerBox(ex, vals => {
       if (fini) return; const v = String(vals[0] || '').trim();
       if (!v) { fb.className = 'feedback info'; fb.textContent = 'Écris une réponse.'; return; }
@@ -156,9 +165,7 @@ export function makeFlows(G) {
       if (etape === 'reponse') voir.classList.remove('hidden');
       box.clear();
     });
-    open(h('div', { class: 'exercise fete' },
-      h('div', { class: 'who' }, face(id), h('div', {}, h('b', {}, `${NOMS[id]} · 🎂 Défi de fête`), h('p', { class: 'line' }, d.q))),
-      progEl, box.el, fb, aide, h('div', { class: 'row' }, voir, fin)), { cls: 'talk' });
+    slot.append(box.el);
   };
   F.feteGateau = () => {
     const st = S(); if (!G.fete) return;
@@ -495,8 +502,10 @@ export function makeFlows(G) {
       h('p', { class: 'journal' }, `🐶 Charlie a rapporté ${Math.min(a.fetchN, FETCH_MAX)}/${FETCH_MAX} trouvailles aujourd’hui · 🏅 ${a.total} quête${a.total > 1 ? 's' : ''} réussie${a.total > 1 ? 's' : ''}`),
       list.map(q => h('div', { class: 'qrow', 'data-q': q.id }, h('div', {}, h('b', {}, `${q.emoji} ${q.nom}`), h('p', {}, q.etat === 'active' ? `En cours — ${q.indice}` : q.etat === 'faite' ? 'Réussie aujourd’hui' : 'Demande à Thérèse')), h('span', { class: `lv ${q.etat === 'faite' ? 'm' : q.etat === 'active' ? 'a' : 'd'}` }, q.etat === 'faite' ? 'Faite' : q.etat === 'active' ? 'En cours' : 'Libre'))),
       h('div', { class: 'ctools' }, a.colliers.map(c => h('span', { class: `chip collier${a.collier === c ? ' on' : ''}`, 'data-c': c, title: 'Mettre ce collier à Charlie', onclick: () => { click(); C.wear(c); F.carnet(F.carnetTab); } }, h('i', { style: `display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${COLLIERS[c][0]};margin-right:4px` }), COLLIERS[c][1]))),
-      st.fete13?.chapeau ? h('div', { class: 'ctools' }, h('span', { class: `chip collier chapeau${st.fete13.porte ? ' on' : ''}`, role: 'checkbox', 'aria-checked': st.fete13.porte ? 'true' : 'false', tabindex: '0', title: 'Mettre ou enlever le chapeau de Charlie',
-        onclick: () => { click(); G.fete.basculer(); F.carnet(F.carnetTab); } }, st.fete13.porte ? '🎉 Chapeau de fête de Charlie : porté' : '🎉 Chapeau de fête de Charlie : enlevé')) : null); };
+      st.fete13?.chapeau ? h('label', { class: `chip collier chapeau${st.fete13.porte ? ' on' : ''}`, title: 'Mettre ou enlever le chapeau de Charlie' },
+        h('input', { type: 'checkbox', 'data-chapeau': '1', checked: !!st.fete13.porte, onchange: () => { click(); G.fete.basculer(); F.carnet(F.carnetTab); document.querySelector('#panel input[data-chapeau]')?.focus(); },
+          onkeydown: e => { if (e.code === 'Enter' || e.code === 'NumpadEnter') { e.preventDefault(); e.target.click(); } else if (e.code === 'Escape') { e.preventDefault(); ui.close(); } } }),
+        ' 🎉 Chapeau de fête de Charlie') : null); };
   F.carnet = (tab) => {
     const st = S(); const j = st.journal;
     const max = canFerry(st) ? 4 : 3;
