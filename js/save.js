@@ -1,4 +1,5 @@
 import { animauxDefaut, normAnimaux } from './animaux.js';
+import { feteDefaut, normFete } from './fete.js';
 // Sauvegarde locale (localStorage), avec valeurs par défaut pour les vieilles sauvegardes.
 export const KEY = 'vdm.save.v1';
 export function newState(seed = (Math.random() * 1e9) | 0) {
@@ -13,6 +14,8 @@ export function newState(seed = (Math.random() * 1e9) | 0) {
     // v4 : statistiques par compétence pour le carnet et les questions adaptatives ; dernières compétences pigées
     stats: {}, recentQ: [], animaux: animauxDefaut(),
     rods: { petite: true, moyenne: false, grosse: false },
+    // Fête de Camille (13 ans) : défis, bougies soufflées, chapeau de Charlie — champ optionnel, même version
+    fete13: feteDefaut(),
   };
 }
 const store = () => { try { return globalThis.localStorage || null; } catch { return null; } };
@@ -39,7 +42,7 @@ export function normalize(raw, seed) {
         moyenne: !!r.moyenne,
         grosse: !!r.grosse,
       };
-    })() };
+    })(), fete13: normFete(raw.fete13) };
 }
 // Ancien id « ginette » → « therese » (compteur de dialogues) ; ne casse pas les parties en cours.
 function migrateMet(met) {
